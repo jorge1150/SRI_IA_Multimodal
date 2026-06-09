@@ -1,0 +1,57 @@
+SERVICIO DE RENTAS INTERNAS — GUÍA TRIBUTARIA
+DECLARACIÓN DEL IMPUESTO AL VALOR AGREGADO (IVA)
+Formulario 104 — Personas Naturales No Obligadas a Llevar Contabilidad
+Formulario 104A — Personas Naturales y Sociedades
+
+CAPÍTULO 1: QUIÉNES DEBEN DECLARAR EL IVA
+
+Los sujetos pasivos del IVA deben presentar declaraciones mensuales (o semestrales para agentes de percepción con tarifa 0%) sobre las operaciones realizadas. Están obligados a declarar: personas naturales con RUC activo que realizan actividades comerciales, profesionales independientes, y todas las sociedades.
+
+Los contribuyentes del RISE no presentan declaración de IVA — su cuota mensual los libera de esta obligación.
+
+CAPÍTULO 2: PLAZOS PARA DECLARAR
+
+Las fechas límite para presentar la declaración mensual del IVA dependen del noveno dígito del RUC:
+- Dígito 1: hasta el 10 del mes siguiente
+- Dígito 2: hasta el 12 del mes siguiente
+- Dígito 3: hasta el 14 del mes siguiente
+- Dígito 4: hasta el 16 del mes siguiente
+- Dígito 5: hasta el 18 del mes siguiente
+- Dígito 6: hasta el 20 del mes siguiente
+- Dígito 7: hasta el 22 del mes siguiente
+- Dígito 8: hasta el 24 del mes siguiente
+- Dígito 9: hasta el 26 del mes siguiente
+- Dígito 0: hasta el 28 del mes siguiente
+
+CAPÍTULO 3: CÓMO CALCULAR EL IVA A PAGAR
+
+IVA Cobrado = Total de ventas gravadas con tarifa 15% × 15%
+IVA Pagado (Crédito Tributario) = Total de compras grabadas con tarifa 15% × 15%
+IVA a Pagar = IVA Cobrado - IVA Pagado (Crédito Tributario)
+
+Si el IVA Pagado supera al IVA Cobrado, se genera un crédito tributario que puede utilizarse en el mes siguiente.
+
+CAPÍTULO 4: CÓMO PRESENTAR LA DECLARACIÓN
+
+Paso 1: Acceder al portal de declaraciones del SRI en www.sri.gob.ec con su usuario y contraseña.
+Paso 2: Seleccionar "Declaraciones" en el menú principal.
+Paso 3: Elegir el Formulario 104 o 104A según corresponda.
+Paso 4: Ingresar los datos del período a declarar (mes y año).
+Paso 5: Completar las casillas con los valores de ventas, compras y retenciones del mes.
+Paso 6: Verificar los cálculos automáticos del sistema.
+Paso 7: Si hay valor a pagar, proceder al débito automático o pago en entidad financiera.
+Paso 8: Guardar el comprobante de declaración (PDF).
+
+CAPÍTULO 5: SANCIONES POR NO DECLARAR O DECLARAR TARDE
+
+Declaración tardía: multa equivalente al 3% del impuesto causado por mes o fracción de mes de retraso, más intereses. La multa no puede superar el 100% del impuesto causado.
+
+Si no hay impuesto causado: multa mínima de USD 51,25 para personas naturales no obligadas a llevar contabilidad o USD 102,50 para obligadas.
+
+No presentar declaración: además de las sanciones anteriores, el contribuyente puede ser clausurado.
+
+CAPÍTULO 6: RETENCIONES DE IVA
+
+Agentes de retención: las sociedades y personas naturales obligadas a llevar contabilidad que adquieran bienes o servicios de personas naturales no obligadas a llevar contabilidad deben retener el 30% del IVA en compras de bienes y el 70% en compras de servicios.
+
+Las entidades del sector público retienen el 100% del IVA.

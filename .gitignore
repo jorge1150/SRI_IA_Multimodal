@@ -1,0 +1,25 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Base vectorial (generada localmente)
+vector_db/
+
+# Modelos Piper TTS (descargados localmente)
+audio/piper_models/*.onnx
+audio/piper_models/*.json
+
+# Archivos temporales
+temp/
+outputs/respuestas_audio/
+
+# Logs de sesión
+outputs/logs/*.log
+
+# Variables de entorno
+.env
+
+# Modelos HuggingFace en caché
+.cache/

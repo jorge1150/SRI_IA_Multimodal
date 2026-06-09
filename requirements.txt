@@ -1,0 +1,81 @@
+# ══════════════════════════════════════════════════════════════
+# SRI IA Multimodal — Requirements
+# Asistente RAG Multimodal para Normativa Tributaria SRI Ecuador
+# Probado en: macOS Intel x86_64 · Python 3.12
+#
+# Instalación automática: bash setup.sh
+# Manual: pip install -r requirements.txt
+# ══════════════════════════════════════════════════════════════
+
+# ── PyTorch (CPU / MPS Apple Silicon) ────────────────────────
+# 2.2.x: última versión con wheel para macOS Intel x86_64 + Python 3.12
+torch==2.2.2
+torchvision==0.17.2
+
+# numpy<2: requerido — torch 2.2 compilado con NumPy 1.x
+numpy<2
+
+# ── STT — faster-whisper ──────────────────────────────────────
+faster-whisper>=1.0.0
+
+# ── Embeddings — OpenCLIP ViT-B-32 ───────────────────────────
+open_clip_torch>=2.24.0
+
+# ── Base vectorial local ──────────────────────────────────────
+chromadb>=0.5.0
+
+# ── Procesamiento de documentos ───────────────────────────────
+# PDF con número de página (PyMuPDF)
+pymupdf>=1.23.0
+# DOCX
+python-docx>=1.1.0
+
+# ── Audio ─────────────────────────────────────────────────────
+sounddevice>=0.4.6
+scipy>=1.11.0
+
+# ── Imagen / Video ────────────────────────────────────────────
+Pillow>=10.0.0
+opencv-python==4.8.1.78
+
+# ── TTS — Piper en español ────────────────────────────────────
+piper-tts>=1.4.0
+
+# ── Interfaz web ──────────────────────────────────────────────
+gradio==6.16.0
+
+# ── HTTP / Ollama ─────────────────────────────────────────────
+requests>=2.31.0
+
+# ── Utilidades ────────────────────────────────────────────────
+python-dotenv>=1.0.0
+
+# ══════════════════════════════════════════════════════════════
+# PASOS DE INSTALACIÓN (orden importante):
+#
+# 1. Crear entorno con Python 3.12:
+#      /usr/local/bin/python3.12 -m venv venv
+#      source venv/bin/activate
+#
+# 2. PortAudio (solo macOS, una sola vez):
+#      brew install portaudio
+#
+# 3. Instalar dependencias:
+#      pip install -r requirements.txt
+#
+# 4. Instalar Ollama y modelos LLM:
+#      brew install ollama
+#      ollama serve           ← en otra terminal
+#      ollama pull tinyllama
+#      ollama pull moondream
+#
+# 5. Descargar modelo Piper TTS en español:
+#      python audio/download_piper.py
+#
+# 6. Cargar documentos SRI en data/ y construir base vectorial:
+#      (Copiar PDFs/TXTs del SRI en data/normativas_sri/, data/resoluciones/, etc.)
+#      python rag/build_db.py
+#
+# 7. Lanzar sistema:
+#      python app.py           ← http://localhost:7865
+# ══════════════════════════════════════════════════════════════
