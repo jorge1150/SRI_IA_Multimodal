@@ -195,13 +195,13 @@ def build_interface(coordinator) -> gr.Blocks:
                 Servicio de Rentas Internas del Ecuador
             </p>
             <div class="tech-chips" role="list" aria-label="Tecnologías del sistema">
-                <span class="chip" role="listitem">RAG Multimodal</span>
+                <span class="chip chip-hybrid" role="listitem">RAG + GraphRAG Híbrido</span>
                 <span class="chip" role="listitem">Ollama &middot; TinyLlama</span>
-                <span class="chip" role="listitem">ChromaDB</span>
+                <span class="chip" role="listitem">ChromaDB &middot; OpenCLIP</span>
+                <span class="chip chip-graph" role="listitem">NetworkX &middot; Grafo</span>
                 <span class="chip" role="listitem">Whisper STT</span>
                 <span class="chip" role="listitem">Piper TTS</span>
                 <span class="chip" role="listitem">Moondream Vision</span>
-                <span class="chip" role="listitem">OpenCLIP</span>
             </div>
             <p class="institution">
                 Maestría en Inteligencia Artificial Aplicada &nbsp;&middot;&nbsp; UIsrael
@@ -340,7 +340,7 @@ def build_interface(coordinator) -> gr.Blocks:
                 <div class="logs-wrap" role="region" aria-label="Trazabilidad del proceso">
                     <div class="logs-header">
                         <div class="logs-title">
-                            Trazabilidad del Proceso RAG
+                            Trazabilidad &mdash; Pipeline RAG + GraphRAG H&iacute;brido
                         </div>
                     </div>
                     <div class="logs-pipeline" role="list" aria-label="Etapas del pipeline">
@@ -350,9 +350,11 @@ def build_interface(coordinator) -> gr.Blocks:
                         <span class="arrow" aria-hidden="true">&#8594;</span>
                         <span class="pipeline-step" role="listitem">VISION</span>
                         <span class="arrow" aria-hidden="true">&#8594;</span>
-                        <span class="pipeline-step" role="listitem">RAG</span>
+                        <span class="pipeline-step pipeline-step-hybrid" role="listitem">RAG Vector</span>
+                        <span class="arrow" aria-hidden="true">&#8214;</span>
+                        <span class="pipeline-step pipeline-step-graph" role="listitem">GRAPH</span>
                         <span class="arrow" aria-hidden="true">&#8594;</span>
-                        <span class="pipeline-step" role="listitem">NORMATIVA</span>
+                        <span class="pipeline-step pipeline-step-hybrid" role="listitem">HYBRID</span>
                         <span class="arrow" aria-hidden="true">&#8594;</span>
                         <span class="pipeline-step" role="listitem">GENERANDO</span>
                         <span class="arrow" aria-hidden="true">&#8594;</span>
@@ -370,8 +372,9 @@ def build_interface(coordinator) -> gr.Blocks:
                         "[HH:MM:SS] [INICIO] Asistente SRI IA Multimodal iniciado.\n"
                         "[HH:MM:SS] [STT] Transcribiendo consulta de audio...\n"
                         "[HH:MM:SS] [VISION] Analizando imagen con Moondream...\n"
-                        "[HH:MM:SS] [RAG] Buscando normativa relacionada en ChromaDB...\n"
-                        "[HH:MM:SS] [NORMATIVA] Recuperando artículos relevantes...\n"
+                        "[HH:MM:SS] [RAG] Buscando normativa: vector + grafo híbrido...\n"
+                        "[HH:MM:SS] [RAG] ✓ N artículos relevantes [+grafo].\n"
+                        "[HH:MM:SS] [GRAPH] ✓ Entidades detectadas: IVA, RUC... | N triples.\n"
                         "[HH:MM:SS] [GENERANDO] Generando respuesta con TinyLlama...\n"
                         "[HH:MM:SS] [TTS] Sintetizando audio con Piper TTS...\n"
                         "[HH:MM:SS] [FIN] Consulta tributaria procesada correctamente."
@@ -430,7 +433,7 @@ def build_interface(coordinator) -> gr.Blocks:
 # ── Tabs auxiliares ───────────────────────────────────────────────────────────
 
 def _build_knowledge_tab():
-    import config, chromadb, glob, os
+    import config, chromadb, glob, os, json
 
     n_chunks = 0
     try:
@@ -439,6 +442,30 @@ def _build_knowledge_tab():
         n_chunks = col.count()
     except Exception:
         pass
+
+    # GraphRAG stats
+    g_nodes = g_edges = 0
+    g_enabled = getattr(config, 'GRAPH_ENABLED', False)
+    g_docs = 0
+    g_rel_types = {}
+    try:
+        gpath = getattr(config, 'GRAPH_DB_PATH', '')
+        if gpath and os.path.exists(gpath):
+            with open(gpath, encoding='utf-8') as f:
+                gdata = json.load(f)
+            meta = gdata.get('metadata', {})
+            g_nodes = meta.get('n_nodes', 0)
+            g_edges = meta.get('n_edges', 0)
+            g_docs  = meta.get('n_documents', 0)
+            # contar tipos de relación desde aristas
+            for e in gdata.get('edges', []):
+                for rel in e.get('relations', {}).keys():
+                    g_rel_types[rel] = g_rel_types.get(rel, 0) + 1
+    except Exception:
+        pass
+
+    graph_status_color = "#10b981" if g_nodes > 0 else ("#f59e0b" if g_enabled else "#ef4444")
+    graph_status_text  = f"{g_nodes} nodos" if g_nodes > 0 else ("Sin grafo" if g_enabled else "Desactivado")
 
     doc_counts = {}
     for data_dir in config.ALL_DATA_DIRS:
@@ -462,6 +489,13 @@ def _build_knowledge_tab():
         for tipo, count in doc_counts.items()
     )
 
+    rel_badges = "".join(
+        f'<span style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);'
+        f'border-radius:4px;padding:2px 8px;font-size:0.68rem;color:#fbbf24;white-space:nowrap">'
+        f'{rel} <span style="color:#8b9ab5">({cnt})</span></span> '
+        for rel, cnt in sorted(g_rel_types.items(), key=lambda x: -x[1])
+    ) if g_rel_types else '<span style="color:#64748b;font-size:0.78rem">Sin relaciones extraídas aún</span>'
+
     gr.HTML(f"""
     <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
 
@@ -476,12 +510,55 @@ def _build_knowledge_tab():
         </div>
         <div class="stat-card">
           <div class="stat-value" style="color:{status_color};font-size:1.2rem">{status_text}</div>
-          <div class="stat-label">Estado Base Vectorial</div>
+          <div class="stat-label">Base Vectorial RAG</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" style="font-size:1.2rem">4</div>
-          <div class="stat-label">Categorías Normativas</div>
+          <div class="stat-value" style="color:{graph_status_color};font-size:1.2rem">{graph_status_text}</div>
+          <div class="stat-label">Grafo GraphRAG</div>
         </div>
+      </div>
+
+      <!-- GraphRAG panel -->
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        Grafo de Conocimiento Tributario (GraphRAG)
+      </h3>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.6rem;color:#a78bfa">{g_nodes}</div>
+          <div class="stat-label">Entidades</div>
+        </div>
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.6rem;color:#a78bfa">{g_edges}</div>
+          <div class="stat-label">Relaciones</div>
+        </div>
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.6rem;color:#a78bfa">{len(g_rel_types)}</div>
+          <div class="stat-label">Tipos Relación</div>
+        </div>
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.1rem;color:{'#10b981' if g_enabled else '#ef4444'}">
+            {'ON' if g_enabled else 'OFF'}
+          </div>
+          <div class="stat-label">GRAPH_ENABLED</div>
+        </div>
+      </div>
+
+      <div class="info-card" style="margin-bottom:8px">
+        <strong style="color:#c4b5fd">Relaciones extraídas por tipo:</strong><br>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">{rel_badges}</div>
+      </div>
+
+      <div class="info-card gold" style="margin-bottom:16px">
+        <strong style="color:#e8edf5">Reconstruir grafo tras agregar documentos:</strong><br>
+        <code style="color:#fbbf24">python scripts/build_graph.py --reset</code>
+        &nbsp;&middot;&nbsp; Reconstruir desde cero<br>
+        <code style="color:#fbbf24">python scripts/build_graph.py --stats-only</code>
+        &nbsp;&middot;&nbsp; Ver estadísticas sin reconstruir<br>
+        <code style="color:#fbbf24">python scripts/build_graph.py --export-graphml</code>
+        &nbsp;&middot;&nbsp; Exportar a Gephi/Cytoscape
       </div>
 
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
@@ -524,11 +601,11 @@ def _build_knowledge_tab():
       </div>
 
       <div class="info-card gold" style="margin-top:8px">
-        <strong style="color:#e8edf5">Paso 2 &mdash; Reconstruir la base vectorial</strong><br>
-        <code style="color:#fbbf24">python rag/build_db.py</code> &nbsp;&middot;&nbsp;
-        Actualización incremental (no borra lo existente)<br>
-        <code style="color:#fbbf24">python rag/build_db.py --reset</code> &nbsp;&middot;&nbsp;
-        Reconstruir desde cero
+        <strong style="color:#e8edf5">Paso 2 &mdash; Reconstruir base vectorial + grafo</strong><br>
+        <code style="color:#fbbf24">python rag/build_db.py --reset</code>
+        &nbsp;&middot;&nbsp; Reconstruye vectores ChromaDB<br>
+        <code style="color:#fbbf24">python scripts/build_graph.py --reset</code>
+        &nbsp;&middot;&nbsp; Reconstruye grafo GraphRAG
       </div>
 
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
@@ -559,9 +636,18 @@ def _build_knowledge_tab():
 
 
 def _build_system_tab():
-    import config, torch
+    import config, torch, os
 
     cuda_ok = torch.cuda.is_available()
+    graph_enabled = getattr(config, 'GRAPH_ENABLED', False)
+    graph_db_path = getattr(config, 'GRAPH_DB_PATH', '')
+    graph_exists = os.path.exists(graph_db_path) if graph_db_path else False
+    graph_hop    = getattr(config, 'GRAPH_HOP_DEPTH', 2)
+    graph_top_k  = getattr(config, 'GRAPH_TOP_K_TRIPLES', 10)
+    graph_min_w  = getattr(config, 'GRAPH_MIN_WEIGHT', 0.4)
+
+    mode_label = "Híbrido RAG + GraphRAG" if graph_enabled else "Solo RAG Vectorial"
+    mode_color = "#a78bfa" if graph_enabled else "#f59e0b"
 
     gr.HTML(f"""
     <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
@@ -569,31 +655,41 @@ def _build_system_tab():
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
                  letter-spacing:0.08em;margin:0 0 12px;border-bottom:1px solid #1e3a5f;
                  padding-bottom:8px">
-        Pipeline RAG Multimodal
+        Pipeline RAG + GraphRAG H&iacute;brido
       </h3>
 
       <div class="pipeline-flow" role="list" aria-label="Pipeline del sistema">
         <span class="pipeline-node entry" role="listitem">Audio</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rarr;</span>
+        <span class="pipeline-arrow">&rarr;</span>
         <span class="pipeline-node entry" role="listitem">Imagen</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rarr;</span>
+        <span class="pipeline-arrow">&rarr;</span>
         <span class="pipeline-node entry" role="listitem">Texto</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
+        <span class="pipeline-arrow">&rArr;</span>
         <span class="pipeline-node rag" role="listitem">Whisper STT</span>
-        <span class="pipeline-arrow" aria-hidden="true">+</span>
+        <span class="pipeline-arrow">+</span>
         <span class="pipeline-node rag" role="listitem">Moondream</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
-        <span class="pipeline-node rag" role="listitem">OpenCLIP Vector</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
-        <span class="pipeline-node rag" role="listitem">ChromaDB</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
-        <span class="pipeline-node rag" role="listitem">Fragmentos + Metadatos</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
+        <span class="pipeline-arrow">&rArr;</span>
+        <span class="pipeline-node rag" role="listitem">OpenCLIP &rarr; ChromaDB</span>
+        <span class="pipeline-arrow">&#8214;</span>
+        <span class="pipeline-node graph" role="listitem">Entidades &rarr; NetworkX</span>
+        <span class="pipeline-arrow">&rArr;</span>
+        <span class="pipeline-node hybrid" role="listitem">HybridRetriever</span>
+        <span class="pipeline-arrow">&rArr;</span>
         <span class="pipeline-node llm" role="listitem">TinyLlama</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
+        <span class="pipeline-arrow">&rArr;</span>
         <span class="pipeline-node output" role="listitem">Respuesta + Citas</span>
-        <span class="pipeline-arrow" aria-hidden="true">&rArr;</span>
+        <span class="pipeline-arrow">&rArr;</span>
         <span class="pipeline-node output" role="listitem">Piper TTS</span>
+      </div>
+
+      <div class="info-card" style="margin:10px 0 18px;border-left-color:#a78bfa">
+        <strong style="color:#c4b5fd">Modo activo:</strong>
+        <span style="color:{mode_color};font-weight:700">&nbsp;{mode_label}</span>
+        &nbsp;&mdash;&nbsp;
+        <span style="color:#8b9ab5;font-size:0.82rem">
+          Configurable con <code>GRAPH_ENABLED</code> en <code>config.py</code>.
+          Si el grafo no existe, fallback autom&aacute;tico a RAG vectorial.
+        </span>
       </div>
 
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
@@ -607,24 +703,36 @@ def _build_system_tab():
             <th style="padding:8px 12px;color:#8b9ab5;font-size:0.72rem;text-transform:uppercase;
                        border-bottom:1px solid #1e3a5f" scope="col">Componente</th>
             <th style="padding:8px 12px;color:#8b9ab5;font-size:0.72rem;text-transform:uppercase;
-                       border-bottom:1px solid #1e3a5f" scope="col">Valor</th>
+                       border-bottom:1px solid #1e3a5f" scope="col">Valor / Estado</th>
           </tr>
         </thead>
         <tbody style="font-size:0.82rem">
-          <tr><td>Dispositivo cómputo</td>
+          <tr><td>Dispositivo c&oacute;mputo</td>
               <td><code style="color:#fbbf24">{config.DEVICE}</code></td></tr>
           <tr><td>CUDA disponible</td>
               <td><code style="color:{'#10b981' if cuda_ok else '#ef4444'}">{cuda_ok}</code></td></tr>
           <tr><td>LLM (Ollama)</td>
               <td><code style="color:#c4b5fd">{config.LLM_MODEL}</code></td></tr>
-          <tr><td>Visión (Ollama)</td>
+          <tr><td>Visi&oacute;n (Ollama)</td>
               <td><code style="color:#c4b5fd">{config.VISION_MODEL}</code></td></tr>
           <tr><td>STT (Whisper)</td>
               <td><code style="color:#93c5fd">faster-whisper &middot; {config.WHISPER_MODEL_SIZE}</code></td></tr>
-          <tr><td>Embeddings</td>
+          <tr><td>Embeddings RAG</td>
               <td><code style="color:#93c5fd">OpenCLIP ViT-B-32</code></td></tr>
           <tr><td>Vector DB</td>
               <td><code style="color:#6ee7b7">ChromaDB &middot; cosine &middot; {config.CHROMA_COLLECTION}</code></td></tr>
+          <tr style="background:rgba(124,58,237,0.05)"><td><strong style="color:#c4b5fd">GraphRAG activado</strong></td>
+              <td><code style="color:{'#10b981' if graph_enabled else '#ef4444'}">{graph_enabled}</code></td></tr>
+          <tr style="background:rgba(124,58,237,0.05)"><td>Grafo JSON</td>
+              <td><code style="color:{'#6ee7b7' if graph_exists else '#ef4444'}">
+                {'&#10003; Existe' if graph_exists else '&#10007; No generado &mdash; python scripts/build_graph.py'}
+              </code></td></tr>
+          <tr style="background:rgba(124,58,237,0.05)"><td>Graph hop depth</td>
+              <td><code style="color:#a78bfa">{graph_hop} saltos</code></td></tr>
+          <tr style="background:rgba(124,58,237,0.05)"><td>Graph top-K triples</td>
+              <td><code style="color:#a78bfa">{graph_top_k} triples</code></td></tr>
+          <tr style="background:rgba(124,58,237,0.05)"><td>Graph min weight</td>
+              <td><code style="color:#a78bfa">{graph_min_w}</code></td></tr>
           <tr><td>TTS</td>
               <td><code style="color:#6ee7b7">Piper TTS / macOS say</code></td></tr>
           <tr><td>Puerto Gradio</td>
@@ -638,8 +746,8 @@ def _build_system_tab():
 
       <div class="info-card gold" style="margin-top:16px">
         <strong style="color:#e8edf5">Modelos Ollama requeridos</strong><br>
-        <code style="color:#fbbf24">ollama pull tinyllama</code> &nbsp;&rarr;&nbsp; Generación de respuestas<br>
-        <code style="color:#fbbf24">ollama pull moondream</code> &nbsp;&rarr;&nbsp; Análisis visual de formularios
+        <code style="color:#fbbf24">ollama pull tinyllama</code> &nbsp;&rarr;&nbsp; Generaci&oacute;n de respuestas<br>
+        <code style="color:#fbbf24">ollama pull moondream</code> &nbsp;&rarr;&nbsp; An&aacute;lisis visual de formularios
       </div>
     </div>
     """)

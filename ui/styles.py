@@ -861,10 +861,40 @@ audio {
 
 .pipeline-node.entry  { border-color: rgba(29,78,216,0.5);  color: #93c5fd; }
 .pipeline-node.rag    { border-color: rgba(245,158,11,0.5); color: var(--c-gold); }
+.pipeline-node.graph  { border-color: rgba(124,58,237,0.5); color: #c4b5fd;
+                        background: rgba(124,58,237,0.07); }
+.pipeline-node.hybrid { border-color: rgba(16,185,129,0.4); color: #6ee7b7;
+                        background: rgba(16,185,129,0.07);
+                        font-weight: 700; }
 .pipeline-node.llm    { border-color: rgba(124,58,237,0.5); color: #c4b5fd; }
 .pipeline-node.output { border-color: rgba(16,185,129,0.5); color: #6ee7b7; }
 
 .pipeline-arrow { color: var(--text-dim); font-size: 1rem; }
+
+/* Pipeline steps en trazabilidad de consulta */
+.pipeline-step-hybrid {
+    background: rgba(16,185,129,0.08) !important;
+    border-color: rgba(16,185,129,0.3) !important;
+    color: #6ee7b7 !important;
+}
+.pipeline-step-graph {
+    background: rgba(124,58,237,0.08) !important;
+    border-color: rgba(124,58,237,0.3) !important;
+    color: #c4b5fd !important;
+}
+
+/* Header chips especiales */
+.sri-header .chip.chip-hybrid {
+    background: rgba(16,185,129,0.1) !important;
+    border-color: rgba(16,185,129,0.3) !important;
+    color: #6ee7b7 !important;
+    font-weight: 700 !important;
+}
+.sri-header .chip.chip-graph {
+    background: rgba(124,58,237,0.1) !important;
+    border-color: rgba(124,58,237,0.3) !important;
+    color: #c4b5fd !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    PROSE
