@@ -195,7 +195,9 @@ class CoordinatorAgent:
         self.log_agent.log("TTS", "Generando audio con Piper TTS...")
         yield stt_text, response, None, self.log_agent.get_all()
 
-        audio_path = self.tts_agent.synthesize(response)
+        _sep = "─" * 37
+        tts_text = response.split(_sep)[0].strip() if _sep in response else response
+        audio_path = self.tts_agent.synthesize(tts_text)
         if audio_path:
             self.log_agent.log("TTS", f"✓ Audio generado: {audio_path}")
         else:

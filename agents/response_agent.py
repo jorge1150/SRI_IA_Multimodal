@@ -2,9 +2,11 @@
 response_agent.py — Agente de Respuesta Tributaria SRI
 Estrategia para TinyLlama (modelo pequeño):
   - System prompt mínimo (evita que el modelo lo repita en la salida)
-  - Contexto RAG en el mensaje de usuario
+  - Contexto RAG con etiquetas neutras (no [Fuente N] que el modelo echa en output)
+  - Seed del assistant = "Respuesta:" para forzar inicio de contenido real
   - Las fuentes se construyen en Python, no por el LLM
   - Post-procesamiento que limpia líneas de instrucciones filtradas
+  - Deduplicación de fuentes por doc_name antes de enviar al LLM
 """
 
 import re
@@ -13,15 +15,13 @@ import requests
 from config import OLLAMA_URL, LLM_MODEL, LLM_TEMPERATURE, OLLAMA_TIMEOUT
 from .log_agent import LogAgent
 
-# System prompt mínimo — TinyLlama repite prompts largos con reglas numeradas
 _SYSTEM_PROMPT = (
     "Eres un asistente tributario del SRI Ecuador. "
-    "Responde SOLO en español. "
-    "Usa únicamente el contexto normativo dado. "
-    "Si no hay contexto, di que no tienes información."
+    "Responde en español. "
+    "Usa solo el contexto dado."
 )
 
-# Frases del system prompt que el modelo puede filtrar en la salida
+# Patrones de texto que TinyLlama puede filtrar/echar desde el prompt
 _LEAK_PATTERNS = [
     r'(?i)^reglas\s+obligatorias',
     r'(?i)^basa\s+tu\s+respuesta',
@@ -31,11 +31,18 @@ _LEAK_PATTERNS = [
     r'(?i)^explica\s+en\s+lenguaje',
     r'(?i)^importante[:\s]',
     r'(?i)^esta\s+respuesta\s+es\s+orientativa',
-    r'(?i)^responde\s+siempre\s+en\s+español',
+    r'(?i)^responde[a]?\s+(siempre\s+)?en\s+español',
+    r'(?i)^usa[s]?\s+únicamente',
+    r'(?i)^usa[s]?\s+solo\s+el\s+contexto',
+    r'(?i)^si\s+no\s+hay\s+contexto',
     r'(?i)^\d+\.\s+(basa|cita|nunca|para|explica|responde)',
     r'sri\.gober\.ec',
     r'(?i)^asesor\s+tributari',
     r'(?i)^no\s+constituye.*asesor',
+    # Etiquetas de documentos del prompt que el modelo echa en output
+    r'(?i)^---\s+(documento|doc)\s+\d+',
+    r'(?i)^\[fuente\s*\d+\]',
+    r'(?i)^normativa\s+oficial\s+sri',
 ]
 
 
@@ -53,11 +60,6 @@ class ResponseAgent:
         visual_description: str = "",
         graph_context: str = "",
     ) -> str:
-        """
-        Genera la respuesta tributaria.
-        El LLM produce solo el texto de respuesta.
-        Las fuentes consultadas se construyen en Python y se añaden al final.
-        """
         self.log.log("GENERANDO", f"Enviando consulta a {LLM_MODEL}...")
 
         try:
@@ -68,13 +70,19 @@ class ResponseAgent:
                 "messages": [
                     {"role": "system",    "content": _SYSTEM_PROMPT},
                     {"role": "user",      "content": user_msg},
-                    {"role": "assistant", "content": ""},
+                    # Seed explícito: fuerza al modelo a continuar con contenido real
+                    # en lugar de echar el último fragmento del prompt de usuario
+                    {"role": "assistant", "content": "Respuesta:"},
                 ],
                 "stream": False,
                 "options": {
                     "temperature": LLM_TEMPERATURE,
-                    "num_predict": 512,
-                    "stop": ["Usuario:", "Consulta:", "NORMATIVA:", "REGLAS"],
+                    "num_predict": 400,
+                    "stop": [
+                        "Usuario:", "Consulta:", "NORMATIVA:", "REGLAS",
+                        "Responda", "Usa únicamente", "--- Documento",
+                        "[Fuente", "PREGUNTA:",
+                    ],
                 },
             }
 
@@ -86,6 +94,8 @@ class ResponseAgent:
             resp.raise_for_status()
 
             raw = resp.json().get("message", {}).get("content", "").strip()
+            # Quitar el "Respuesta:" del seed si el modelo lo repite al inicio
+            raw = re.sub(r'^Respuesta:\s*', '', raw, flags=re.IGNORECASE).strip()
             answer = self._clean_response(raw)
 
             if not answer:
@@ -95,7 +105,6 @@ class ResponseAgent:
                     "o con un profesional tributario."
                 )
 
-            # Añadir fuentes construidas en Python (sin depender del LLM)
             sources_section = self._build_sources_section(rag_context)
             final = answer + sources_section
 
@@ -124,58 +133,62 @@ class ResponseAgent:
         visual_description: str,
         graph_context: str = "",
     ) -> str:
-        """
-        Formato optimizado para TinyLlama:
-        contexto vectorial → relaciones de grafo → pregunta → instrucción.
-        """
         parts = []
 
-        if rag_context:
-            parts.append("NORMATIVA OFICIAL SRI:")
-            for i, c in enumerate(rag_context[:3], 1):
-                label = self._source_label(i, c.get("metadata", {}))
-                parts.append(f"\n{label}\n{c['text'][:450]}")
+        # Deduplicar por doc_name para no repetir el mismo documento al LLM
+        deduped = self._dedup_by_doc(rag_context, max_per_doc=1, max_total=3)
+
+        if deduped:
+            parts.append("CONTEXTO NORMATIVO SRI:")
+            for i, c in enumerate(deduped, 1):
+                # Etiqueta neutra — no usa [Fuente N] que el modelo echa en output
+                parts.append(f"\n[{i}] {c['text'][:400]}")
             parts.append("")
 
-        # Contexto del grafo de conocimiento (GraphRAG)
         if graph_context:
             parts.append(graph_context)
             parts.append("")
 
         if visual_description and "[" not in visual_description:
-            parts.append(f"Imagen analizada: {visual_description}\n")
+            parts.append(f"Imagen: {visual_description}\n")
 
-        if not rag_context and not graph_context:
-            parts.append("(No se encontró normativa en la base de conocimiento)\n")
+        if not deduped and not graph_context:
+            parts.append("(Sin normativa disponible)\n")
 
-        parts.append(f"Consulta: {query}")
-        parts.append("\nResponde en español usando solo la normativa anterior:")
+        parts.append(f"PREGUNTA: {query}")
 
         return "\n".join(parts)
 
-    # ── Fuentes (construidas en Python, no por el LLM) ───────────────────────
+    # ── Fuentes (construidas en Python) ─────────────────────────────────────
 
     def _build_sources_section(self, rag_context: list[dict]) -> str:
         """
-        Construye la sección de fuentes fuera del LLM para garantizar
-        que el formato sea correcto sin importar la calidad del modelo.
+        Sección de fuentes compacta al final de la respuesta.
+        Formato: resumen una línea + lista deduplicada por doc.
+        El separador ─────... permite al UI dividir respuesta y fuentes.
         """
         if not rag_context:
             return (
                 "\n\n─────────────────────────────────────\n"
-                "📋 FUENTES: No se consultó normativa local.\n"
-                "   Verifique en sri.gob.ec"
+                "📋 Sin normativa consultada. Verifique en sri.gob.ec"
             )
 
-        lines = ["\n\n─────────────────────────────────────", "📋 FUENTES CONSULTADAS:"]
-        for i, c in enumerate(rag_context[:4], 1):
+        # Deduplicar fuentes — el panel HTML ya muestra todos los fragmentos
+        seen: dict[str, dict] = {}
+        for c in rag_context:
             meta = c.get("metadata", {})
             doc  = meta.get("doc_name") or meta.get("source", "Documento SRI")
+            if doc not in seen:
+                seen[doc] = {"meta": meta, "sim": c.get("similarity", 0)}
+
+        lines = ["\n\n─────────────────────────────────────", "📋 FUENTES CONSULTADAS:"]
+        for i, (doc, info) in enumerate(seen.items(), 1):
+            meta = info["meta"]
             tipo = meta.get("tipo_normativa", "")
             art  = meta.get("articulo_seccion", "")
             pag  = meta.get("pagina", "")
             año  = meta.get("año", "")
-            sim  = c.get("similarity", 0)
+            sim  = info["sim"]
 
             line = f"  [{i}] "
             if tipo:
@@ -197,11 +210,6 @@ class ResponseAgent:
     # ── Post-procesamiento ───────────────────────────────────────────────────
 
     def _clean_response(self, text: str) -> str:
-        """
-        Elimina líneas en las que el modelo repitió instrucciones del
-        system prompt. TinyLlama (1.1B) tiende a filtrar el prompt en
-        la salida cuando las instrucciones son largas o numeradas.
-        """
         if not text:
             return ""
 
@@ -214,9 +222,8 @@ class ResponseAgent:
 
         cleaned = "\n".join(result_lines).strip()
 
-        # Si lo que quedó empieza con una lista numerada de reglas, quitar
+        # Quitar bloques de reglas numeradas al inicio
         if re.match(r'^\d+\.', cleaned):
-            # Intentar encontrar la primera oración real
             sentences = re.split(r'(?<=[.!?])\s+', cleaned)
             real = [s for s in sentences if not re.match(r'^\d+\.', s.strip())]
             cleaned = " ".join(real).strip()
@@ -226,6 +233,31 @@ class ResponseAgent:
     # ── Helpers ──────────────────────────────────────────────────────────────
 
     @staticmethod
+    def _dedup_by_doc(
+        rag_context: list[dict],
+        max_per_doc: int = 1,
+        max_total: int = 3,
+    ) -> list[dict]:
+        """
+        Filtra los chunks para el prompt del LLM:
+        - Solo max_per_doc chunk(s) por documento único
+        - Máximo max_total chunks en total
+        Mantiene el orden de similitud (el RAG ya los entrega ordenados).
+        """
+        seen: dict[str, int] = {}
+        result = []
+        for c in rag_context:
+            meta = c.get("metadata", {})
+            doc  = meta.get("doc_name") or meta.get("source", "doc")
+            count = seen.get(doc, 0)
+            if count < max_per_doc:
+                seen[doc] = count + 1
+                result.append(c)
+            if len(result) >= max_total:
+                break
+        return result
+
+    @staticmethod
     def _source_label(num: int, meta: dict) -> str:
         doc  = meta.get("doc_name") or meta.get("source", "Documento SRI")
         tipo = meta.get("tipo_normativa", "")
@@ -233,7 +265,7 @@ class ResponseAgent:
         pag  = meta.get("pagina", "")
         año  = meta.get("año", "")
 
-        parts = [f"[Fuente {num}]"]
+        parts = [f"[{num}]"]
         if tipo:
             parts.append(tipo + ":")
         parts.append(doc)

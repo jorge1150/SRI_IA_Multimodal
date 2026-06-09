@@ -81,7 +81,7 @@ def _rag_panel_html(fragments: list) -> str:
 
     cards = ''
     for f in fragments:
-        sim_pct = int(f['sim'] * 100)
+        sim_pct = min(int(f['sim'] * 100), 100)
         if f['sim'] >= 0.80:
             sim_color = '#10b981'
         elif f['sim'] >= 0.60:
@@ -132,7 +132,9 @@ def _rag_panel_html(fragments: list) -> str:
     return (
         '<div class="rag-panel" role="region" aria-label="Fragmentos normativos recuperados">'
         f'<div class="rag-panel-title">{search_icon}'
-        f'{count} Fragmento{plural} Recuperado{plural} &middot; Base Normativa SRI</div>'
+        f'{count} Fragmento{plural} Recuperado{plural} &middot; Base Normativa SRI'
+        '<span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px">'
+        '&mdash; puntuaci&oacute;n incluye boost por palabras clave (puede superar 1.0)</span></div>'
         f'{cards}'
         '</div>'
     )
@@ -740,7 +742,8 @@ def _build_system_tab():
           <tr><td>Top-K RAG</td>
               <td><code style="color:#fbbf24">{config.RAG_TOP_K} fragmentos</code></td></tr>
           <tr><td>Umbral similitud</td>
-              <td><code style="color:#fbbf24">{config.RAG_MIN_SIMILARITY}</code></td></tr>
+              <td><code style="color:#fbbf24">{config.RAG_MIN_SIMILARITY}</code>
+              <span style="font-size:11px;color:#94a3b8;margin-left:6px">(coseno base, antes de boost por palabras clave)</span></td></tr>
         </tbody>
       </table>
 
