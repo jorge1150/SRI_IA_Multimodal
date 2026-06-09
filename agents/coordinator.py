@@ -10,6 +10,7 @@ Pipeline:
 
 from typing import Generator
 
+import config as _cfg
 from .log_agent import LogAgent
 from .voice_agent import VoiceAgent
 from .vision_agent import VisionAgent
@@ -22,10 +23,45 @@ from .tts_agent import TTSAgent
 _Update = tuple[str, str, str | None, str]
 
 
+def _init_graph_retriever(log_agent):
+    """
+    Inicializa el GraphRetriever si GRAPH_ENABLED=True y el grafo existe.
+    Retorna None silenciosamente si no está disponible.
+    """
+    if not _cfg.GRAPH_ENABLED:
+        return None
+    try:
+        from graph.graph_store import GraphStore
+        from graph.graph_retriever import GraphRetriever
+
+        store = GraphStore(_cfg.GRAPH_DB_PATH)
+        loaded = store.load()
+        if not loaded or store.is_empty():
+            log_agent.log("GRAPH", "⚠ Grafo no encontrado o vacío. "
+                          "Ejecuta: python scripts/build_graph.py")
+            return None
+
+        stats = store.stats()
+        log_agent.log("GRAPH", f"✓ Grafo cargado: {stats['n_nodes']} nodos, "
+                      f"{stats['n_edges']} aristas.")
+        return GraphRetriever(
+            store,
+            hop_depth=_cfg.GRAPH_HOP_DEPTH,
+            top_k=_cfg.GRAPH_TOP_K_TRIPLES,
+        )
+    except ImportError:
+        log_agent.log("GRAPH", "⚠ networkx no instalado. GraphRAG deshabilitado.")
+        return None
+    except Exception as exc:
+        log_agent.log("GRAPH", f"⚠ Error iniciando GraphRAG: {exc}")
+        return None
+
+
 class CoordinatorAgent:
     """
     Orquestador multiagente del sistema SRI IA Multimodal.
     Se instancia UNA sola vez al arrancar app.py (singleton).
+    Usa HybridRetriever (RAG vectorial + GraphRAG) cuando GRAPH_ENABLED=True.
     """
 
     def __init__(self):
@@ -36,6 +72,16 @@ class CoordinatorAgent:
         self.rag_agent = RAGAgent(self.log_agent)
         self.response_agent = ResponseAgent(self.log_agent)
         self.tts_agent = TTSAgent(self.log_agent)
+
+        # GraphRAG — inicialización lazy-tolerant
+        graph_retriever = _init_graph_retriever(self.log_agent)
+
+        from services.hybrid_retriever import HybridRetriever
+        self.hybrid_retriever = HybridRetriever(
+            rag_agent=self.rag_agent,
+            log_agent=self.log_agent,
+            graph_retriever=graph_retriever,
+        )
 
     # ── API pública ──────────────────────────────────────────────────────────
 
@@ -120,22 +166,27 @@ class CoordinatorAgent:
         self.log_agent.log("RAG", f"Buscando normativa relacionada: «{rag_query[:80]}»...")
         yield stt_text, response, None, self.log_agent.get_all()
 
-        rag_chunks = self.rag_agent.retrieve(rag_query)
+        hybrid_result = self.hybrid_retriever.retrieve(rag_query)
+        rag_chunks   = hybrid_result["vector_chunks"]
+        graph_context = hybrid_result["graph_context"]
+
         n_chunks = len(rag_chunks)
+        mode_tag = " [+grafo]" if hybrid_result.get("mode") == "hybrid" else ""
         if n_chunks:
-            self.log_agent.log("RAG", f"✓ Recuperando {n_chunks} artículo(s)/resolución(es) relevante(s).")
+            self.log_agent.log("RAG", f"✓ {n_chunks} artículo(s) relevante(s){mode_tag}.")
         else:
             self.log_agent.log("RAG", "⚠ Sin normativa en base vectorial. Respuesta basada en conocimiento general.")
         yield stt_text, response, None, self.log_agent.get_all()
 
         # ── [GENERANDO] — Generación de respuesta tributaria ─────────────────
-        self.log_agent.log("GENERANDO", f"Generando respuesta tributaria con {__import__('config').LLM_MODEL}...")
+        self.log_agent.log("GENERANDO", f"Generando respuesta tributaria con {_cfg.LLM_MODEL}...")
         yield stt_text, response, None, self.log_agent.get_all()
 
         response = self.response_agent.generate(
             query=full_query,
             rag_context=rag_chunks,
             visual_description=all_visual,
+            graph_context=graph_context,
         )
         self.log_agent.log("RESPUESTA", f"✓ Respuesta lista ({len(response)} caracteres).")
         yield stt_text, response, None, self.log_agent.get_all()

@@ -51,6 +51,7 @@ class ResponseAgent:
         query: str,
         rag_context: list[dict],
         visual_description: str = "",
+        graph_context: str = "",
     ) -> str:
         """
         Genera la respuesta tributaria.
@@ -60,7 +61,7 @@ class ResponseAgent:
         self.log.log("GENERANDO", f"Enviando consulta a {LLM_MODEL}...")
 
         try:
-            user_msg = self._build_user_message(query, rag_context, visual_description)
+            user_msg = self._build_user_message(query, rag_context, visual_description, graph_context)
 
             payload = {
                 "model": LLM_MODEL,
@@ -121,10 +122,11 @@ class ResponseAgent:
         query: str,
         rag_context: list[dict],
         visual_description: str,
+        graph_context: str = "",
     ) -> str:
         """
         Formato optimizado para TinyLlama:
-        contexto → pregunta → instrucción corta.
+        contexto vectorial → relaciones de grafo → pregunta → instrucción.
         """
         parts = []
 
@@ -135,10 +137,15 @@ class ResponseAgent:
                 parts.append(f"\n{label}\n{c['text'][:450]}")
             parts.append("")
 
+        # Contexto del grafo de conocimiento (GraphRAG)
+        if graph_context:
+            parts.append(graph_context)
+            parts.append("")
+
         if visual_description and "[" not in visual_description:
             parts.append(f"Imagen analizada: {visual_description}\n")
 
-        if not rag_context:
+        if not rag_context and not graph_context:
             parts.append("(No se encontró normativa en la base de conocimiento)\n")
 
         parts.append(f"Consulta: {query}")

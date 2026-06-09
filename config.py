@@ -129,11 +129,21 @@ GRADIO_SERVER: str = "0.0.0.0"
 GRADIO_TITLE: str = "SRI IA Multimodal — Asistente Normativa Tributaria Ecuador"
 
 # ─────────────────────────────────────────────
+# GRAPHRAG — Grafo de conocimiento tributario
+# ─────────────────────────────────────────────
+GRAPH_ENABLED: bool = True          # True = usa RAG híbrido (vector + grafo)
+GRAPH_DB_PATH: str = os.path.join(BASE_DIR, "graph_db", "sri_graph.json")
+GRAPH_TOP_K_TRIPLES: int = 10       # máx triples a retornar por consulta
+GRAPH_HOP_DEPTH: int = 2            # saltos de exploración en el grafo (1 ó 2)
+GRAPH_MIN_WEIGHT: float = 0.4       # peso mínimo de relación para incluir
+
+# ─────────────────────────────────────────────
 # CREAR DIRECTORIOS NECESARIOS EN IMPORTACIÓN
 # ─────────────────────────────────────────────
 for _d in [
     LOGS_DIR, TEMP_DIR, PIPER_MODELS_DIR, AUDIO_OUTPUT_DIR,
     os.path.dirname(CHROMA_DB_PATH),
     NORMATIVAS_DIR, RESOLUCIONES_DIR, GUIAS_DIR, FORMULARIOS_DIR,
+    os.path.dirname(GRAPH_DB_PATH),
 ]:
     os.makedirs(_d, exist_ok=True)

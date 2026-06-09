@@ -4,6 +4,9 @@ __pycache__/
 *.pyo
 .DS_Store
 
+# GraphRAG (generada localmente)
+graph_db/
+
 # Base vectorial (generada localmente)
 vector_db/
 

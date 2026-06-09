@@ -25,20 +25,23 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 60) -> List[str]
     while start < len(text):
         end = min(start + chunk_size, len(text))
         if end < len(text):
-            # Intentar cortar en punto final o espacio
+            # Intentar cortar en punto final (solo si avanza suficiente)
             cut = text.rfind(". ", start, end)
             if cut > start + chunk_size // 2:
                 end = cut + 1
             else:
-                last_space = text.rfind(" ", start, end)
-                if last_space > start:
+                # Solo usar espacio si garantiza avance real (> overlap)
+                last_space = text.rfind(" ", start + overlap, end)
+                if last_space > start + overlap:
                     end = last_space
         chunk = text[start:end].strip()
         if chunk:
             chunks.append(chunk)
         if end >= len(text):
             break
-        start = end - overlap
+        new_start = end - overlap
+        # Garantizar siempre avance — evita loop infinito
+        start = new_start if new_start > start else end
     return chunks
 
 

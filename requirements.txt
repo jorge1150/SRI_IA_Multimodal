@@ -50,6 +50,9 @@ requests>=2.31.0
 # ── Utilidades ────────────────────────────────────────────────
 python-dotenv>=1.0.0
 
+# ── GraphRAG — Grafo de conocimiento tributario ───────────────
+networkx>=3.0
+
 # ══════════════════════════════════════════════════════════════
 # PASOS DE INSTALACIÓN (orden importante):
 #
@@ -75,6 +78,9 @@ python-dotenv>=1.0.0
 # 6. Cargar documentos SRI en data/ y construir base vectorial:
 #      (Copiar PDFs/TXTs del SRI en data/normativas_sri/, data/resoluciones/, etc.)
 #      python rag/build_db.py
+#
+# 6b. (Opcional) Construir grafo de conocimiento GraphRAG:
+#      python scripts/build_graph.py
 #
 # 7. Lanzar sistema:
 #      python app.py           ← http://localhost:7865

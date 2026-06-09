@@ -49,9 +49,18 @@ fi
 echo "[5/6] Descargando modelo Piper TTS (voz española)..."
 python audio/download_piper.py
 
-echo "[6/6] Los documentos de demo SRI ya están cargados en data/"
+echo "[6/7] Los documentos de demo SRI ya están cargados en data/"
 echo "  Construyendo base vectorial de normativa tributaria..."
 python rag/build_db.py
+
+echo "[7/7] Construyendo grafo de conocimiento GraphRAG..."
+if python -c "import networkx" &>/dev/null; then
+    python scripts/build_graph.py
+    echo "  ✓ Grafo construido en graph_db/sri_graph.json"
+else
+    echo "  [ADVERTENCIA] networkx no disponible. Reintenta: pip install networkx>=3.0"
+    echo "  Luego ejecuta: python scripts/build_graph.py"
+fi
 
 echo ""
 echo "════════════════════════════════════════════════════════"
@@ -63,4 +72,7 @@ echo "    ollama serve  (en otra terminal)"
 echo "    python app.py"
 echo ""
 echo "  Interfaz: http://localhost:7865"
+echo ""
+echo "  Reconstruir grafo GraphRAG (tras añadir documentos):"
+echo "    python scripts/build_graph.py --reset"
 echo "════════════════════════════════════════════════════════"
