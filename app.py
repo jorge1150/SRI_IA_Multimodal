@@ -117,12 +117,14 @@ def main():
     print("[INFO] Presiona Ctrl+C para detener el sistema.\n")
 
     from ui.interface import GRADIO_THEME
+    import config as _cfg
     demo.launch(
-        server_name=config.GRADIO_SERVER,
-        server_port=config.GRADIO_PORT,
+        server_name=_cfg.GRADIO_SERVER,
+        server_port=_cfg.GRADIO_PORT,
         share=False,
         inbrowser=False,
         theme=GRADIO_THEME,
+        allowed_paths=[_cfg.TEMP_DIR],
     )
 
 

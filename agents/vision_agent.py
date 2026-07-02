@@ -32,21 +32,14 @@ class VisionAgent:
             if pil_img is None:
                 return ""
             b64 = self._to_base64(pil_img)
-            self.log.log("VISION", f"Analizando imagen con {VISION_MODEL}...")
-            payload = {
-                "model": VISION_MODEL,
-                "prompt": MOONDREAM_PROMPT,
-                "images": [b64],
-                "stream": False,
-                "options": {"temperature": 0.1},
-            }
-            resp = requests.post(
-                f"{OLLAMA_URL}/api/generate",
-                json=payload,
-                timeout=VISION_TIMEOUT,
-            )
-            resp.raise_for_status()
-            description = resp.json().get("response", "").strip()
+            self.log.log("VISION", f"Analizando imagen {pil_img.size} con {VISION_MODEL}...")
+
+            description = self._call_generate(b64)
+            if not description:
+                # Moondream2 in newer Ollama uses /api/chat
+                self.log.log("VISION", "generate vacío, intentando /api/chat...")
+                description = self._call_chat(b64)
+
             self.log.log("VISION", f"Descripción: «{description[:100]}»")
             return description
         except requests.exceptions.ConnectionError:
@@ -58,6 +51,42 @@ class VisionAgent:
         except Exception as exc:
             self.log.log("ERROR", f"Falla en visión: {exc}")
             return ""
+
+    def _call_generate(self, b64: str) -> str:
+        payload = {
+            "model": VISION_MODEL,
+            "prompt": MOONDREAM_PROMPT,
+            "images": [b64],
+            "stream": False,
+            "options": {"temperature": 0.1},
+        }
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/generate",
+            json=payload,
+            timeout=VISION_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return resp.json().get("response", "").strip()
+
+    def _call_chat(self, b64: str) -> str:
+        payload = {
+            "model": VISION_MODEL,
+            "messages": [{
+                "role": "user",
+                "content": MOONDREAM_PROMPT,
+                "images": [b64],
+            }],
+            "stream": False,
+            "options": {"temperature": 0.1},
+        }
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json=payload,
+            timeout=VISION_TIMEOUT,
+        )
+        resp.raise_for_status()
+        msg = resp.json().get("message", {})
+        return msg.get("content", "").strip()
 
     def _to_pil(self, image_input) -> Image.Image | None:
         if image_input is None:
@@ -81,6 +110,12 @@ class VisionAgent:
         return None
 
     def _to_base64(self, img: Image.Image) -> str:
+        # Moondream performs best at small resolutions; resize if too large
+        max_side = 512
+        w, h = img.size
+        if max(w, h) > max_side:
+            ratio = max_side / max(w, h)
+            img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG", quality=85)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")

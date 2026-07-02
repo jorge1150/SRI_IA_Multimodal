@@ -163,22 +163,142 @@ def _parse_response(text: str):
 # ── Main interface ────────────────────────────────────────────────────────────
 
 def build_interface(coordinator) -> gr.Blocks:
+    import os
+    import uuid
+    from PIL import Image as _PILImage
+    from config import TEMP_DIR
 
-    def consultar(image, audio, text_input, video):
+    # ── Helpers ─────────────────────────────────────────────────────────────
+
+    def _save_pil_temp(img) -> str | None:
+        """Save PIL image to a unique temp file so chatbot can display it."""
+        if img is None:
+            return None
+        if isinstance(img, str) and os.path.exists(img):
+            return img
+        if isinstance(img, _PILImage.Image):
+            path = os.path.join(TEMP_DIR, f"chat_{uuid.uuid4().hex[:10]}.jpg")
+            img.save(path, "JPEG", quality=85)
+            return path
+        return None
+
+    # IMAGE_EXTS / VIDEO_EXTS para detección por extensión
+    _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"}
+    _VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v", ".flv", ".wmv"}
+
+    def _detect_media(media_path: str | None):
+        """
+        Detecta si un archivo es imagen o video.
+        Retorna ("image", PIL.Image) | ("video", filepath) | (None, None).
+        Estrategia: MIME type → extensión → intento de apertura PIL.
+        """
+        if media_path is None:
+            return None, None
+        import mimetypes
+        mime, _ = mimetypes.guess_type(media_path)
+        ext = os.path.splitext(media_path)[1].lower()
+        # Decisión por MIME
+        if mime:
+            if mime.startswith("video"):
+                return "video", media_path
+            if mime.startswith("image"):
+                try:
+                    return "image", _PILImage.open(media_path).convert("RGB")
+                except Exception:
+                    pass
+        # Decisión por extensión
+        if ext in _VIDEO_EXTS:
+            return "video", media_path
+        if ext in _IMAGE_EXTS:
+            try:
+                return "image", _PILImage.open(media_path).convert("RGB")
+            except Exception:
+                pass
+        # Último recurso: intentar PIL
+        try:
+            return "image", _PILImage.open(media_path).convert("RGB")
+        except Exception:
+            return "video", media_path
+
+    def _user_chat_content(text: str, image, video, audio):
+        """
+        Construye el contenido del bubble de usuario en gr.Chatbot (Gradio 6).
+        image: PIL.Image | None
+        video: filepath str | None
+        audio: filepath str | None
+        """
+        parts = []
+        img_path = _save_pil_temp(image)
+        if img_path:
+            parts.append({"path": img_path, "is_stream": False})
+        if video:
+            parts.append("📹 *Video adjunto*")
+        if audio:
+            parts.append("🎤 *Audio adjunto*")
+        if text and text.strip():
+            parts.append(text.strip())
+        if not parts:
+            return "(consulta vacía)"
+        return parts if len(parts) > 1 else parts[0]
+
+    # ── Event handlers ───────────────────────────────────────────────────────
+
+    def send(text, media, audio, history):
+        """
+        Recibe un único campo multimedia (imagen O video) + audio + texto.
+        Detecta automáticamente si media es imagen o video y lo enruta al
+        parámetro correcto de coordinator.process().
+        """
+        if not text and media is None and audio is None:
+            yield (history or []), "", None, _rag_panel_html([]), None, ""
+            return
+
+        media_type, media_data = _detect_media(media)
+        image = media_data if media_type == "image" else None
+        video = media_data if media_type == "video" else None
+
+        history = list(history or [])
+        history.append({
+            "role": "user",
+            "content": _user_chat_content(text, image, video, audio),
+        })
+        history.append({
+            "role": "assistant",
+            "content": "⏳ Analizando consulta...",
+        })
+
+        # Primer yield: muestra bubble de usuario + limpia entradas
+        yield history, "", None, _rag_panel_html([]), None, ""
+
+        # Streaming del pipeline
         for stt, resp, audio_path, logs in coordinator.process(
             image_input=image,
             audio_input=audio,
-            text_input=text_input,
+            text_input=text,
             video_input=video,
         ):
             main_text, rag_html = _parse_response(resp)
-            yield stt, main_text, rag_html, audio_path, logs
 
-    def take_screenshot():
-        return capture_screenshot()
+            # Voz sin texto: actualiza bubble con transcripción STT
+            if stt and not (text and text.strip()):
+                history[-2]["content"] = _user_chat_content(stt, image, video, audio)
+
+            history[-1]["content"] = main_text if main_text else "⏳ Procesando..."
+            yield history, "", None, rag_html, audio_path, logs
 
     def clear_all():
-        return None, None, "", None, "", "", _rag_panel_html([]), None, ""
+        return [], "", None, None, _rag_panel_html([]), None, ""
+
+    def take_screenshot():
+        """Captura pantalla y guarda en temp/ — retorna ruta para gr.File."""
+        pil_img = capture_screenshot()
+        if pil_img is None:
+            return None
+        path = os.path.join(TEMP_DIR, f"screenshot_{uuid.uuid4().hex[:8]}.jpg")
+        pil_img.save(path, "JPEG", quality=90)
+        return path
+
+    # ── Layout ───────────────────────────────────────────────────────────────
 
     with gr.Blocks(title=GRADIO_TITLE) as demo:
         gr.HTML(f"<style>{CSS}</style>")
@@ -223,168 +343,147 @@ def build_interface(coordinator) -> gr.Blocks:
         with gr.Tabs():
 
             # ═══════════════════════════════════════════════════════════════
-            # TAB 1 — Consulta Tributaria
+            # TAB 1 — Consulta Tributaria (chat)
             # ═══════════════════════════════════════════════════════════════
             with gr.Tab("⚖️  Consulta Tributaria"):
 
                 with gr.Row(equal_height=False):
 
-                    # ── Panel izquierdo: ENTRADAS ─────────────────────────
-                    with gr.Column(scale=1, min_width=300):
-                        gr.HTML("""
-                        <div class="input-card">
-                        <div class="section-title gold">
-                            <div class="icon-wrap" aria-hidden="true">&#128229;</div>
-                            <span>Modalidad de Consulta</span>
-                        </div>
-                        """)
+                    # ── Columna chat (izquierda) ──────────────────────────
+                    with gr.Column(scale=3, min_width=420):
 
-                        img_input = gr.Image(
-                            label="Imagen — Formulario, Portal SRI o Comprobante",
-                            sources=["webcam", "upload"],
-                            type="pil",
-                            elem_classes=["image-container"],
-                            height=170,
-                        )
-
-                        btn_screenshot = gr.Button(
-                            "Capturar Pantalla del Portal SRI",
-                            variant="secondary",
-                            elem_classes=["btn-screenshot"],
-                        )
-
-                        audio_input = gr.Audio(
-                            label="Voz — Consulta por Micrófono o Archivo",
-                            sources=["microphone", "upload"],
-                            type="filepath",
-                        )
-
-                        text_input = gr.Textbox(
-                            label="Consulta Tributaria",
+                        # Historial de conversación
+                        chatbot = gr.Chatbot(
+                            value=[],
+                            height=460,
+                            show_label=False,
+                            elem_classes=["chat-window"],
                             placeholder=(
-                                "Ej: ¿Cuál es la tarifa del IVA en Ecuador?\n"
-                                "¿Cómo obtengo el RUC como persona natural?\n"
-                                "¿Cuáles son los plazos para declarar el IVA?"
+                                "Bienvenido al asistente tributario SRI.\n"
+                                "Escribe tu consulta abajo, o adjunta una imagen, audio o video."
                             ),
-                            lines=4,
-                            elem_classes=["consulta-box"],
+                            render_markdown=True,
+                            layout="bubble",
+                            buttons=["copy"],
                         )
 
-                        video_input = gr.Video(
-                            label="Video — Tutorial SRI o Proceso Tributario",
-                            sources=["upload"],
-                            elem_classes=["video-container"],
-                        )
+                        # Adjuntos — acordeón colapsable
+                        with gr.Accordion(
+                            "📎  Adjuntar multimedia — imagen o video + audio se combinan con tu consulta",
+                            open=False,
+                            elem_classes=["attach-accordion"],
+                        ):
+                            with gr.Row():
+                                media_input = gr.File(
+                                    label="📷 Imagen / 📹 Video — sube cualquiera de los dos",
+                                    file_types=["image", "video"],
+                                    file_count="single",
+                                    scale=1,
+                                    elem_classes=["attach-media"],
+                                )
+                                with gr.Column(scale=1):
+                                    audio_input = gr.Audio(
+                                        label="🎤 Voz / Audio",
+                                        sources=["microphone", "upload"],
+                                        type="filepath",
+                                    )
 
-                        gr.HTML("</div>")  # cierre input-card
-
-                        with gr.Row():
-                            btn_consultar = gr.Button(
-                                "Consultar Normativa Tributaria",
-                                variant="primary",
-                                elem_classes=["btn-consultar"],
-                            )
-                            btn_clear = gr.Button(
-                                "Limpiar",
+                            btn_screenshot = gr.Button(
+                                "📸  Capturar Pantalla del Portal SRI (guarda como imagen)",
                                 variant="secondary",
-                                elem_classes=["btn-clear"],
                                 size="sm",
+                                elem_classes=["btn-screenshot"],
                             )
 
-                    # ── Panel derecho: RESPUESTA ──────────────────────────
-                    with gr.Column(scale=1, min_width=380):
+                        # Compositor de mensajes
+                        with gr.Row(elem_classes=["composer-row"]):
+                            text_input = gr.Textbox(
+                                placeholder=(
+                                    "Escribe tu consulta tributaria...  "
+                                    "Puedes adjuntar imagen, audio o video arriba  ·  Enter para enviar"
+                                ),
+                                lines=2,
+                                max_lines=6,
+                                show_label=False,
+                                scale=5,
+                                elem_classes=["chat-input"],
+                            )
+                            with gr.Column(scale=1, min_width=110):
+                                btn_send = gr.Button(
+                                    "Enviar ↗",
+                                    variant="primary",
+                                    elem_classes=["btn-send"],
+                                )
+                                btn_clear = gr.Button(
+                                    "Limpiar",
+                                    variant="secondary",
+                                    size="sm",
+                                    elem_classes=["btn-clear"],
+                                )
+
+                    # ── Columna lateral (derecha) ─────────────────────────
+                    with gr.Column(scale=2, min_width=280, elem_classes=["chat-sidebar"]):
+
                         gr.HTML("""
-                        <div class="output-card">
-                        <div class="section-title green">
-                            <div class="icon-wrap" aria-hidden="true">&#128196;</div>
-                            <span>Respuesta con Fuentes Normativas</span>
+                        <div class="section-title blue" style="margin-bottom:4px">
+                            <div class="icon-wrap" aria-hidden="true">&#128269;</div>
+                            <span>Fragmentos Normativos Recuperados</span>
                         </div>
                         """)
 
-                        stt_output = gr.Textbox(
-                            label="Consulta Transcrita (Whisper STT)",
-                            lines=2,
-                            interactive=False,
-                            placeholder="La transcripción de tu consulta por voz aparecerá aquí...",
-                            elem_classes=["stt-box"],
-                        )
-
-                        response_output = gr.Textbox(
-                            label="Respuesta Tributaria",
-                            lines=10,
-                            interactive=False,
-                            placeholder=(
-                                "La respuesta basada en normativa SRI aparecerá aquí...\n\n"
-                                "El sistema buscará en la base normativa y responderá\n"
-                                "citando los artículos relevantes encontrados.\n\n"
-                                "Las fuentes consultadas se mostrarán en el panel inferior."
-                            ),
-                            elem_classes=["response-box"],
-                        )
-
-                        # RAG fragments panel
-                        rag_output = gr.HTML(
-                            value=_rag_panel_html([]),
-                        )
+                        rag_output = gr.HTML(value=_rag_panel_html([]))
 
                         audio_output = gr.Audio(
-                            label="Respuesta en Voz (Piper TTS · Español)",
+                            label="Respuesta en Voz · Piper TTS · Español",
                             type="filepath",
                             autoplay=True,
                             interactive=False,
                         )
 
-                        gr.HTML("</div>")  # cierre output-card
-
-                # ── Trazabilidad RAG ──────────────────────────────────────
-                gr.HTML("""
-                <div class="divider" role="separator"></div>
-                <div class="logs-wrap" role="region" aria-label="Trazabilidad del proceso">
-                    <div class="logs-header">
-                        <div class="logs-title">
-                            Trazabilidad &mdash; Pipeline RAG + GraphRAG H&iacute;brido
-                        </div>
-                    </div>
-                    <div class="logs-pipeline" role="list" aria-label="Etapas del pipeline">
+                # ── Trazabilidad del pipeline (colapsable) ────────────────
+                with gr.Accordion(
+                    "🔎  Trazabilidad — Pipeline RAG + GraphRAG Híbrido",
+                    open=False,
+                    elem_classes=["logs-accordion"],
+                ):
+                    gr.HTML("""
+                    <div class="logs-pipeline" role="list" aria-label="Etapas del pipeline"
+                         style="margin:8px 0">
                         <span class="pipeline-step" role="listitem">INICIO</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step" role="listitem">STT</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step" role="listitem">VISION</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step pipeline-step-hybrid" role="listitem">RAG Vector</span>
-                        <span class="arrow" aria-hidden="true">&#8214;</span>
+                        <span class="arrow">&#8214;</span>
                         <span class="pipeline-step pipeline-step-graph" role="listitem">GRAPH</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step pipeline-step-hybrid" role="listitem">HYBRID</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step" role="listitem">GENERANDO</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step" role="listitem">TTS</span>
-                        <span class="arrow" aria-hidden="true">&#8594;</span>
+                        <span class="arrow">&#8594;</span>
                         <span class="pipeline-step" role="listitem">FIN</span>
                     </div>
-                """)
-
-                logs_output = gr.Textbox(
-                    label="",
-                    lines=8,
-                    interactive=False,
-                    placeholder=(
-                        "[HH:MM:SS] [INICIO] Asistente SRI IA Multimodal iniciado.\n"
-                        "[HH:MM:SS] [STT] Transcribiendo consulta de audio...\n"
-                        "[HH:MM:SS] [VISION] Analizando imagen con Moondream...\n"
-                        "[HH:MM:SS] [RAG] Buscando normativa: vector + grafo híbrido...\n"
-                        "[HH:MM:SS] [RAG] ✓ N artículos relevantes [+grafo].\n"
-                        "[HH:MM:SS] [GRAPH] ✓ Entidades detectadas: IVA, RUC... | N triples.\n"
-                        "[HH:MM:SS] [GENERANDO] Generando respuesta con TinyLlama...\n"
-                        "[HH:MM:SS] [TTS] Sintetizando audio con Piper TTS...\n"
-                        "[HH:MM:SS] [FIN] Consulta tributaria procesada correctamente."
-                    ),
-                    elem_classes=["logs-console"],
-                )
-
-                gr.HTML("</div>")  # cierre logs-wrap
+                    """)
+                    logs_output = gr.Textbox(
+                        lines=8,
+                        interactive=False,
+                        show_label=False,
+                        elem_classes=["logs-console"],
+                        placeholder=(
+                            "[HH:MM:SS] [INICIO] Asistente SRI IA Multimodal iniciado.\n"
+                            "[HH:MM:SS] [STT]    Transcribiendo consulta de audio...\n"
+                            "[HH:MM:SS] [VISION] Analizando imagen con Moondream...\n"
+                            "[HH:MM:SS] [RAG]    Buscando normativa: vector + grafo híbrido...\n"
+                            "[HH:MM:SS] [GRAPH]  ✓ Entidades detectadas: IVA, RUC... | N triples.\n"
+                            "[HH:MM:SS] [GEN]    Generando respuesta con TinyLlama...\n"
+                            "[HH:MM:SS] [TTS]    Sintetizando audio con Piper TTS...\n"
+                            "[HH:MM:SS] [FIN]    Consulta procesada correctamente."
+                        ),
+                    )
 
             # ═══════════════════════════════════════════════════════════════
             # TAB 2 — Base de Conocimiento
@@ -414,20 +513,20 @@ def build_interface(coordinator) -> gr.Blocks:
         </footer>
         """)
 
-        # ── Eventos ───────────────────────────────────────────────────────
-        btn_consultar.click(
-            fn=consultar,
-            inputs=[img_input, audio_input, text_input, video_input],
-            outputs=[stt_output, response_output, rag_output, audio_output, logs_output],
-            show_progress="full",
-        )
-        btn_screenshot.click(fn=take_screenshot, inputs=[], outputs=[img_input])
-        btn_clear.click(
-            fn=clear_all,
-            inputs=[],
-            outputs=[img_input, audio_input, text_input, video_input,
-                     stt_output, response_output, rag_output, audio_output, logs_output],
-        )
+        # ── Event bindings ────────────────────────────────────────────────
+        _send_inputs  = [text_input, media_input, audio_input, chatbot]
+        _send_outputs = [
+            chatbot, text_input, media_input,
+            rag_output, audio_output, logs_output,
+        ]
+
+        btn_send.click(fn=send, inputs=_send_inputs, outputs=_send_outputs)
+        text_input.submit(fn=send, inputs=_send_inputs, outputs=_send_outputs)
+        btn_screenshot.click(fn=take_screenshot, inputs=[], outputs=[media_input])
+        btn_clear.click(fn=clear_all, inputs=[], outputs=[
+            chatbot, text_input, media_input, audio_input,
+            rag_output, audio_output, logs_output,
+        ])
 
     return demo
 

@@ -15,19 +15,28 @@ def capture_screenshot() -> Image.Image | None:
     Usa screencapture nativo de macOS.
     """
     path = os.path.join(TEMP_DIR, "sri_screenshot.png")
-    try:
-        subprocess.run(["screencapture", "-x", path], check=True, timeout=10)
-        img = Image.open(path).convert("RGB")
-        return img
-    except Exception as e:
-        print(f"[CAPTURA] Error en screenshot: {e}")
+    # Try without -x first (avoids permission issues on some macOS versions)
+    for cmd in (["screencapture", path], ["screencapture", "-x", path]):
         try:
-            from PIL import ImageGrab
-            img = ImageGrab.grab()
-            img.save(path)
+            subprocess.run(cmd, check=True, timeout=10)
+            img = Image.open(path).convert("RGB")
             return img
         except Exception:
-            return None
+            pass
+    # PIL fallback
+    try:
+        from PIL import ImageGrab
+        img = ImageGrab.grab()
+        if img:
+            img.save(path)
+            return img.convert("RGB")
+    except Exception:
+        pass
+    print(
+        "[CAPTURA] No se pudo capturar pantalla. "
+        "Otorga permiso en: Ajustes del Sistema → Privacidad → Grabación de Pantalla → Terminal"
+    )
+    return None
 
 
 def capture_webcam(device_index: int = 0) -> Image.Image | None:

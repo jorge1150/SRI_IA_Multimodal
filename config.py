@@ -82,12 +82,12 @@ TTS_SAMPLE_RATE: int = 22050
 # ─────────────────────────────────────────────
 # VISIÓN — Prompt para formularios y portal SRI
 # ─────────────────────────────────────────────
-VISION_TIMEOUT: int = 60
+VISION_TIMEOUT: int = 180
 MOONDREAM_PROMPT: str = (
-    "Describe brevemente en español qué muestra esta imagen relacionada con "
-    "trámites tributarios del SRI Ecuador. Puede ser un formulario, error en "
-    "portal web, comprobante electrónico, declaración o pantalla del sistema SRI. "
-    "Máximo 30 palabras."
+    "Describe what is shown in this image. "
+    "It may be a tax form, web portal screenshot, electronic invoice, "
+    "tax declaration, or government system screen. "
+    "Be concise, maximum 40 words."
 )
 
 # ─────────────────────────────────────────────

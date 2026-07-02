@@ -987,6 +987,163 @@ audio {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   CHAT INTERFACE
+═══════════════════════════════════════════════════════════════════ */
+
+/* Chatbot container */
+.chat-window {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    background: var(--bg-card) !important;
+    box-shadow: var(--shadow) !important;
+}
+
+/* User message bubbles */
+.chat-window .message.user > div,
+.chat-window [data-testid="user"] > div {
+    background: linear-gradient(135deg,
+        rgba(29,78,216,0.22) 0%, rgba(29,78,216,0.12) 100%) !important;
+    border: 1px solid rgba(59,130,246,0.28) !important;
+    color: #dbeafe !important;
+    border-radius: var(--radius) var(--radius) var(--radius-xs) var(--radius) !important;
+}
+
+/* Bot / assistant message bubbles */
+.chat-window .message.bot > div,
+.chat-window [data-testid="bot"] > div,
+.chat-window .message.assistant > div {
+    background: linear-gradient(135deg,
+        rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.04) 100%) !important;
+    border: 1px solid rgba(16,185,129,0.22) !important;
+    color: #d1fae5 !important;
+    border-radius: var(--radius) var(--radius) var(--radius) var(--radius-xs) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.75 !important;
+}
+
+/* Placeholder text inside empty chatbot */
+.chat-window .placeholder {
+    color: var(--text-dim) !important;
+    font-size: 0.85rem !important;
+    font-style: italic !important;
+}
+
+/* Attach accordion styling */
+.attach-accordion > div:first-child {
+    background: var(--bg-card2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    font-size: 0.8rem !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em !important;
+    padding: 10px 14px !important;
+    cursor: pointer !important;
+    transition: background 0.2s ease, color 0.2s ease !important;
+}
+
+.attach-accordion > div:first-child:hover {
+    background: rgba(245,158,11,0.06) !important;
+    color: var(--c-gold-l) !important;
+    border-color: var(--border-gold) !important;
+}
+
+/* Chat text input (composer) */
+.chat-input textarea {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-l) !important;
+    border-radius: var(--radius) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.65 !important;
+    padding: 12px 16px !important;
+    resize: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    color: var(--text) !important;
+    min-height: 56px !important;
+}
+
+.chat-input textarea:focus {
+    border-color: rgba(245,158,11,0.5) !important;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.08),
+                inset 0 1px 3px rgba(0,0,0,0.25) !important;
+    outline: none !important;
+}
+
+/* Send button */
+.btn-send {
+    background: linear-gradient(135deg,
+        #1a3a8f 0%, #1d4ed8 45%, #d97706 100%) !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    border: none !important;
+    border-radius: var(--radius) !important;
+    width: 100% !important;
+    min-height: 52px !important;
+    font-size: 0.88rem !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    box-shadow: 0 4px 18px rgba(29,78,216,0.4),
+                0 2px 8px rgba(0,0,0,0.5) !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+}
+
+.btn-send:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 7px 28px rgba(29,78,216,0.5),
+                0 0 0 1px rgba(245,158,11,0.35) !important;
+}
+
+.btn-send:active {
+    transform: translateY(0) scale(0.97) !important;
+    transition-duration: 0.08s !important;
+}
+
+/* Composer row */
+.composer-row {
+    margin-top: 8px !important;
+    gap: 10px !important;
+    align-items: flex-end !important;
+}
+
+/* Chat sidebar */
+.chat-sidebar {
+    padding-left: 12px !important;
+}
+
+/* Attachment image inside chat */
+.attach-img {
+    border: 2px dashed var(--border-l) !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden !important;
+    background: var(--bg-input) !important;
+    transition: border-color 0.2s ease !important;
+}
+
+.attach-img:hover {
+    border-color: rgba(245,158,11,0.4) !important;
+}
+
+/* Logs accordion */
+.logs-accordion {
+    margin-top: 10px !important;
+}
+
+.logs-accordion > div:first-child {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    font-size: 0.78rem !important;
+    color: var(--c-gold) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    padding: 10px 14px !important;
+    cursor: pointer !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
