@@ -32,7 +32,7 @@ OLLAMA_PORT: int = 11434
 OLLAMA_URL: str = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 OLLAMA_TIMEOUT: int = 180
 
-LLM_MODEL: str = "tinyllama"
+LLM_MODEL: str = "qwen2.5:3b-instruct-q4_K_M"
 VISION_MODEL: str = "moondream"
 LLM_TEMPERATURE: float = 0.1
 
@@ -100,26 +100,55 @@ VIDEO_MAX_FRAMES: int = 2
 # RUTAS DEL SISTEMA — Documentos SRI
 # ─────────────────────────────────────────────
 DATA_DIR: str = os.path.join(BASE_DIR, "data")
-NORMATIVAS_DIR: str = os.path.join(DATA_DIR, "normativas_sri")
-RESOLUCIONES_DIR: str = os.path.join(DATA_DIR, "resoluciones")
-GUIAS_DIR: str = os.path.join(DATA_DIR, "guias_tributarias")
-FORMULARIOS_DIR: str = os.path.join(DATA_DIR, "formularios")
 
 OUTPUTS_DIR: str = os.path.join(BASE_DIR, "outputs")
 AUDIO_OUTPUT_DIR: str = os.path.join(OUTPUTS_DIR, "respuestas_audio")
 LOGS_DIR: str = os.path.join(OUTPUTS_DIR, "logs")
 TEMP_DIR: str = os.path.join(BASE_DIR, "temp")
 
-# Mapeo directorio → tipo de normativa (para metadatos RAG)
-TIPO_BY_FOLDER: dict = {
-    "normativas_sri": "Ley / Normativa",
-    "resoluciones": "Resolución SRI",
-    "guias_tributarias": "Guía Tributaria",
-    "formularios": "Formulario SRI",
-}
+# Nombres de subcarpeta de data/ que no son categorías de normativa.
+_DATA_DIR_EXCLUDE = {"output"}
 
-# Todos los directorios de documentos SRI
-ALL_DATA_DIRS: list = [NORMATIVAS_DIR, RESOLUCIONES_DIR, GUIAS_DIR, FORMULARIOS_DIR]
+
+def get_data_dirs() -> list:
+    """
+    Descubre las categorías de normativa como subcarpetas directas de data/
+    (sin recursividad, sin ocultas, sin "output"). El nombre de cada carpeta
+    es directamente el tipo_normativa del chunk — no hay tabla de mapeo:
+    renombrar/agregar una carpeta cambia la categoría sin tocar código.
+    """
+    if not os.path.isdir(DATA_DIR):
+        return []
+    dirs = []
+    for name in sorted(os.listdir(DATA_DIR)):
+        if name.startswith(".") or name in _DATA_DIR_EXCLUDE:
+            continue
+        full = os.path.join(DATA_DIR, name)
+        if os.path.isdir(full):
+            dirs.append(full)
+    return dirs
+
+# ─────────────────────────────────────────────
+# MinerU — parseo avanzado de PDF (tablas, OCR, layout)
+# ─────────────────────────────────────────────
+# MinerU[pipeline] fuerza numpy>=2 / opencv>=2, incompatible con
+# torch==2.2.2 (requiere numpy<2) que usa el resto del proyecto.
+# Por eso vive en su propio venv (venv_mineru/), no en venv/, y con
+# opencv-python==4.11.0.86 (última compatible con numpy<2, ver setup abajo).
+# Setup:
+#   python3.12 -m venv venv_mineru
+#   venv_mineru/bin/pip install "mineru[pipeline]"
+#   venv_mineru/bin/pip install "numpy<2" "opencv-python==4.11.0.86" \
+#       "opencv-python-headless==4.11.0.86" "scipy<1.14"
+# Default true (ADR-0001): MinerU es el backend por defecto sobre el corpus
+# de tesis. Desactivar con: export USE_MINERU_PDF=false
+USE_MINERU_PDF: bool = os.getenv("USE_MINERU_PDF", "true").lower() == "true"
+MINERU_BIN: str = os.path.join(BASE_DIR, "venv_mineru", "bin", "mineru")
+MINERU_BACKEND: str = "pipeline"
+# Este Mac es Intel x86_64: MPS (Metal) se detecta pero torchvision::nms y
+# bfloat16 no están implementados ahí para los modelos de MinerU → forzar CPU.
+MINERU_DEVICE: str = "cpu"
+MINERU_TIMEOUT: int = 600  # segundos, PDFs largos con tablas tardan
 
 # ─────────────────────────────────────────────
 # GRADIO
@@ -143,7 +172,7 @@ GRAPH_MIN_WEIGHT: float = 0.4       # peso mínimo de relación para incluir
 for _d in [
     LOGS_DIR, TEMP_DIR, PIPER_MODELS_DIR, AUDIO_OUTPUT_DIR,
     os.path.dirname(CHROMA_DB_PATH),
-    NORMATIVAS_DIR, RESOLUCIONES_DIR, GUIAS_DIR, FORMULARIOS_DIR,
+    DATA_DIR,
     os.path.dirname(GRAPH_DB_PATH),
 ]:
     os.makedirs(_d, exist_ok=True)

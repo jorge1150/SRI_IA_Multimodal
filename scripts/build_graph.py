@@ -74,8 +74,7 @@ def main():
 
     builder = GraphBuilder(store, verbose=True)
     result = builder.build_from_directory(
-        data_dirs=config.ALL_DATA_DIRS,
-        tipo_by_folder=config.TIPO_BY_FOLDER,
+        data_dirs=config.get_data_dirs(),
         reset=args.reset,
     )
 

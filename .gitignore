@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 .DS_Store
 
+venv_mineru/
+
 # GraphRAG (generada localmente)
 graph_db/
 
@@ -18,6 +20,9 @@ audio/piper_models/*.json
 temp/
 outputs/respuestas_audio/
 
+# Salidas de prueba de MinerU (markdown/json/imágenes extraídos)
+data/output/
+
 # Logs de sesión
 outputs/logs/*.log
 
@@ -26,3 +31,6 @@ outputs/logs/*.log
 
 # Modelos HuggingFace en caché
 .cache/
+
+.claude/
+skills-lock.json

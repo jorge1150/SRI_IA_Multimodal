@@ -569,9 +569,8 @@ def _build_knowledge_tab():
     graph_status_text  = f"{g_nodes} nodos" if g_nodes > 0 else ("Sin grafo" if g_enabled else "Desactivado")
 
     doc_counts = {}
-    for data_dir in config.ALL_DATA_DIRS:
-        folder = os.path.basename(data_dir)
-        tipo = config.TIPO_BY_FOLDER.get(folder, folder)
+    for data_dir in config.get_data_dirs():
+        tipo = os.path.basename(data_dir)
         count = sum(
             len(glob.glob(os.path.join(data_dir, f"*{ext}")))
             for ext in [".pdf", ".txt", ".docx", ".md"]
@@ -692,13 +691,8 @@ def _build_knowledge_tab():
 
       <div class="info-card">
         <strong style="color:#e8edf5">Paso 1 &mdash; Copiar documentos</strong><br>
-        Coloca los archivos PDF, TXT, DOCX o MD del SRI en las carpetas correspondientes:
-        <ul style="margin:6px 0 0 16px;line-height:2">
-          <li><code>data/normativas_sri/</code> &rarr; LORTI, Código Tributario, Reglamentos</li>
-          <li><code>data/resoluciones/</code> &rarr; Resoluciones NAC-DGERCGC del SRI</li>
-          <li><code>data/guias_tributarias/</code> &rarr; Guías de declaración, RUC, comprobantes</li>
-          <li><code>data/formularios/</code> &rarr; Instructivos formularios 104, 101, etc.</li>
-        </ul>
+        Cada subcarpeta de <code>data/</code> es una categoría — el nombre de la
+        carpeta se usa como tipo de normativa (ver tabla de categorías arriba).
       </div>
 
       <div class="info-card gold" style="margin-top:8px">

@@ -123,6 +123,87 @@ class TestRelationExtractor(unittest.TestCase):
 
 
 # ─────────────────────────────────────────────────────────────
+# GraphBuilder
+# ─────────────────────────────────────────────────────────────
+
+class TestGraphBuilder(unittest.TestCase):
+
+    def setUp(self):
+        from unittest.mock import patch
+        from graph.graph_builder import GraphBuilder
+        from graph.graph_store import GraphStore
+        self._tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        self._tmp.close()
+        self.store = GraphStore(self._tmp.name)
+        self.builder = GraphBuilder(self.store, verbose=False)
+        self._patch = patch.object(
+            self.builder._relation_extractor, "extract", wraps=self.builder._relation_extractor.extract
+        )
+        self.mock_extract = self._patch.start()
+
+    def tearDown(self):
+        self._patch.stop()
+        if os.path.exists(self._tmp.name):
+            os.unlink(self._tmp.name)
+
+    def test_table_chunk_uses_graph_text_not_html(self):
+        chunk = {
+            "kind": "table",
+            "text": "Tabla de tarifas\n<table><tr><td>IVA</td><td>12.5%</td></tr></table>",
+            "graph_text": "Tabla de tarifas de IVA vigentes",
+            "doc_name": "Resolución NAC-001",
+        }
+        self.builder.build_from_chunks([chunk])
+        called_text = self.mock_extract.call_args[0][0]
+        self.assertNotIn("<table>", called_text)
+        self.assertEqual(called_text, "Tabla de tarifas de IVA vigentes")
+
+    def test_equation_chunk_with_empty_graph_text_is_skipped(self):
+        chunk = {
+            "kind": "equation",
+            "text": r"IVA = Base \times 0.12",
+            "graph_text": "",
+            "doc_name": "Resolución NAC-001",
+        }
+        self.builder.build_from_chunks([chunk])
+        self.mock_extract.assert_not_called()
+
+    def test_paragraph_chunk_uses_text_as_before(self):
+        chunk = {
+            "kind": "paragraph",
+            "text": "El contribuyente debe presentar la declaración del IVA.",
+            "doc_name": "Resolución NAC-001",
+        }
+        self.builder.build_from_chunks([chunk])
+        called_text = self.mock_extract.call_args[0][0]
+        self.assertEqual(called_text, chunk["text"])
+
+    def test_doc_name_read_from_flat_chunk_not_placeholder(self):
+        # Regresión candidata A: build_from_chunks leía chunk["metadata"]["doc_name"],
+        # pero el único llamador real (build_from_directory) pasa el dict plano
+        # del chunker — doc_name caía siempre a "chunk_0".
+        chunk = {
+            "kind": "paragraph",
+            "text": "El contribuyente debe presentar la declaración del IVA.",
+            "doc_name": "Resolución NAC-DGERCGC18-00000001",
+            "source": "NAC-DGERCGC18-00000001.pdf",
+        }
+        self.builder.build_from_chunks([chunk])
+        triples = self.mock_extract.call_args[0]
+        doc_name_arg = self.mock_extract.call_args.kwargs.get("document_name")
+        self.assertEqual(doc_name_arg, "Resolución NAC-DGERCGC18-00000001")
+
+    def test_doc_name_falls_back_to_source_then_placeholder(self):
+        chunk_with_source = {"kind": "paragraph", "text": "Texto.", "source": "archivo.pdf"}
+        self.builder.build_from_chunks([chunk_with_source])
+        self.assertEqual(self.mock_extract.call_args.kwargs.get("document_name"), "archivo.pdf")
+
+        chunk_without_names = {"kind": "paragraph", "text": "Texto."}
+        self.builder.build_from_chunks([chunk_without_names])
+        self.assertEqual(self.mock_extract.call_args.kwargs.get("document_name"), "chunk_0")
+
+
+# ─────────────────────────────────────────────────────────────
 # GraphStore
 # ─────────────────────────────────────────────────────────────
 

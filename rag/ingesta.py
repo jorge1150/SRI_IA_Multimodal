@@ -13,7 +13,7 @@ import chromadb
 from config import (
     CLIP_MODEL, CLIP_PRETRAINED, CLIP_MAX_TOKENS,
     CHROMA_DB_PATH, CHROMA_COLLECTION,
-    ALL_DATA_DIRS, TIPO_BY_FOLDER,
+    get_data_dirs,
 )
 from .chunker import chunk_document
 
@@ -49,19 +49,18 @@ def ingest_all_documents(reset: bool = False) -> int:
     Retorna el número de chunks insertados.
     """
     # ── Recopilar todos los documentos ──────────────────────────────────────
+    data_dirs = get_data_dirs()
     all_files: list[tuple[str, str]] = []  # (filepath, tipo_normativa)
-    for data_dir in ALL_DATA_DIRS:
-        folder_name = os.path.basename(data_dir)
-        tipo = TIPO_BY_FOLDER.get(folder_name, "Documento SRI")
+    for data_dir in data_dirs:
+        tipo = os.path.basename(data_dir)
         for ext in SUPPORTED_EXTENSIONS:
             for fp in glob.glob(os.path.join(data_dir, ext)):
                 all_files.append((fp, tipo))
 
     if not all_files:
         print("[INGESTA] No se encontraron documentos SRI en las carpetas de datos.")
-        print("  Copia tus documentos en:")
-        for d in ALL_DATA_DIRS:
-            print(f"    {d}")
+        print("  Copia tus documentos en una subcarpeta de data/ — el nombre de")
+        print("  la carpeta se usa como tipo de normativa (ej. data/IVA/...).")
         return 0
 
     print(f"[INGESTA] {len(all_files)} documento(s) encontrado(s).")
@@ -108,7 +107,11 @@ def ingest_all_documents(reset: bool = False) -> int:
         # Vectorizar y preparar batch
         ids_batch, docs_batch, metas_batch, vecs_batch = [], [], [], []
         for chunk in new_chunks:
-            vec = embed_text(chunk["text"], model, tokenizer, clip_device)
+            # Tabla/ecuación: graph_text (caption+footnote, sin HTML/LaTeX) es lo
+            # que se embebe — chunk["text"] completo se sigue mostrando al LLM
+            # (docs_batch abajo), solo el vector cambia (ADR-0004).
+            texto_para_embed = chunk["graph_text"] or chunk["text"]
+            vec = embed_text(texto_para_embed, model, tokenizer, clip_device)
             ids_batch.append(chunk["id"])
             docs_batch.append(chunk["text"])
             metas_batch.append({

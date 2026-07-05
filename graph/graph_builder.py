@@ -40,8 +40,8 @@ class GraphBuilder:
     def build_from_chunks(self, chunks: list[dict], reset: bool = False) -> dict:
         """
         Construye o actualiza el grafo a partir de una lista de chunks RAG.
-        Cada chunk es el formato estándar del proyecto:
-          {"text": ..., "metadata": {"doc_name": ..., "tipo_normativa": ...}, ...}
+        Cada chunk es el dict plano que produce rag.chunker.chunk_document:
+          {"text": ..., "doc_name": ..., "source": ..., "kind": ..., ...}
 
         reset=True: vacía el grafo antes de reconstruir.
         Retorna estadísticas de construcción.
@@ -59,8 +59,13 @@ class GraphBuilder:
 
         for i, chunk in enumerate(chunks):
             text = chunk.get("text", "")
-            meta = chunk.get("metadata", {})
-            doc_name = meta.get("doc_name") or meta.get("source", f"chunk_{i}")
+            doc_name = chunk.get("doc_name") or chunk.get("source") or f"chunk_{i}"
+
+            # Tabla/ecuación: el HTML/LaTeX de "text" rompe el sentence-splitter
+            # de RelationExtractor. Solo caption/footnote (graph_text) son prosa
+            # segura para extraer entidades y relaciones.
+            if chunk.get("kind") in ("table", "equation"):
+                text = chunk["graph_text"]
 
             if not text.strip():
                 continue
@@ -98,12 +103,11 @@ class GraphBuilder:
             "new_triples": total_triples,
         }
 
-    def build_from_directory(
-        self, data_dirs: list[str], tipo_by_folder: dict, reset: bool = False
-    ) -> dict:
+    def build_from_directory(self, data_dirs: list[str], reset: bool = False) -> dict:
         """
         Construye el grafo leyendo directamente desde los directorios de documentos.
-        Reutiliza el chunker del proyecto RAG.
+        Reutiliza el chunker del proyecto RAG. tipo_normativa es el nombre de
+        cada carpeta en data_dirs (ver config.get_data_dirs).
         """
         import glob
         try:
@@ -118,8 +122,7 @@ class GraphBuilder:
         # Recopilar todos los archivos primero para mostrar progreso
         all_files = []
         for data_dir in data_dirs:
-            folder = os.path.basename(data_dir)
-            tipo = tipo_by_folder.get(folder, "Documento SRI")
+            tipo = os.path.basename(data_dir)
             for ext in SUPPORTED:
                 for filepath in glob.glob(os.path.join(data_dir, ext)):
                     all_files.append((filepath, tipo))

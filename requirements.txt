@@ -25,10 +25,18 @@ open_clip_torch>=2.24.0
 chromadb>=0.5.0
 
 # ── Procesamiento de documentos ───────────────────────────────
-# PDF con número de página (PyMuPDF)
+# PDF con número de página (PyMuPDF) — fallback si MinerU falla (ver ADR-0001)
 pymupdf>=1.23.0
 # DOCX
 python-docx>=1.1.0
+
+# Backend PDF alternativo con layout, tablas, fórmulas y OCR.
+# Opcional: pesado (~16GB RAM, ~20GB disco con modelos). mineru[pipeline]
+# fuerza numpy>=2 / opencv>=2, incompatible con torch==2.2.2 de este
+# requirements.txt → NO instalar aquí. Vive en un venv aparte:
+#   python3.12 -m venv venv_mineru
+#   venv_mineru/bin/pip install "mineru[pipeline]"
+# Activar con: export USE_MINERU_PDF=true (ver config.py MINERU_BIN)
 
 # ── Audio ─────────────────────────────────────────────────────
 sounddevice>=0.4.6

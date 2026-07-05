@@ -6,11 +6,8 @@ Uso:
     python rag/build_db.py --reset   # borra la colección y reinicia
 
 Documentos soportados: PDF, TXT, DOCX, MD
-Carpetas escaneadas:
-    data/normativas_sri/    → Leyes, LORTI, Código Tributario
-    data/resoluciones/      → Resoluciones NAC del SRI
-    data/guias_tributarias/ → Guías de declaración, RUC, comprobantes
-    data/formularios/       → Instructivos de formularios 104, 101, etc.
+Carpetas escaneadas: cada subcarpeta directa de data/ (excepto data/output/)
+es una categoría — el nombre de la carpeta se usa como tipo de normativa.
 """
 
 import sys
@@ -33,10 +30,8 @@ def main():
     print(f"  Reset:     {reset}")
     print()
     print("  Carpetas de documentos:")
-    for d in config.ALL_DATA_DIRS:
-        folder = os.path.basename(d)
-        tipo = config.TIPO_BY_FOLDER.get(folder, "Documento SRI")
-        print(f"    {d}  [{tipo}]")
+    for d in config.get_data_dirs():
+        print(f"    {d}  [{os.path.basename(d)}]")
     print("=" * 70)
 
     n = ingest_all_documents(reset=reset)

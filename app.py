@@ -63,7 +63,7 @@ def check_documents() -> int:
     """Cuenta documentos disponibles en todas las carpetas de datos."""
     import glob
     total = 0
-    for data_dir in config.ALL_DATA_DIRS:
+    for data_dir in config.get_data_dirs():
         for ext in ("*.pdf", "*.txt", "*.docx", "*.md"):
             total += len(glob.glob(os.path.join(data_dir, ext)))
     return total
@@ -100,8 +100,8 @@ def main():
         print(f"[OK] Base vectorial construida: {n} fragmentos normativos.\n")
     elif not db_ok and n_docs == 0:
         print("[ADVERTENCIA] No hay documentos SRI en data/.")
-        print("  Copia PDFs, TXTs o DOCXs del SRI en las carpetas data/normativas_sri/,")
-        print("  data/resoluciones/, data/guias_tributarias/ o data/formularios/")
+        print("  Copia PDFs, TXTs o DOCXs en una subcarpeta de data/ — el nombre")
+        print("  de la carpeta se usa como tipo de normativa (ej. data/IVA/...).")
         print("  Luego ejecuta: python rag/build_db.py")
         print()
 
