@@ -167,6 +167,7 @@ def build_interface(coordinator) -> gr.Blocks:
     import uuid
     from PIL import Image as _PILImage
     from config import TEMP_DIR
+    import config
 
     # ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -318,7 +319,7 @@ def build_interface(coordinator) -> gr.Blocks:
             </p>
             <div class="tech-chips" role="list" aria-label="Tecnologías del sistema">
                 <span class="chip chip-hybrid" role="listitem">RAG + GraphRAG Híbrido</span>
-                <span class="chip" role="listitem">Ollama &middot; TinyLlama</span>
+                <span class="chip" role="listitem">Ollama</span>
                 <span class="chip" role="listitem">ChromaDB &middot; OpenCLIP</span>
                 <span class="chip chip-graph" role="listitem">NetworkX &middot; Grafo</span>
                 <span class="chip" role="listitem">Whisper STT</span>
@@ -479,7 +480,7 @@ def build_interface(coordinator) -> gr.Blocks:
                             "[HH:MM:SS] [VISION] Analizando imagen con Moondream...\n"
                             "[HH:MM:SS] [RAG]    Buscando normativa: vector + grafo híbrido...\n"
                             "[HH:MM:SS] [GRAPH]  ✓ Entidades detectadas: IVA, RUC... | N triples.\n"
-                            "[HH:MM:SS] [GEN]    Generando respuesta con TinyLlama...\n"
+                            f"[HH:MM:SS] [GEN]    Generando respuesta con {config.LLM_MODEL}...\n"
                             "[HH:MM:SS] [TTS]    Sintetizando audio con Piper TTS...\n"
                             "[HH:MM:SS] [FIN]    Consulta procesada correctamente."
                         ),
@@ -490,6 +491,12 @@ def build_interface(coordinator) -> gr.Blocks:
             # ═══════════════════════════════════════════════════════════════
             with gr.Tab("📚  Base de Conocimiento"):
                 _build_knowledge_tab()
+
+            # ═══════════════════════════════════════════════════════════════
+            # TAB 2b — Benchmark RAGAS (tesis)
+            # ═══════════════════════════════════════════════════════════════
+            with gr.Tab("📊  Benchmark RAGAS"):
+                _build_benchmark_tab()
 
             # ═══════════════════════════════════════════════════════════════
             # TAB 3 — Estado del Sistema
@@ -549,6 +556,7 @@ def _build_knowledge_tab():
     g_enabled = getattr(config, 'GRAPH_ENABLED', False)
     g_docs = 0
     g_rel_types = {}
+    g_build_seconds = 0.0
     try:
         gpath = getattr(config, 'GRAPH_DB_PATH', '')
         if gpath and os.path.exists(gpath):
@@ -558,15 +566,47 @@ def _build_knowledge_tab():
             g_nodes = meta.get('n_nodes', 0)
             g_edges = meta.get('n_edges', 0)
             g_docs  = meta.get('n_documents', 0)
-            # contar tipos de relación desde aristas
+            g_build_seconds = meta.get('build_seconds', 0.0)
+            # Contar tipos de relación desde aristas. El JSON guardado por
+            # GraphStore.save() usa "relation" (str) por fila, una fila por
+            # evidencia — no "relations" (dict), que es solo la forma en
+            # memoria de GraphStore.G. Leer la llave equivocada dejaba esto
+            # siempre vacío.
             for e in gdata.get('edges', []):
-                for rel in e.get('relations', {}).keys():
+                rel = e.get('relation')
+                if rel:
                     g_rel_types[rel] = g_rel_types.get(rel, 0) + 1
     except Exception:
         pass
 
+    # Tiempo de construcción del vector store (ver rag/ingesta.py)
+    v_build_seconds = 0.0
+    try:
+        vpath = getattr(config, 'VECTOR_BUILD_METADATA_PATH', '')
+        if vpath and os.path.exists(vpath):
+            with open(vpath, encoding='utf-8') as f:
+                v_build_seconds = json.load(f).get('build_seconds', 0.0)
+    except Exception:
+        pass
+
+    def _fmt_duration(seconds: float) -> str:
+        if seconds <= 0:
+            return "—"
+        seconds = int(seconds)
+        h, rem = divmod(seconds, 3600)
+        m, s = divmod(rem, 60)
+        if h:
+            return f"{h}h {m}m"
+        if m:
+            return f"{m}m {s}s"
+        return f"{s}s"
+
     graph_status_color = "#10b981" if g_nodes > 0 else ("#f59e0b" if g_enabled else "#ef4444")
     graph_status_text  = f"{g_nodes} nodos" if g_nodes > 0 else ("Sin grafo" if g_enabled else "Desactivado")
+
+    pdf_backend_label = "MinerU (layout + tablas + OCR)" if getattr(config, 'USE_MINERU_PDF', False) \
+        else "PyMuPDF (texto plano)"
+    pdf_backend_color = "#a78bfa" if getattr(config, 'USE_MINERU_PDF', False) else "#f59e0b"
 
     doc_counts = {}
     for data_dir in config.get_data_dirs():
@@ -617,6 +657,31 @@ def _build_knowledge_tab():
           <div class="stat-label">Grafo GraphRAG</div>
         </div>
       </div>
+
+      <!-- Ingesta: backend PDF + tiempos de construcción -->
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        Ingesta &mdash; Backend y Tiempos de Construcci&oacute;n
+      </h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.05rem;color:{pdf_backend_color}">{pdf_backend_label}</div>
+          <div class="stat-label">Backend de parseo PDF</div>
+        </div>
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.4rem;color:#93c5fd">{_fmt_duration(v_build_seconds)}</div>
+          <div class="stat-label">Construcci&oacute;n Base Vectorial (acumulado)</div>
+        </div>
+        <div class="stat-card" style="padding:12px">
+          <div class="stat-value" style="font-size:1.4rem;color:#a78bfa">{_fmt_duration(g_build_seconds)}</div>
+          <div class="stat-label">Construcci&oacute;n GraphRAG (acumulado)</div>
+        </div>
+      </div>
+      <p style="font-size:0.76rem;color:#64748b;margin:0 0 16px">
+        "Acumulado" suma el tiempo de todas las corridas desde el último <code>--reset</code>
+        (incluye corridas interrumpidas y retomadas).
+      </p>
 
       <!-- GraphRAG panel -->
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
@@ -730,6 +795,174 @@ def _build_knowledge_tab():
     """)
 
 
+def _build_benchmark_tab():
+    """
+    Solo lectura: muestra el resumen del último benchmark corrido con
+    scripts/run_benchmark.py (RAG vs GraphRAG vs Híbrido + comparación de
+    LLMs, validado con RAGAS). Correr el benchmark sigue siendo por
+    terminal — esta tab no lanza procesos, solo lee el JSON más reciente.
+    """
+    import config, glob, json, os
+
+    bench_dir = os.path.join(config.BASE_DIR, "outputs", "benchmarks")
+    summaries = sorted(glob.glob(os.path.join(bench_dir, "*_summary.json")))
+
+    if not summaries:
+        gr.HTML("""
+        <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
+          <div class="info-card gold">
+            <strong style="color:#e8edf5">Todavía no hay ningún benchmark corrido.</strong><br>
+            Ejecuta desde terminal:<br>
+            <code style="color:#fbbf24">python scripts/run_benchmark.py --limit 5</code>
+            &nbsp;&middot;&nbsp; prueba rápida<br>
+            <code style="color:#fbbf24">python scripts/run_benchmark.py</code>
+            &nbsp;&middot;&nbsp; corrida completa (puede tardar horas en CPU)<br><br>
+            Compara RAG vectorial, GraphRAG y modo híbrido — tiempo de
+            respuesta y calidad (RAGAS: faithfulness, answer relevancy) —
+            y permite comparar distintos modelos Ollama entre sí.
+          </div>
+        </div>
+        """)
+        return
+
+    latest_path = summaries[-1]
+    try:
+        with open(latest_path, encoding="utf-8") as f:
+            summary = json.load(f)
+    except Exception as exc:
+        gr.HTML(f"<div style='padding:20px'>Error leyendo {latest_path}: {exc}</div>")
+        return
+
+    def _fmt(v, suffix=""):
+        import math as _math
+        if not isinstance(v, (int, float)) or (isinstance(v, float) and _math.isnan(v)):
+            return "—"
+        return f"{v:.2f}{suffix}"
+
+    def _fmt_ragas(v, n_evaluated, n_total):
+        # "—" solo cuando el juez no evaluó nada del grupo (--no-ragas, o
+        # todas las filas sin contexto/respuesta) — distinto de "evaluó
+        # pero el juez local falló en algunas", que sí muestra el score
+        # junto con cuántas filas realmente contaron.
+        base = _fmt(v)
+        if base == "—" or n_total == 0:
+            return "—"
+        if n_evaluated < n_total:
+            return f"{base} <span style='color:#64748b;font-size:0.72em'>({n_evaluated}/{n_total})</span>"
+        return base
+
+    def _rows(agg: dict) -> str:
+        return "".join(
+            f"<tr><td>{k}</td>"
+            f"<td style='text-align:center'>{v.get('n', 0)}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{_fmt(v.get('avg_retrieval_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{_fmt(v.get('avg_generation_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{_fmt(v.get('avg_total_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
+            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+            f"<td style='text-align:center;color:#6ee7b7'>"
+            f"{'%.0f%%' % (v['source_match_rate']*100) if v.get('source_match_rate') is not None else '—'}</td>"
+            f"</tr>"
+            for k, v in sorted(agg.items())
+        )
+
+    thead = (
+        "<thead><tr>"
+        "<th style='text-align:left'>Grupo</th><th>N</th><th>Retrieval</th>"
+        "<th>Generación</th><th>Total</th><th>Faithfulness</th>"
+        "<th>Answer Relevancy</th><th>% Doc. correcto</th>"
+        "</tr></thead>"
+    )
+
+    ragas_enabled = summary.get('ragas_enabled', True)
+    ragas_warning = "" if ragas_enabled else """
+      <div class="info-card gold" style="margin-bottom:16px;border-left-color:#f59e0b">
+        <strong style="color:#fbbf24">⚠ Esta corrida usó <code>--no-ragas</code>:</strong>
+        Faithfulness y Answer Relevancy salen vacíos (&mdash;) a propósito &mdash;
+        no es un error, esa corrida solo midió tiempos. Para tenerlos, correr
+        <code style="color:#fbbf24">python scripts/run_benchmark.py</code> sin ese flag.
+      </div>
+    """
+
+    glossary = """
+      <details style="margin-bottom:16px">
+        <summary style="cursor:pointer;color:#93c5fd;font-size:0.85rem;font-weight:600">
+          ¿Qué significa cada columna?
+        </summary>
+        <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:10px" role="table">
+          <tbody>
+            <tr><td style="color:#c4b5fd;padding:6px 10px;white-space:nowrap">Retrieval</td>
+                <td style="padding:6px 10px">Tiempo en <em>buscar</em> contexto — vectorial (ChromaDB) y/o grafo (NetworkX), según el modo.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Generación</td>
+                <td style="padding:6px 10px">Tiempo en que el LLM <em>redacta</em> la respuesta con ese contexto ya encontrado.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Total</td>
+                <td style="padding:6px 10px">Retrieval + Generación.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Faithfulness</td>
+                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta está <em>basada</em> en el contexto recuperado, o el LLM inventó algo no sustentado ahí. Vacío (&mdash;) si se corrió con <code>--no-ragas</code>. Si ves "(2/3)" junto al número, el juez local no logró evaluar todas las preguntas del grupo (limitación de usar un modelo chico como juez, ver ADR-0003) — el promedio es solo de las que sí evaluó.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Answer Relevancy</td>
+                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta contesta la pregunta hecha, sin divagar. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">% Doc. correcto</td>
+                <td style="padding:6px 10px">De las preguntas con retrieval vectorial, en cuántas se recuperó el documento fuente real esperado (según <code>preguntas.docx</code>). Vacío en <code>graph_only</code> a propósito &mdash; ese modo nunca consulta ChromaDB.</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.75rem;color:#64748b;margin-top:8px">
+          Más tiempo no es mejor respuesta: un modo con más contexto (ej.
+          híbrido) tarda más en generar porque el LLM tiene más texto que
+          procesar antes de responder, no porque "razone más". La calidad se
+          mide con Faithfulness / Answer Relevancy / % Doc. correcto.
+        </p>
+      </details>
+    """
+
+    gr.HTML(f"""
+    <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
+
+      {ragas_warning}
+
+      <div class="info-card" style="margin-bottom:16px">
+        <strong style="color:#c4b5fd">Último benchmark:</strong>
+        {summary.get('generated_at', '—')} &mdash;
+        {summary.get('n_questions', '?')} pregunta(s) &middot;
+        modos: {', '.join(summary.get('modes', []))} &middot;
+        modelos: {', '.join(summary.get('models', []))} &middot;
+        {summary.get('n_rows', 0)} fila(s) totales<br>
+        <span style="font-size:0.76rem;color:#64748b">
+          Juez RAGAS: {summary.get('judge_model', '—')} &middot;
+          Embeddings: {summary.get('embedding_model', '—')}
+        </span>
+      </div>
+
+      {glossary}
+
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:0 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        Por Modo de Recuperación
+      </h3>
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
+        {thead}
+        <tbody>{_rows(summary.get('by_mode', {}))}</tbody>
+      </table>
+
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        Por Modelo LLM
+      </h3>
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
+        {thead}
+        <tbody>{_rows(summary.get('by_model', {}))}</tbody>
+      </table>
+
+      <div class="info-card gold" style="margin-top:16px">
+        <strong style="color:#e8edf5">Reporte completo (HTML) y datos crudos (CSV):</strong><br>
+        <code style="color:#fbbf24">{latest_path.replace('_summary.json', '.html')}</code><br>
+        <code style="color:#fbbf24">{latest_path.replace('_summary.json', '.csv')}</code>
+      </div>
+    </div>
+    """)
+
+
 def _build_system_tab():
     import config, torch, os
 
@@ -770,7 +1003,7 @@ def _build_system_tab():
         <span class="pipeline-arrow">&rArr;</span>
         <span class="pipeline-node hybrid" role="listitem">HybridRetriever</span>
         <span class="pipeline-arrow">&rArr;</span>
-        <span class="pipeline-node llm" role="listitem">TinyLlama</span>
+        <span class="pipeline-node llm" role="listitem">LLM (Ollama)</span>
         <span class="pipeline-arrow">&rArr;</span>
         <span class="pipeline-node output" role="listitem">Respuesta + Citas</span>
         <span class="pipeline-arrow">&rArr;</span>
@@ -842,15 +1075,17 @@ def _build_system_tab():
 
       <div class="info-card gold" style="margin-top:16px">
         <strong style="color:#e8edf5">Modelos Ollama requeridos</strong><br>
-        <code style="color:#fbbf24">ollama pull tinyllama</code> &nbsp;&rarr;&nbsp; Generaci&oacute;n de respuestas<br>
-        <code style="color:#fbbf24">ollama pull moondream</code> &nbsp;&rarr;&nbsp; An&aacute;lisis visual de formularios
+        <code style="color:#fbbf24">ollama pull {config.LLM_MODEL}</code> &nbsp;&rarr;&nbsp; Generaci&oacute;n de respuestas<br>
+        <code style="color:#fbbf24">ollama pull {config.VISION_MODEL}</code> &nbsp;&rarr;&nbsp; An&aacute;lisis visual de formularios
       </div>
     </div>
     """)
 
 
 def _build_guide_tab():
-    gr.HTML("""
+    import config
+
+    gr.HTML(f"""
     <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
 
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
@@ -938,6 +1173,48 @@ def _build_guide_tab():
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
                  letter-spacing:0.08em;margin:18px 0 10px;border-bottom:1px solid #1e3a5f;
                  padding-bottom:8px">
+        Benchmark de Tesis — Tab "Benchmark RAGAS"
+      </h3>
+
+      <div class="info-card" style="margin-bottom:8px">
+        Compara <strong>RAG vectorial</strong>, <strong>GraphRAG</strong> y
+        modo <strong>híbrido</strong> — tiempo de respuesta y calidad — y
+        permite comparar distintos modelos Ollama entre sí. Se corre por
+        terminal, la tab solo <em>muestra</em> el último resultado (no lanza
+        el proceso, que puede tardar horas en CPU):<br>
+        <code style="color:#fbbf24">python scripts/run_benchmark.py --limit 5</code>
+        &nbsp;&middot;&nbsp; prueba rápida (sin RAGAS: agregar <code>--no-ragas</code>)<br>
+        <code style="color:#fbbf24">python scripts/run_benchmark.py</code>
+        &nbsp;&middot;&nbsp; corrida completa sobre <code>preguntas.docx</code>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem" role="table">
+        <thead>
+          <tr style="background:#141d2e">
+            <th style="text-align:left;padding:8px 12px;color:#8b9ab5;font-size:0.72rem;
+                       text-transform:uppercase;border-bottom:1px solid #1e3a5f" scope="col">Columna</th>
+            <th style="text-align:left;padding:8px 12px;color:#8b9ab5;font-size:0.72rem;
+                       text-transform:uppercase;border-bottom:1px solid #1e3a5f" scope="col">Qué mide</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Retrieval</td><td>Tiempo en <em>buscar</em> contexto (vectorial y/o grafo, según el modo)</td></tr>
+          <tr><td>Generación</td><td>Tiempo en que el LLM redacta la respuesta con ese contexto ya encontrado</td></tr>
+          <tr><td>Faithfulness</td><td>0&ndash;1 (RAGAS) &mdash; si la respuesta está basada en el contexto recuperado, o el LLM inventó algo no sustentado ahí</td></tr>
+          <tr><td>Answer Relevancy</td><td>0&ndash;1 (RAGAS) &mdash; si la respuesta contesta la pregunta hecha, sin divagar</td></tr>
+          <tr><td>% Doc. correcto</td><td>De las preguntas con retrieval vectorial, en cuántas se recuperó el documento fuente real esperado</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.76rem;color:#64748b;margin-top:8px">
+        Más tiempo no es mejor respuesta — un modo con más contexto (ej.
+        híbrido) tarda más en generar simplemente porque el LLM tiene más
+        texto que procesar antes de responder, no porque "razone más". La
+        calidad se mide con Faithfulness / Answer Relevancy / % Doc. correcto,
+        no con el tiempo.
+      </p>
+
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:18px 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
         Solución de Problemas
       </h3>
 
@@ -958,11 +1235,19 @@ def _build_guide_tab():
           <tr><td>Sin voz en respuesta</td>
               <td><code>python audio/download_piper.py</code></td></tr>
           <tr><td>Modelos Ollama faltantes</td>
-              <td><code>ollama pull tinyllama &amp;&amp; ollama pull moondream</code></td></tr>
-          <tr><td>Error de PyMuPDF (PDF)</td>
+              <td><code>ollama pull {config.LLM_MODEL} &amp;&amp; ollama pull {config.VISION_MODEL}</code></td></tr>
+          <tr><td>MinerU: timeout parseando PDF (&gt;{config.MINERU_TIMEOUT}s)</td>
+              <td>Cae autom&aacute;ticamente a PyMuPDF (fallback). Para evitarlo, subir
+                  <code>MINERU_TIMEOUT</code> en <code>config.py</code></td></tr>
+          <tr><td>MinerU: binario no encontrado</td>
+              <td><code>python3.12 -m venv venv_mineru &amp;&amp; venv_mineru/bin/pip install "mineru[pipeline]"</code></td></tr>
+          <tr><td>Error de PyMuPDF (fallback PDF)</td>
               <td><code>pip install pymupdf</code></td></tr>
           <tr><td>Error de python-docx (DOCX)</td>
               <td><code>pip install python-docx</code></td></tr>
+          <tr><td>Tab "Benchmark RAGAS" vacía</td>
+              <td>Todavía no corriste el script &rarr;
+                  <code>python scripts/run_benchmark.py --limit 5</code></td></tr>
         </tbody>
       </table>
 

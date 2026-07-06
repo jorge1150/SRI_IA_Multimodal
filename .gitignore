@@ -26,6 +26,9 @@ data/output/
 # Logs de sesión
 outputs/logs/*.log
 
+# Reportes de benchmark (generados localmente, ver scripts/run_benchmark.py)
+outputs/benchmarks/
+
 # Variables de entorno
 .env
 
@@ -34,3 +37,6 @@ outputs/logs/*.log
 
 .claude/
 skills-lock.json
+
+# Archivos de bloqueo temporal de Word
+~$*.docx

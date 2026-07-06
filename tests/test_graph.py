@@ -427,6 +427,94 @@ class TestHybridRetriever(unittest.TestCase):
             if os.path.exists(db_path):
                 os.unlink(db_path)
 
+    def test_forced_vector_only_skips_graph_even_if_available(self):
+        import tempfile, os
+        from graph.relation_extractor import Triple
+        from graph.graph_store import GraphStore
+        from graph.graph_retriever import GraphRetriever
+        from services.hybrid_retriever import HybridRetriever
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        tmp.close()
+        db_path = tmp.name
+        try:
+            store = GraphStore(db_path)
+            store.add_triples([
+                Triple("IVA", "impuesto", "aplica_tarifa", "12%", "concepto",
+                       "tarifa del 12%", "LRTI", 0.75),
+            ], "LRTI")
+
+            class SpyGraphRetriever(GraphRetriever):
+                called = False
+                def stats_for_query(self, query):
+                    type(self).called = True
+                    return super().stats_for_query(query)
+
+            graph_ret = SpyGraphRetriever(store, hop_depth=1, top_k=3)
+            rag = self._make_mock_rag_agent([{"text": "texto", "similarity": 0.8, "metadata": {}}])
+            log = self._make_mock_log_agent()
+
+            retriever = HybridRetriever(rag_agent=rag, log_agent=log, graph_retriever=graph_ret)
+            result = retriever.retrieve("tarifa IVA", mode="vector_only")
+
+            self.assertEqual(result["mode"], "vector_only")
+            self.assertEqual(result["graph_context"], "")
+            self.assertEqual(result["graph_triples"], [])
+            self.assertFalse(SpyGraphRetriever.called, "graph_only mode no debe consultar el grafo")
+            self.assertEqual(len(result["vector_chunks"]), 1)
+        finally:
+            if os.path.exists(db_path):
+                os.unlink(db_path)
+
+    def test_forced_graph_only_skips_vector_retrieval(self):
+        import tempfile, os
+        from graph.relation_extractor import Triple
+        from graph.graph_store import GraphStore
+        from graph.graph_retriever import GraphRetriever
+        from services.hybrid_retriever import HybridRetriever
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        tmp.close()
+        db_path = tmp.name
+        try:
+            store = GraphStore(db_path)
+            store.add_triples([
+                Triple("IVA", "impuesto", "aplica_tarifa", "12%", "concepto",
+                       "tarifa del 12%", "LRTI", 0.75),
+            ], "LRTI")
+            graph_ret = GraphRetriever(store, hop_depth=1, top_k=3)
+
+            class SpyRAGAgent:
+                called = False
+                def retrieve(self, query, top_k=None):
+                    type(self).called = True
+                    return [{"text": "texto", "similarity": 0.8, "metadata": {}}]
+
+            rag = SpyRAGAgent()
+            log = self._make_mock_log_agent()
+
+            retriever = HybridRetriever(rag_agent=rag, log_agent=log, graph_retriever=graph_ret)
+            result = retriever.retrieve("tarifa IVA", mode="graph_only")
+
+            self.assertEqual(result["mode"], "graph_only")
+            self.assertEqual(result["vector_chunks"], [])
+            self.assertFalse(SpyRAGAgent.called, "graph_only mode no debe consultar ChromaDB")
+            self.assertGreater(len(result["graph_triples"]), 0)
+        finally:
+            if os.path.exists(db_path):
+                os.unlink(db_path)
+
+    def test_graph_only_without_graph_returns_empty_gracefully(self):
+        from services.hybrid_retriever import HybridRetriever
+        rag = self._make_mock_rag_agent([{"text": "x", "similarity": 0.5, "metadata": {}}])
+        log = self._make_mock_log_agent()
+        retriever = HybridRetriever(rag_agent=rag, log_agent=log, graph_retriever=None)
+        result = retriever.retrieve("consulta", mode="graph_only")
+
+        self.assertEqual(result["mode"], "graph_only")
+        self.assertEqual(result["vector_chunks"], [])
+        self.assertEqual(result["graph_triples"], [])
+
     def test_fallback_on_graph_error(self):
         from services.hybrid_retriever import HybridRetriever
 

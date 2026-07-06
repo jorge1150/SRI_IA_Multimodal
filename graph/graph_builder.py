@@ -50,6 +50,7 @@ class GraphBuilder:
             import networkx as nx
             self.store.G = nx.DiGraph()
             self.store._documents_processed = set()
+            self.store._build_seconds = 0.0
             if self.verbose:
                 print("[GRAPH_BUILDER] Grafo reiniciado.")
 

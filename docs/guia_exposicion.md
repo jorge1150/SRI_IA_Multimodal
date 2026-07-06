@@ -35,7 +35,7 @@ Consulta del usuario
 [ChromaDB] → Fragmentos normativos relevantes
   (con metadatos: ley, artículo, página)
        ↓
-[TinyLlama vía Ollama] → Respuesta con citas
+[Qwen2.5 vía Ollama] → Respuesta con citas
        ↓
 [Piper TTS] → Audio en español ecuatoriano
 ```
@@ -84,7 +84,7 @@ Consulta del usuario
 
 **Soporte multiformat:**
 - El sistema procesa PDFs (con número de página), DOCX, TXT y MD.
-- PyMuPDF extrae texto página por página para una cita precisa.
+- MinerU extrae layout, tablas y aplica OCR para una cita precisa; PyMuPDF queda como fallback automático si MinerU falla en un documento puntual.
 
 **Prompt con restricciones legales:**
 - El prompt del sistema prohíbe explícitamente inventar artículos, porcentajes o plazos.
@@ -104,7 +104,7 @@ Consulta del usuario
 | Metadatos | source, id | + tipo, año, artículo, página |
 | Citas de fuente | No | Sí (obligatorio por prompt) |
 | Disclaimer | No | Sí (ético y legal) |
-| Carpetas | 1 carpeta manuals/ | 4 categorías normativas |
+| Carpetas | 1 carpeta manuals/ | Categorías normativas dinámicas (subcarpetas de `data/`) |
 
 ---
 
@@ -117,7 +117,7 @@ Consulta del usuario
 - Interfaz profesional con logs de trazabilidad.
 
 **Limitaciones actuales:**
-- TinyLlama tiene capacidad de razonamiento limitada (puede cometerse errores en lógica compleja).
+- Qwen2.5 (3B) tiene capacidad de razonamiento limitada frente a modelos más grandes (pueden cometerse errores en lógica compleja); reemplazó a TinyLlama tras detectarse alucinaciones (ver ADR-0003).
 - OpenCLIP es un modelo de visión, no optimizado para texto legal — el reranking compensa esto.
 - La calidad de las respuestas depende de qué documentos se hayan cargado.
 

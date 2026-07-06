@@ -6,18 +6,39 @@ vectoriza con OpenCLIP y almacena con metadatos completos.
 
 import os
 import glob
+import json
+import time
 import torch
 import open_clip
 import chromadb
 
 from config import (
     CLIP_MODEL, CLIP_PRETRAINED, CLIP_MAX_TOKENS,
-    CHROMA_DB_PATH, CHROMA_COLLECTION,
+    CHROMA_DB_PATH, CHROMA_COLLECTION, VECTOR_BUILD_METADATA_PATH,
     get_data_dirs,
 )
 from .chunker import chunk_document
 
 SUPPORTED_EXTENSIONS = ("*.pdf", "*.txt", "*.docx", "*.md")
+
+
+def _load_build_seconds() -> float:
+    try:
+        with open(VECTOR_BUILD_METADATA_PATH, encoding="utf-8") as f:
+            return json.load(f).get("build_seconds", 0.0)
+    except Exception:
+        return 0.0
+
+
+def _save_build_metadata(build_seconds: float, last_run_seconds: float) -> None:
+    from datetime import datetime
+    os.makedirs(os.path.dirname(VECTOR_BUILD_METADATA_PATH), exist_ok=True)
+    with open(VECTOR_BUILD_METADATA_PATH, "w", encoding="utf-8") as f:
+        json.dump({
+            "build_seconds": build_seconds,
+            "last_run_seconds": last_run_seconds,
+            "updated_at": datetime.utcnow().isoformat() + "Z",
+        }, f, ensure_ascii=False, indent=2)
 
 
 def get_clip_embedder():
@@ -48,6 +69,9 @@ def ingest_all_documents(reset: bool = False) -> int:
     reset=True borra la colección antes de ingestar.
     Retorna el número de chunks insertados.
     """
+    t0 = time.time()
+    accumulated_seconds = 0.0 if reset else _load_build_seconds()
+
     # ── Recopilar todos los documentos ──────────────────────────────────────
     data_dirs = get_data_dirs()
     all_files: list[tuple[str, str]] = []  # (filepath, tipo_normativa)
@@ -136,4 +160,8 @@ def ingest_all_documents(reset: bool = False) -> int:
         print(f"           ✓ {len(ids_batch)} fragmentos insertados.", flush=True)
 
     print(f"\n[INGESTA] Total fragmentos en ChromaDB: {collection.count()}", flush=True)
+
+    elapsed = time.time() - t0
+    _save_build_metadata(build_seconds=accumulated_seconds + elapsed, last_run_seconds=elapsed)
+
     return total_chunks

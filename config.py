@@ -67,6 +67,9 @@ CLIP_MAX_TOKENS: int = 200
 BASE_DIR: str = os.path.dirname(os.path.abspath(__file__))
 CHROMA_DB_PATH: str = os.path.join(BASE_DIR, "vector_db", "chroma_sri")
 CHROMA_COLLECTION: str = "normativa_tributaria"
+# Tiempo acumulado de construcción del vector store (ver rag/ingesta.py),
+# mismo patrón que build_seconds en graph_db/sri_graph.json.
+VECTOR_BUILD_METADATA_PATH: str = os.path.join(BASE_DIR, "vector_db", "build_metadata.json")
 RAG_TOP_K: int = 4
 RAG_MIN_SIMILARITY: float = 0.18
 
@@ -83,12 +86,16 @@ TTS_SAMPLE_RATE: int = 22050
 # VISIÓN — Prompt para formularios y portal SRI
 # ─────────────────────────────────────────────
 VISION_TIMEOUT: int = 180
+# Cualquier instrucción de longitud en el texto del prompt ("Be concise",
+# "in one sentence", "maximum N words") hace que Moondream corte a 1 token
+# (respuesta vacía, eval_count=1, 100% reproducible con Ollama) — se limita
+# la longitud con num_predict (parámetro de la API) en vez de en el prompt.
 MOONDREAM_PROMPT: str = (
     "Describe what is shown in this image. "
     "It may be a tax form, web portal screenshot, electronic invoice, "
-    "tax declaration, or government system screen. "
-    "Be concise, maximum 40 words."
+    "tax declaration, or government system screen."
 )
+MOONDREAM_NUM_PREDICT: int = 100
 
 # ─────────────────────────────────────────────
 # VIDEO

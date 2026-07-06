@@ -10,7 +10,7 @@ import io
 import requests
 from PIL import Image
 
-from config import OLLAMA_URL, VISION_MODEL, VISION_TIMEOUT, MOONDREAM_PROMPT
+from config import OLLAMA_URL, VISION_MODEL, VISION_TIMEOUT, MOONDREAM_PROMPT, MOONDREAM_NUM_PREDICT
 from .log_agent import LogAgent
 
 
@@ -58,7 +58,7 @@ class VisionAgent:
             "prompt": MOONDREAM_PROMPT,
             "images": [b64],
             "stream": False,
-            "options": {"temperature": 0.1},
+            "options": {"temperature": 0.1, "num_predict": MOONDREAM_NUM_PREDICT},
         }
         resp = requests.post(
             f"{OLLAMA_URL}/api/generate",
@@ -77,7 +77,7 @@ class VisionAgent:
                 "images": [b64],
             }],
             "stream": False,
-            "options": {"temperature": 0.1},
+            "options": {"temperature": 0.1, "num_predict": MOONDREAM_NUM_PREDICT},
         }
         resp = requests.post(
             f"{OLLAMA_URL}/api/chat",

@@ -61,6 +61,20 @@ python-dotenv>=1.0.0
 # ── GraphRAG — Grafo de conocimiento tributario ───────────────
 networkx>=3.0
 
+# ── Benchmark de tesis — RAG vs GraphRAG vs Híbrido + RAGAS ───
+# Juez y embeddings 100% locales (Ollama + sentence-transformers, ver
+# scripts/ragas_local.py) — NO se usa OpenAI. Versiones fijadas a propósito:
+# ragas/langchain más recientes arrastran langchain-core >=1.x, incompatible
+# entre sí (conflictos de resolución observados en pip); estas versiones
+# fueron verificadas juntas y compatibles con torch==2.2.2 de este archivo.
+ragas==0.2.15
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-core==0.3.31
+langchain-ollama==0.2.2
+langchain-openai==0.3.1
+sentence-transformers==2.7.0
+
 # ══════════════════════════════════════════════════════════════
 # PASOS DE INSTALACIÓN (orden importante):
 #
@@ -77,14 +91,15 @@ networkx>=3.0
 # 4. Instalar Ollama y modelos LLM:
 #      brew install ollama
 #      ollama serve           ← en otra terminal
-#      ollama pull tinyllama
+#      ollama pull qwen2.5:3b-instruct-q4_K_M
 #      ollama pull moondream
 #
 # 5. Descargar modelo Piper TTS en español:
 #      python audio/download_piper.py
 #
 # 6. Cargar documentos SRI en data/ y construir base vectorial:
-#      (Copiar PDFs/TXTs del SRI en data/normativas_sri/, data/resoluciones/, etc.)
+#      (Copiar PDFs/TXTs del SRI en una subcarpeta de data/, ej. data/IVA/ —
+#      el nombre de la carpeta se usa como tipo de normativa)
 #      python rag/build_db.py
 #
 # 6b. (Opcional) Construir grafo de conocimiento GraphRAG:
@@ -92,4 +107,8 @@ networkx>=3.0
 #
 # 7. Lanzar sistema:
 #      python app.py           ← http://localhost:7865
+#
+# 8. (Opcional, tesis) Benchmark RAG vs GraphRAG vs Híbrido + RAGAS:
+#      python scripts/run_benchmark.py --limit 5    ← prueba rápida
+#      python scripts/run_benchmark.py              ← corrida completa
 # ══════════════════════════════════════════════════════════════

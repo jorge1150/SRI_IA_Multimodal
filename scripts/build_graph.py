@@ -79,6 +79,7 @@ def main():
     )
 
     elapsed = time.time() - t0
+    store.add_build_time(elapsed)
 
     print(f"\n[OK] Grafo construido en {elapsed:.1f}s")
     print(f"     Nodos:   {result.get('n_nodes', 0)}")

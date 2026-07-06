@@ -37,28 +37,41 @@ class HybridRetriever:
 
     # ── API pública ──────────────────────────────────────────────────────────
 
-    def retrieve(self, query: str, top_k: int = None) -> dict:
+    def retrieve(self, query: str, top_k: int = None, mode: str = "auto") -> dict:
         """
         Ejecuta recuperación híbrida y retorna un dict con:
           - vector_chunks:  list[dict] igual al formato de RAGAgent.retrieve()
           - graph_context:  str con relaciones del grafo (vacío si deshabilitado)
           - graph_triples:  list[dict] con triples estructurados
           - graph_entities: list[str] entidades detectadas en la consulta
-          - mode:           "hybrid" | "vector_only"
+          - mode:           "hybrid" | "vector_only" | "graph_only"
+
+        mode controla qué se calcula (no solo qué se descarta), para poder
+        medir tiempo de cada camino por separado (ver scripts/run_benchmark.py):
+          - "auto" (default, comportamiento de producción sin cambios):
+            intenta grafo si está disponible, cae a vector_only si no hay triples.
+          - "vector_only": nunca consulta el grafo, aunque esté disponible.
+          - "graph_only": nunca consulta ChromaDB, solo el grafo.
+          - "hybrid": fuerza intento de grafo igual que "auto" (equivalente
+            hoy, existe como nombre explícito para el benchmark).
         """
-        # 1. Recuperación vectorial (siempre activa)
         kwargs = {"top_k": top_k} if top_k else {}
-        vector_chunks = self.rag.retrieve(query, **kwargs)
 
-        self.log.log("RAG", f"✓ Vectorial: {len(vector_chunks)} fragmento(s) recuperado(s).")
+        # 1. Recuperación vectorial
+        if mode == "graph_only":
+            vector_chunks = []
+        else:
+            vector_chunks = self.rag.retrieve(query, **kwargs)
+            self.log.log("RAG", f"✓ Vectorial: {len(vector_chunks)} fragmento(s) recuperado(s).")
 
-        # 2. Recuperación de grafo (solo si disponible)
+        # 2. Recuperación de grafo (solo si disponible y el modo lo permite)
         graph_context = ""
         graph_triples = []
         graph_entities = []
-        mode = "vector_only"
+        mode_result = "graph_only" if mode == "graph_only" else "vector_only"
 
-        if self.graph is not None:
+        try_graph = mode != "vector_only" and self.graph is not None
+        if try_graph:
             try:
                 graph_stats = self.graph.stats_for_query(query)
                 graph_entities = graph_stats["entities_detected"]
@@ -73,7 +86,7 @@ class HybridRetriever:
 
                 if graph_triples:
                     graph_context = self.graph.retrieve(query)
-                    mode = "hybrid"
+                    mode_result = "graph_only" if mode == "graph_only" else "hybrid"
                     self.log.log(
                         "GRAPH",
                         f"✓ Grafo: {len(graph_triples)} relación(es) recuperada(s) "
@@ -90,7 +103,7 @@ class HybridRetriever:
             "graph_context": graph_context,
             "graph_triples": graph_triples,
             "graph_entities": graph_entities,
-            "mode": mode,
+            "mode": mode_result,
         }
 
     def format_combined_context(

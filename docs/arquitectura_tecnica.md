@@ -16,14 +16,14 @@ Sistema de asistencia tributaria local que responde preguntas sobre normativa de
 | Capa | Tecnología | Versión / Detalle |
 |------|-----------|-------------------|
 | Interfaz de usuario | **Gradio** | v6.x — dark theme, CSS injection via `gr.HTML` |
-| Modelo de lenguaje | **TinyLlama** via **Ollama** | 1.1B params, `tinyllama`, temperature 0.1 |
+| Modelo de lenguaje | **Qwen2.5** via **Ollama** | 3B params, `qwen2.5:3b-instruct-q4_K_M`, temperature 0.1 (ver ADR-0003) |
 | Visión computacional | **Moondream** via **Ollama** | `moondream` — formularios y pantallas SRI |
 | Embeddings | **OpenCLIP ViT-B-32** | `hf-hub:timm/vit_base_patch32_clip_224.openai`, dim=512 |
 | Base vectorial | **ChromaDB** | Persistente en `vector_db/chroma_sri/`, colección `normativa_tributaria` |
 | Grafo de conocimiento | **NetworkX DiGraph** | Persistido en JSON `graph_db/sri_graph.json` |
 | STT (voz → texto) | **faster-whisper** | Modelo `base`, idioma `es`, beam_size=5 |
 | TTS (texto → voz) | **Piper TTS** | Modelo `es_ES-sharvard-medium.onnx`, 22050 Hz |
-| Extracción de texto PDF | **PyMuPDF (fitz)** | Página por página con número de página en metadata |
+| Extracción de texto PDF | **MinerU** (layout, tablas, OCR), fallback **PyMuPDF (fitz)** | MinerU por defecto (ver ADR-0001); PyMuPDF automático si MinerU falla o hace timeout |
 | Extracción DOCX | **python-docx** | Párrafos concatenados |
 | Cómputo | **PyTorch** | CPU (macOS Intel) — CLIP en float32 |
 | Audio | **sounddevice + scipy** | Grabación a 48kHz, resample a 16kHz para Whisper |
@@ -98,7 +98,7 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
                          \                           /
                           contexto normativo unificado
                                       │
-                          [LLM — TinyLlama via Ollama]
+                          [LLM — Qwen2.5 via Ollama]
                           system prompt mínimo
                           seed "Respuesta:" forzado
                           stop sequences configuradas
@@ -127,7 +127,7 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
 **Proceso de ingesta por documento:**
 
 1. **Extracción de texto:**
-   - PDF → PyMuPDF (`fitz`), página por página. Conserva el número de página.
+   - PDF → MinerU (layout, tablas HTML, OCR) por defecto (ADR-0001); si falla o hace timeout, fallback automático a PyMuPDF (`fitz`) página por página. Conserva el número de página en ambos casos.
    - DOCX → python-docx, concatenación de párrafos.
    - TXT / MD → lectura directa UTF-8.
 
@@ -275,7 +275,8 @@ hybrid_result = {
 ### Construcción del prompt
 
 ```python
-# System prompt (mínimo para evitar que TinyLlama lo repita en el output)
+# System prompt (mínimo para evitar que el modelo lo repita en el output —
+# estrategia originalmente ajustada para TinyLlama, mantenida con Qwen2.5)
 "Eres un asistente tributario del SRI Ecuador. Responde en español. Usa solo el contexto dado."
 
 # Mensaje de usuario
@@ -307,7 +308,7 @@ Antes de enviar al LLM: máximo **1 chunk por documento único**, máximo **3 ch
 
 ### Post-procesamiento
 
-- Limpieza de líneas que filtran patrones de instrucciones (`_LEAK_PATTERNS`) — TinyLlama a veces repite fragmentos del system prompt.
+- Limpieza de líneas que filtran patrones de instrucciones (`_LEAK_PATTERNS`) — modelos pequeños como TinyLlama a veces repiten fragmentos del system prompt; el filtro se mantiene con Qwen2.5 por seguridad.
 - Strip del seed `"Respuesta:"` si el modelo lo incluye en el output.
 - Si la respuesta queda vacía: mensaje genérico con referencia a `sri.gob.ec`.
 
@@ -372,8 +373,9 @@ La sección de fuentes se construye programáticamente en `_build_sources_sectio
 
 | Parámetro | Valor | Descripción |
 |-----------|-------|-------------|
-| `LLM_MODEL` | `tinyllama` | Modelo Ollama para generación |
+| `LLM_MODEL` | `qwen2.5:3b-instruct-q4_K_M` | Modelo Ollama para generación (ADR-0003) |
 | `VISION_MODEL` | `moondream` | Modelo Ollama para visión |
+| `USE_MINERU_PDF` | `True` | Backend de parseo PDF por defecto (ADR-0001); fallback automático a PyMuPDF |
 | `CLIP_MODEL` | `hf-hub:timm/vit_base_patch32_clip_224.openai` | Modelo de embeddings |
 | `CLIP_EMBEDDING_DIM` | 512 | Dimensión del vector semántico |
 | `CLIP_MAX_TOKENS` | 200 | Tokens máximos por texto a vectorizar |
@@ -402,9 +404,9 @@ La sección de fuentes se construye programáticamente en `_build_sources_sectio
 | Búsqueda ChromaDB | 100–400 ms | Escala con el tamaño de la colección |
 | Keyword re-ranking | < 10 ms | Solo Python, sin GPU |
 | GraphRAG (NetworkX) | 10–50 ms | Grafo en memoria RAM |
-| Generación LLM (TinyLlama) | 10–60 s | Mayor tiempo por ser CPU puro |
+| Generación LLM (Qwen2.5, 3B) | por medir | Mayor que TinyLlama (1.1B) por ser CPU puro — ver benchmark de la tesis (`scripts/run_benchmark.py`) |
 | TTS (Piper) | 1–4 s | Depende del largo de la respuesta |
-| **Total por consulta (texto)** | **12–70 s** | Dominado por TinyLlama |
+| **Total por consulta (texto)** | por medir | Dominado por la generación LLM — cifra exacta en el reporte de benchmark |
 | **Primera consulta** | **+15–30 s** | Carga de CLIP + ChromaDB + Whisper |
 
 ---
@@ -415,9 +417,9 @@ La sección de fuentes se construye programáticamente en `_build_sources_sectio
 
 OpenCLIP ViT-B-32 fue diseñado para espacio semántico multimodal (texto + imagen). Permite que una imagen de un formulario SRI (`embed_image`) y su descripción textual queden en el mismo espacio vectorial, facilitando búsquedas cruzadas texto-imagen sin embeddings separados.
 
-### ¿Por qué TinyLlama y no un modelo más grande?
+### ¿Por qué Qwen2.5 y no TinyLlama ni un modelo más grande?
 
-Restricción de hardware: macOS Intel sin GPU. TinyLlama (1.1B) genera respuestas en 10–60 s en CPU. Modelos como Llama 3 (8B) tardarían 5–20 min. La estrategia de prompt con seed `"Respuesta:"` + stop sequences compensa la tendencia del modelo pequeño a repetir instrucciones.
+Restricción de hardware: macOS Intel sin GPU. TinyLlama (1.1B) fue la elección inicial por ser el más liviano, pero en la práctica alucinaba normativa y citaba mal la fuente — inaceptable para un asistente que debe basarse en documentos recuperados (ver ADR-0003). Se reemplazó por Qwen2.5:3b-instruct-q4_K_M, ~3x más grande, a costa de generación más lenta en CPU. Modelos como Llama 3 (8B) tardarían varios minutos por respuesta en este hardware. La estrategia de prompt con seed `"Respuesta:"` + stop sequences, diseñada originalmente para compensar la tendencia de TinyLlama a repetir instrucciones, se mantiene con Qwen2.5 por seguridad. La elección de modelo queda sujeta a revalidación empírica vía el benchmark de la tesis (`scripts/run_benchmark.py`, compara Qwen2.5 vs otros modelos disponibles en Ollama).
 
 ### ¿Por qué grafos de conocimiento además de RAG vectorial?
 
@@ -458,7 +460,7 @@ Usuario hace pregunta (texto / voz / imagen)
           (chunks + triples del grafo)
                       │
                       ▼
-          [TinyLlama via Ollama]
+          [Qwen2.5 via Ollama]
           temp=0.1 · seed "Respuesta:"
           stop sequences · max 400 tokens
                       │

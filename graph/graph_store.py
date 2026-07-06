@@ -37,6 +37,7 @@ class GraphStore:
         self.graph_path = graph_path
         self.G: nx.DiGraph = nx.DiGraph()
         self._documents_processed: set[str] = set()
+        self._build_seconds: float = 0.0
 
     # ── Carga / Guardado ─────────────────────────────────────────────────────
 
@@ -89,8 +90,9 @@ class GraphStore:
                         }
                     )
 
-            self._documents_processed = set(data.get("metadata", {})
-                                              .get("documents_processed", []))
+            meta = data.get("metadata", {})
+            self._documents_processed = set(meta.get("documents_processed", []))
+            self._build_seconds = meta.get("build_seconds", 0.0)
             return True
 
         except Exception as exc:
@@ -128,6 +130,7 @@ class GraphStore:
                 "n_nodes": self.G.number_of_nodes(),
                 "n_edges": self.G.number_of_edges(),
                 "documents_processed": sorted(self._documents_processed),
+                "build_seconds": self._build_seconds,
             },
             "nodes": nodes,
             "edges": edges,
@@ -288,3 +291,7 @@ class GraphStore:
 
     def is_empty(self) -> bool:
         return self.G.number_of_nodes() == 0
+
+    def add_build_time(self, seconds: float) -> None:
+        """Acumula tiempo de construcción desde el último reset (ver save())."""
+        self._build_seconds += seconds

@@ -1,6 +1,7 @@
 """
 response_agent.py — Agente de Respuesta Tributaria SRI
-Estrategia para TinyLlama (modelo pequeño):
+Estrategia pensada originalmente para TinyLlama (modelo pequeño) y mantenida
+con Qwen2.5 (ADR-0003) por ser igual de segura con modelos más grandes:
   - System prompt mínimo (evita que el modelo lo repita en la salida)
   - Contexto RAG con etiquetas neutras (no [Fuente N] que el modelo echa en output)
   - Seed del assistant = "Respuesta:" para forzar inicio de contenido real
@@ -21,7 +22,7 @@ _SYSTEM_PROMPT = (
     "Usa solo el contexto dado."
 )
 
-# Patrones de texto que TinyLlama puede filtrar/echar desde el prompt
+# Patrones de texto que modelos pequeños pueden filtrar/echar desde el prompt
 _LEAK_PATTERNS = [
     r'(?i)^reglas\s+obligatorias',
     r'(?i)^basa\s+tu\s+respuesta',
@@ -59,14 +60,21 @@ class ResponseAgent:
         rag_context: list[dict],
         visual_description: str = "",
         graph_context: str = "",
+        model: str = None,
     ) -> str:
-        self.log.log("GENERANDO", f"Enviando consulta a {LLM_MODEL}...")
+        """
+        model: modelo Ollama a usar para esta llamada puntual (default:
+        config.LLM_MODEL). Permite a scripts/run_benchmark.py comparar
+        varios LLMs sin cambiar config.py ni afectar el chat de producción.
+        """
+        model = model or LLM_MODEL
+        self.log.log("GENERANDO", f"Enviando consulta a {model}...")
 
         try:
             user_msg = self._build_user_message(query, rag_context, visual_description, graph_context)
 
             payload = {
-                "model": LLM_MODEL,
+                "model": model,
                 "messages": [
                     {"role": "system",    "content": _SYSTEM_PROMPT},
                     {"role": "user",      "content": user_msg},

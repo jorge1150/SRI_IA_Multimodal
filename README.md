@@ -36,7 +36,7 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 └───────────────────────────  ↓  ──────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│              LLM (TinyLlama via Ollama)                         │
+│              LLM (Qwen2.5 via Ollama)                           │
 │  Prompt: normativa RAG + relaciones de grafo → respuesta        │
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
@@ -48,7 +48,7 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 | Componente | Tecnología |
 |---|---|
 | Interfaz | Gradio 6.x |
-| LLM | TinyLlama via Ollama |
+| LLM | Qwen2.5:3b-instruct via Ollama |
 | Visión | Moondream via Ollama |
 | STT | faster-whisper (base) |
 | Embeddings | OpenCLIP ViT-B-32 |
@@ -56,7 +56,7 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 | Grafo conocimiento | NetworkX DiGraph + JSON |
 | Recuperación híbrida | HybridRetriever (RAG + GraphRAG) |
 | TTS | Piper TTS es_ES-sharvard |
-| PDF | PyMuPDF (fitz) |
+| PDF | MinerU (layout/tablas/OCR), fallback a PyMuPDF (fitz) |
 | DOCX | python-docx |
 
 ## Estructura del Proyecto
@@ -142,7 +142,7 @@ brew install portaudio
 pip install -r requirements.txt
 
 # 4. Modelos Ollama
-ollama pull tinyllama
+ollama pull qwen2.5:3b-instruct-q4_K_M
 ollama pull moondream
 
 # 5. Voz Piper
@@ -214,7 +214,7 @@ Cada fragmento normativo almacenado incluye:
    4b. [GRAPH]  EntityExtractor detecta entidades (IVA, RUC, RISE, ...)
                GraphRetriever explora relaciones en NetworkX (hop_depth=2)
                → Triples: "Contribuyente —debe_presentar→ Declaración IVA"
-5. [LLM]   TinyLlama recibe: fragmentos RAG + relaciones de grafo
+5. [LLM]   Qwen2.5 recibe: fragmentos RAG + relaciones de grafo
            → Respuesta con citas de fuente normativa
 6. [TTS]   Piper sintetiza respuesta en español
 7. [LOGS]  Trazabilidad completa: modo hybrid/vector_only, entidades, triples
