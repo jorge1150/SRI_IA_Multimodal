@@ -174,6 +174,18 @@ GRAPH_HOP_DEPTH: int = 2            # saltos de exploración en el grafo (1 ó 2
 GRAPH_MIN_WEIGHT: float = 0.4       # peso mínimo de relación para incluir
 
 # ─────────────────────────────────────────────
+# PLANNER AGENT — decisión agéntica de estrategia de retrieval
+# ─────────────────────────────────────────────
+# Decisión binaria vía tool-calling de Ollama: ¿esta consulta necesita
+# GraphRAG además del RAG vectorial (que siempre corre)? Default False:
+# el chat de producción sigue con el modo "auto" fijo de HybridRetriever
+# hasta validar la confiabilidad del planner con scripts/run_benchmark.py.
+USE_AGENTIC_PLANNER: bool = os.getenv("USE_AGENTIC_PLANNER", "false").lower() == "true"
+# Corto a propósito: es una decisión de pocos tokens, no una generación
+# completa de 400 tokens (ver OLLAMA_TIMEOUT).
+PLANNER_TIMEOUT: int = 30
+
+# ─────────────────────────────────────────────
 # CREAR DIRECTORIOS NECESARIOS EN IMPORTACIÓN
 # ─────────────────────────────────────────────
 for _d in [

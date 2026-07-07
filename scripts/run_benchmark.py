@@ -44,7 +44,7 @@ if _ROOT not in sys.path:
 
 DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "preguntas.docx")
 DEFAULT_OUT_DIR = os.path.join(_ROOT, "outputs", "benchmarks")
-ALL_MODES = ["vector_only", "graph_only", "hybrid"]
+ALL_MODES = ["vector_only", "graph_only", "hybrid", "agentic"]
 SOURCES_SEPARATOR = "─" * 37  # ver agents/response_agent.py
 
 
@@ -90,6 +90,7 @@ def _build_pipeline(graph_hop_depth=None, graph_top_k=None):
     import config
     from agents.coordinator import _init_graph_retriever
     from agents.log_agent import LogAgent
+    from agents.planner_agent import PlannerAgent
     from agents.rag_agent import RAGAgent
     from agents.response_agent import ResponseAgent
     from services.hybrid_retriever import HybridRetriever
@@ -97,14 +98,25 @@ def _build_pipeline(graph_hop_depth=None, graph_top_k=None):
     log_agent = LogAgent()
     rag_agent = RAGAgent(log_agent)
     response_agent = ResponseAgent(log_agent)
+    planner_agent = PlannerAgent(log_agent)
     graph_retriever = _init_graph_retriever(log_agent)
     hybrid = HybridRetriever(rag_agent, log_agent, graph_retriever)
-    return hybrid, response_agent, graph_retriever is not None
+    return hybrid, response_agent, planner_agent, graph_retriever is not None
 
 
-def _run_single(hybrid, response_agent, question: str, mode: str, model: str) -> dict:
+def _run_single(hybrid, response_agent, planner_agent, question: str, mode: str, model: str) -> dict:
+    planning_seconds = 0.0
+    planner_used_graph = None
+    retrieve_mode = mode
+
+    if mode == "agentic":
+        t_plan = time.time()
+        planner_used_graph = planner_agent.should_use_graph(question, model=model)
+        planning_seconds = time.time() - t_plan
+        retrieve_mode = "hybrid" if planner_used_graph else "vector_only"
+
     t0 = time.time()
-    retrieval = hybrid.retrieve(question, mode=mode)
+    retrieval = hybrid.retrieve(question, mode=retrieve_mode)
     retrieval_seconds = time.time() - t0
 
     t1 = time.time()
@@ -123,6 +135,8 @@ def _run_single(hybrid, response_agent, question: str, mode: str, model: str) ->
 
     return {
         "mode_result": retrieval["mode"],
+        "planning_seconds": planning_seconds,
+        "planner_used_graph": planner_used_graph,
         "retrieval_seconds": retrieval_seconds,
         "generation_seconds": generation_seconds,
         "answer": answer,
@@ -186,6 +200,7 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
 def _write_csv(rows: list, path: str) -> None:
     fields = [
         "category", "source_doc", "question", "model", "mode_requested", "mode_result",
+        "planning_seconds", "planner_used_graph",
         "retrieval_seconds", "generation_seconds", "total_seconds",
         "n_vector_chunks", "n_graph_triples", "source_matched",
         "faithfulness", "answer_relevancy", "answer",
@@ -212,16 +227,22 @@ def _aggregate(rows: list, key: str) -> dict:
         faith = [i["faithfulness"] for i in items if _valid(i["faithfulness"])]
         rel = [i["answer_relevancy"] for i in items if _valid(i["answer_relevancy"])]
         matched = [i["source_matched"] for i in items if i["source_matched"] is not None]
+        # Descriptivo, no una métrica de acierto — no hay ground truth de
+        # "esta pregunta debería haber usado grafo". Solo aplica al modo
+        # "agentic"; en el resto, planner_used_graph es siempre None.
+        planner_decisions = [i.get("planner_used_graph") for i in items if i.get("planner_used_graph") is not None]
         out[k] = {
             "n": n,
             "n_faithfulness_evaluated": len(faith),
             "n_answer_relevancy_evaluated": len(rel),
+            "avg_planning_seconds": sum(i.get("planning_seconds", 0.0) for i in items) / n,
             "avg_retrieval_seconds": sum(i["retrieval_seconds"] for i in items) / n,
             "avg_generation_seconds": sum(i["generation_seconds"] for i in items) / n,
             "avg_total_seconds": sum(i["total_seconds"] for i in items) / n,
             "avg_faithfulness": (sum(faith) / len(faith)) if faith else None,
             "avg_answer_relevancy": (sum(rel) / len(rel)) if rel else None,
             "source_match_rate": (sum(matched) / len(matched)) if matched else None,
+            "planner_graph_usage_rate": (sum(planner_decisions) / len(planner_decisions)) if planner_decisions else None,
         }
     return out
 
@@ -257,21 +278,32 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
     max_total = max((v["avg_total_seconds"] for v in by_mode.values()), default=1) or 1
     ragas_enabled = meta.get("ragas_enabled", True)
 
+    def _planning_cell(v):
+        p = v.get("avg_planning_seconds", 0.0)
+        return f"{p:.2f}s" if p > 0 else "—"
+
+    def _graph_usage_cell(v):
+        r = v.get("planner_graph_usage_rate")
+        return "%.0f%%" % (r * 100) if r is not None else "—"
+
     mode_rows = "".join(
         f"<tr><td>{html.escape(mode)}</td>"
         f"<td>{v['n']}</td>"
+        f"<td>{_planning_cell(v)}</td>"
         f"<td>{v['avg_retrieval_seconds']:.2f}s</td>"
         f"<td>{v['avg_generation_seconds']:.2f}s</td>"
         f"<td>{v['avg_total_seconds']:.2f}s<br>{_bar(v['avg_total_seconds'], max_total, '#3b82f6')}</td>"
         f"<td>{_fmt_ragas_html(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
         f"<td>{_fmt_ragas_html(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
         f"<td>{'%.0f%%' % (v['source_match_rate'] * 100) if v['source_match_rate'] is not None else '—'}</td>"
+        f"<td>{_graph_usage_cell(v)}</td>"
         f"</tr>"
         for mode, v in sorted(by_mode.items())
     )
     model_rows = "".join(
         f"<tr><td>{html.escape(model)}</td>"
         f"<td>{v['n']}</td>"
+        f"<td>{_planning_cell(v)}</td>"
         f"<td>{v['avg_retrieval_seconds']:.2f}s</td>"
         f"<td>{v['avg_generation_seconds']:.2f}s</td>"
         f"<td>{v['avg_total_seconds']:.2f}s<br>{_bar(v['avg_total_seconds'], max_total, '#a78bfa')}</td>"
@@ -302,14 +334,14 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
 
   <h2>Comparación por modo de recuperación</h2>
   <table>
-    <thead><tr><th>Modo</th><th>N</th><th>Retrieval</th><th>Generación</th><th>Total</th>
-    <th>Faithfulness</th><th>Answer Relevancy</th><th>% Doc. correcto</th></tr></thead>
+    <thead><tr><th>Modo</th><th>N</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
+    <th>Faithfulness</th><th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th></tr></thead>
     <tbody>{mode_rows}</tbody>
   </table>
 
   <h2>Comparación por modelo LLM</h2>
   <table>
-    <thead><tr><th>Modelo</th><th>N</th><th>Retrieval</th><th>Generación</th><th>Total</th>
+    <thead><tr><th>Modelo</th><th>N</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
     <th>Faithfulness</th><th>Answer Relevancy</th></tr></thead>
     <tbody>{model_rows}</tbody>
   </table>
@@ -325,6 +357,10 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
     una pregunta puntual (limitación conocida, ver ADR-0003) — cuando pasa,
     esa fila se excluye del promedio y se muestra "(N/total)" junto al
     score para dejarlo explícito, en vez de promediar con NaN en silencio.
+    "Planning" y "Grafo usado (planner)" solo aplican al modo "agentic" —
+    es la decisión sí/no GraphRAG que toma el PlannerAgent vía tool-calling;
+    "Grafo usado" es descriptivo (qué % de preguntas activó el grafo), no
+    una métrica de acierto — no hay ground truth de qué debería haber decidido.
   </p>
 </body></html>
 """
@@ -372,16 +408,16 @@ def main():
     if args.limit:
         questions = questions[:args.limit]
 
-    if "graph_only" in modes or "hybrid" in modes:
+    if {"graph_only", "hybrid", "agentic"} & set(modes):
         if not config.GRAPH_ENABLED:
-            print("[BENCHMARK] AVISO: GRAPH_ENABLED=False — los modos graph_only/hybrid "
+            print("[BENCHMARK] AVISO: GRAPH_ENABLED=False — los modos graph_only/hybrid/agentic "
                   "no van a tener contexto de grafo.")
 
     print(f"[BENCHMARK] {len(questions)} pregunta(s) × {len(modes)} modo(s) × {len(models)} modelo(s) "
           f"= {len(questions) * len(modes) * len(models)} corrida(s) de generación.", flush=True)
 
     os.makedirs(args.out_dir, exist_ok=True)
-    hybrid, response_agent, graph_available = _build_pipeline()
+    hybrid, response_agent, planner_agent, graph_available = _build_pipeline()
 
     rows = []
     total_runs = len(questions) * len(modes) * len(models)
@@ -396,7 +432,7 @@ def main():
                 done += 1
                 print(f"[BENCHMARK] [{done}/{total_runs}] modelo={model} modo={mode} "
                       f"pregunta={q['question'][:60]!r}", flush=True)
-                result = _run_single(hybrid, response_agent, q["question"], mode, model)
+                result = _run_single(hybrid, response_agent, planner_agent, q["question"], mode, model)
                 row = {
                     "category": q["category"],
                     "source_doc": q["source_doc"],
@@ -404,9 +440,13 @@ def main():
                     "model": model,
                     "mode_requested": mode,
                     "mode_result": result["mode_result"],
+                    "planning_seconds": round(result["planning_seconds"], 3),
+                    "planner_used_graph": result["planner_used_graph"],
                     "retrieval_seconds": round(result["retrieval_seconds"], 3),
                     "generation_seconds": round(result["generation_seconds"], 3),
-                    "total_seconds": round(result["retrieval_seconds"] + result["generation_seconds"], 3),
+                    "total_seconds": round(
+                        result["planning_seconds"] + result["retrieval_seconds"] + result["generation_seconds"], 3
+                    ),
                     "n_vector_chunks": result["n_vector_chunks"],
                     "n_graph_triples": result["n_graph_triples"],
                     "source_matched": _source_matched(q["source_doc"], result["vector_chunks"]),

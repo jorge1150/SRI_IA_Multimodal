@@ -3,6 +3,7 @@ interface.py — Interfaz Gradio del Asistente Tributario SRI IA Multimodal.
 Diseño: dark professional · glassmorphism · Ecuador flag accents · RAG dashboard.
 """
 
+import html
 import re
 import gradio as gr
 from vision.capture import capture_screenshot
@@ -160,6 +161,84 @@ def _parse_response(text: str):
     return main, _rag_panel_html(fragments)
 
 
+# ── Diagrama de flujo de agentes (vivo) ─────────────────────────────────────────
+# Reformula el log plano de LogAgent como un diagrama de nodos conectados —
+# aporte visual de tesis ("software agéntico"): se ve al coordinador pasarle
+# el turno a cada agente, con el PlannerAgent marcado como el único punto de
+# decisión real (el resto son pasos fijos, no negociación entre agentes).
+
+_LOG_LINE_RE = re.compile(r'\[\d{2}:\d{2}:\d{2}\]\s*\S+\s*\[(\w+)\]\s*(.*)')
+
+_AGENT_FLOW_NODES = [
+    {"tags": ("INICIO",),                    "label": "Coordinador", "icon": "🧭"},
+    {"tags": ("STT",),                       "label": "STT",         "icon": "🎤"},
+    {"tags": ("VISION", "VIDEO"),             "label": "Visión",      "icon": "👁️"},
+    {"tags": ("PLANNER",), "label": "Planner", "icon": "🧠", "decision": True},
+    {"tags": ("RAG", "NORMATIVA", "GRAPH"),  "label": "RAG / Grafo", "icon": "📋"},
+    {"tags": ("GENERANDO", "RESPUESTA"),      "label": "Generación",  "icon": "🤖"},
+    {"tags": ("TTS",),                       "label": "TTS",         "icon": "🔊"},
+]
+
+
+def _parse_agent_stages(log_text: str) -> dict:
+    """Último mensaje visto por cada etiqueta de log (['INICIO'], ['RAG'], etc.)."""
+    messages: dict = {}
+    for line in (log_text or "").splitlines():
+        m = _LOG_LINE_RE.match(line.strip())
+        if not m:
+            continue
+        tag, msg = m.group(1), m.group(2).strip()
+        messages[tag] = msg
+    return messages
+
+
+def _render_agent_flow_html(log_text: str) -> str:
+    messages = _parse_agent_stages(log_text)
+    finished = "FIN" in messages or "ERROR" in messages
+
+    reached = [any(tag in messages for tag in node["tags"]) for node in _AGENT_FLOW_NODES]
+    active_index = max((i for i, r in enumerate(reached) if r), default=-1)
+
+    nodes_html = []
+    for i, node in enumerate(_AGENT_FLOW_NODES):
+        node_msg = next((messages[t] for t in node["tags"] if t in messages), None)
+
+        if i == active_index and not finished:
+            status = "active"
+        elif reached[i]:
+            status = "done"
+        else:
+            status = "pending"
+
+        decision_cls = " decision" if node.get("decision") else ""
+        detail = html.escape(node_msg[:60]) if node_msg else "—"
+        title_attr = html.escape(node_msg) if node_msg else node["label"]
+
+        nodes_html.append(
+            f'<div class="agent-flow-node-wrap {status}{decision_cls}">'
+            f'<div class="agent-flow-node {status}{decision_cls}" title="{title_attr}">{node["icon"]}</div>'
+            f'<div class="agent-flow-label">{node["label"]}</div>'
+            f'<div class="agent-flow-detail">{detail}</div>'
+            f'</div>'
+        )
+
+        if i < len(_AGENT_FLOW_NODES) - 1:
+            dest_index = i + 1
+            if active_index < 0:
+                line_status = "pending"
+            elif finished:
+                line_status = "done" if dest_index <= active_index else "pending"
+            elif dest_index < active_index:
+                line_status = "done"
+            elif dest_index == active_index:
+                line_status = "flowing"
+            else:
+                line_status = "pending"
+            nodes_html.append(f'<div class="agent-flow-line-wrap"><div class="agent-flow-line {line_status}"></div></div>')
+
+    return f'<div class="agent-flow-track">{"".join(nodes_html)}</div>'
+
+
 # ── Main interface ────────────────────────────────────────────────────────────
 
 def build_interface(coordinator) -> gr.Blocks:
@@ -251,7 +330,7 @@ def build_interface(coordinator) -> gr.Blocks:
         parámetro correcto de coordinator.process().
         """
         if not text and media is None and audio is None:
-            yield (history or []), "", None, _rag_panel_html([]), None, ""
+            yield (history or []), "", None, _rag_panel_html([]), None, "", _render_agent_flow_html("")
             return
 
         media_type, media_data = _detect_media(media)
@@ -269,7 +348,7 @@ def build_interface(coordinator) -> gr.Blocks:
         })
 
         # Primer yield: muestra bubble de usuario + limpia entradas
-        yield history, "", None, _rag_panel_html([]), None, ""
+        yield history, "", None, _rag_panel_html([]), None, "", _render_agent_flow_html("")
 
         # Streaming del pipeline
         for stt, resp, audio_path, logs in coordinator.process(
@@ -285,10 +364,15 @@ def build_interface(coordinator) -> gr.Blocks:
                 history[-2]["content"] = _user_chat_content(stt, image, video, audio)
 
             history[-1]["content"] = main_text if main_text else "⏳ Procesando..."
-            yield history, "", None, rag_html, audio_path, logs
+            yield history, "", None, rag_html, audio_path, logs, _render_agent_flow_html(logs)
 
     def clear_all():
-        return [], "", None, None, _rag_panel_html([]), None, ""
+        return [], "", None, None, _rag_panel_html([]), None, "", _render_agent_flow_html("")
+
+    def toggle_agent_flow(is_visible):
+        new_state = not is_visible
+        label = "🕸️  Ocultar Flujo de Agentes" if new_state else "🕸️  Ver Flujo de Agentes"
+        return new_state, gr.update(visible=new_state), gr.update(value=label)
 
     def take_screenshot():
         """Captura pantalla y guarda en temp/ — retorna ruta para gr.File."""
@@ -441,6 +525,30 @@ def build_interface(coordinator) -> gr.Blocks:
                             interactive=False,
                         )
 
+                # ── Flujo de agentes en vivo (toggle) ─────────────────────
+                btn_agent_flow = gr.Button(
+                    "🕸️  Ver Flujo de Agentes",
+                    variant="secondary",
+                    size="sm",
+                    elem_classes=["agent-flow-toggle"],
+                )
+                agent_flow_visible = gr.State(False)
+                with gr.Column(visible=False, elem_classes=["agent-flow-panel"]) as agent_flow_panel:
+                    gr.HTML("""
+                    <div class="section-title gold" style="margin-bottom:2px">
+                        <div class="icon-wrap" aria-hidden="true">🕸️</div>
+                        <span>Flujo de Agentes — Consulta en Vivo</span>
+                    </div>
+                    <p style="font-size:0.72rem;color:var(--text-muted);margin:4px 0 12px">
+                        Cada nodo es un agente del pipeline. El nodo dorado pulsante
+                        es el que está trabajando ahora mismo. El Planner (borde
+                        punteado) es el único que <em>decide</em> — el resto ejecuta
+                        una tarea fija. Pasá el cursor sobre un nodo para ver el
+                        mensaje completo de esa etapa.
+                    </p>
+                    """)
+                    agent_flow_output = gr.HTML(value=_render_agent_flow_html(""))
+
                 # ── Trazabilidad del pipeline (colapsable) ────────────────
                 with gr.Accordion(
                     "🔎  Trazabilidad — Pipeline RAG + GraphRAG Híbrido",
@@ -524,7 +632,7 @@ def build_interface(coordinator) -> gr.Blocks:
         _send_inputs  = [text_input, media_input, audio_input, chatbot]
         _send_outputs = [
             chatbot, text_input, media_input,
-            rag_output, audio_output, logs_output,
+            rag_output, audio_output, logs_output, agent_flow_output,
         ]
 
         btn_send.click(fn=send, inputs=_send_inputs, outputs=_send_outputs)
@@ -532,8 +640,13 @@ def build_interface(coordinator) -> gr.Blocks:
         btn_screenshot.click(fn=take_screenshot, inputs=[], outputs=[media_input])
         btn_clear.click(fn=clear_all, inputs=[], outputs=[
             chatbot, text_input, media_input, audio_input,
-            rag_output, audio_output, logs_output,
+            rag_output, audio_output, logs_output, agent_flow_output,
         ])
+        btn_agent_flow.click(
+            fn=toggle_agent_flow,
+            inputs=[agent_flow_visible],
+            outputs=[agent_flow_visible, agent_flow_panel, btn_agent_flow],
+        )
 
     return demo
 
@@ -851,10 +964,19 @@ def _build_benchmark_tab():
             return f"{base} <span style='color:#64748b;font-size:0.72em'>({n_evaluated}/{n_total})</span>"
         return base
 
+    def _fmt_planning(v):
+        p = v.get("avg_planning_seconds", 0.0) or 0.0
+        return _fmt(p, "s") if p > 0 else "—"
+
+    def _fmt_graph_usage(v):
+        r = v.get("planner_graph_usage_rate")
+        return "%.0f%%" % (r * 100) if r is not None else "—"
+
     def _rows(agg: dict) -> str:
         return "".join(
             f"<tr><td>{k}</td>"
             f"<td style='text-align:center'>{v.get('n', 0)}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{_fmt_planning(v)}</td>"
             f"<td style='text-align:center;color:#93c5fd'>{_fmt(v.get('avg_retrieval_seconds'), 's')}</td>"
             f"<td style='text-align:center;color:#93c5fd'>{_fmt(v.get('avg_generation_seconds'), 's')}</td>"
             f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{_fmt(v.get('avg_total_seconds'), 's')}</td>"
@@ -862,15 +984,16 @@ def _build_benchmark_tab():
             f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
             f"<td style='text-align:center;color:#6ee7b7'>"
             f"{'%.0f%%' % (v['source_match_rate']*100) if v.get('source_match_rate') is not None else '—'}</td>"
+            f"<td style='text-align:center;color:#6ee7b7'>{_fmt_graph_usage(v)}</td>"
             f"</tr>"
             for k, v in sorted(agg.items())
         )
 
     thead = (
         "<thead><tr>"
-        "<th style='text-align:left'>Grupo</th><th>N</th><th>Retrieval</th>"
+        "<th style='text-align:left'>Grupo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
         "<th>Generación</th><th>Total</th><th>Faithfulness</th>"
-        "<th>Answer Relevancy</th><th>% Doc. correcto</th>"
+        "<th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th>"
         "</tr></thead>"
     )
 
@@ -891,18 +1014,22 @@ def _build_benchmark_tab():
         </summary>
         <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:10px" role="table">
           <tbody>
+            <tr><td style="color:#c4b5fd;padding:6px 10px;white-space:nowrap">Planning</td>
+                <td style="padding:6px 10px">Solo en el modo <code>agentic</code> &mdash; tiempo en que el <strong>PlannerAgent</strong> decide, vía tool-calling de Ollama, si esta consulta necesita GraphRAG además del RAG vectorial (que siempre corre). Vacío (&mdash;) en los demás modos, que no tienen este paso.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px;white-space:nowrap">Retrieval</td>
                 <td style="padding:6px 10px">Tiempo en <em>buscar</em> contexto — vectorial (ChromaDB) y/o grafo (NetworkX), según el modo.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Generación</td>
                 <td style="padding:6px 10px">Tiempo en que el LLM <em>redacta</em> la respuesta con ese contexto ya encontrado.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Total</td>
-                <td style="padding:6px 10px">Retrieval + Generación.</td></tr>
+                <td style="padding:6px 10px">Planning + Retrieval + Generación.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Faithfulness</td>
                 <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta está <em>basada</em> en el contexto recuperado, o el LLM inventó algo no sustentado ahí. Vacío (&mdash;) si se corrió con <code>--no-ragas</code>. Si ves "(2/3)" junto al número, el juez local no logró evaluar todas las preguntas del grupo (limitación de usar un modelo chico como juez, ver ADR-0003) — el promedio es solo de las que sí evaluó.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Answer Relevancy</td>
                 <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta contesta la pregunta hecha, sin divagar. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">% Doc. correcto</td>
                 <td style="padding:6px 10px">De las preguntas con retrieval vectorial, en cuántas se recuperó el documento fuente real esperado (según <code>preguntas.docx</code>). Vacío en <code>graph_only</code> a propósito &mdash; ese modo nunca consulta ChromaDB.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Grafo usado (planner)</td>
+                <td style="padding:6px 10px">Solo en el modo <code>agentic</code> &mdash; % de preguntas donde el PlannerAgent decidió activar GraphRAG. Es descriptivo, no una métrica de acierto: no hay forma objetiva de saber si "debería" haber usado grafo en cada pregunta.</td></tr>
           </tbody>
         </table>
         <p style="font-size:0.75rem;color:#64748b;margin-top:8px">

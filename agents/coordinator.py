@@ -5,7 +5,12 @@ de log en tiempo real hacia la UI de Gradio y garantiza que cada
 agente reciba los datos correctos.
 
 Pipeline:
-  [INICIO] → [STT] → [VISION] → [VIDEO] → [RAG/NORMATIVA] → [GENERANDO] → [TTS] → [FIN]
+  [INICIO] → [STT] → [VISION] → [VIDEO] → [PLANNER] → [RAG/NORMATIVA] → [GENERANDO] → [TTS] → [FIN]
+
+[PLANNER] es el único paso donde el LLM decide dinámicamente (vía
+tool-calling) en vez de seguir una regla fija — solo corre si
+config.USE_AGENTIC_PLANNER=True; si no, la estrategia de retrieval sigue
+siendo el modo "auto" fijo de HybridRetriever (comportamiento sin cambios).
 """
 
 from typing import Generator
@@ -15,6 +20,7 @@ from .log_agent import LogAgent
 from .voice_agent import VoiceAgent
 from .vision_agent import VisionAgent
 from .video_agent import VideoAgent
+from .planner_agent import PlannerAgent
 from .rag_agent import RAGAgent
 from .response_agent import ResponseAgent
 from .tts_agent import TTSAgent
@@ -69,6 +75,7 @@ class CoordinatorAgent:
         self.voice_agent = VoiceAgent(self.log_agent)
         self.vision_agent = VisionAgent(self.log_agent)
         self.video_agent = VideoAgent(self.log_agent, self.vision_agent)
+        self.planner_agent = PlannerAgent(self.log_agent)
         self.rag_agent = RAGAgent(self.log_agent)
         self.response_agent = ResponseAgent(self.log_agent)
         self.tts_agent = TTSAgent(self.log_agent)
@@ -158,15 +165,25 @@ class CoordinatorAgent:
 
         all_visual = " | ".join(filter(None, [visual_description, video_description]))
 
-        # ── [RAG] — Búsqueda de normativa relacionada ────────────────────────
+        # ── [PLANNER] — Decisión agéntica de estrategia de retrieval ─────────
         rag_query = full_query
         if all_visual and "[" not in all_visual:
             rag_query = f"{full_query} {all_visual}"
 
+        retrieve_kwargs = {}
+        if _cfg.USE_AGENTIC_PLANNER:
+            self.log_agent.log("PLANNER", "Decidiendo si esta consulta necesita GraphRAG...")
+            yield stt_text, response, None, self.log_agent.get_all()
+
+            needs_graph = self.planner_agent.should_use_graph(rag_query)
+            retrieve_kwargs["mode"] = "hybrid" if needs_graph else "vector_only"
+            yield stt_text, response, None, self.log_agent.get_all()
+
+        # ── [RAG] — Búsqueda de normativa relacionada ────────────────────────
         self.log_agent.log("RAG", f"Buscando normativa relacionada: «{rag_query[:80]}»...")
         yield stt_text, response, None, self.log_agent.get_all()
 
-        hybrid_result = self.hybrid_retriever.retrieve(rag_query)
+        hybrid_result = self.hybrid_retriever.retrieve(rag_query, **retrieve_kwargs)
         rag_chunks   = hybrid_result["vector_chunks"]
         graph_context = hybrid_result["graph_context"]
 

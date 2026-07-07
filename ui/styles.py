@@ -871,6 +871,146 @@ audio {
 
 .pipeline-arrow { color: var(--text-dim); font-size: 1rem; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   AGENT FLOW DIAGRAM — visualización en vivo de la comunicación entre
+   agentes (aporte de tesis: "software agéntico"). Ver ui/interface.py
+   _render_agent_flow_html().
+═══════════════════════════════════════════════════════════════════ */
+.agent-flow-toggle {
+    margin: 10px 0 4px;
+}
+
+.agent-flow-panel {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 16px 14px;
+    margin: 8px 0 16px;
+}
+
+.agent-flow-track {
+    display: flex;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+
+.agent-flow-node-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 96px;
+    flex: 1 1 0;
+}
+
+.agent-flow-node {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    background: var(--bg-card);
+    border: 2px solid var(--border-l);
+    color: var(--text-dim);
+    transition: all 0.4s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.agent-flow-label {
+    margin-top: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    text-align: center;
+    transition: color 0.4s ease;
+}
+
+.agent-flow-detail {
+    margin-top: 4px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 110px;
+    line-height: 1.3;
+    min-height: 1em;
+}
+
+/* Estado: pendiente (aún no llegó el turno / no aplica a esta consulta) */
+.agent-flow-node.pending { opacity: 0.35; }
+
+/* Estado: completado */
+.agent-flow-node.done {
+    border-color: var(--c-green);
+    color: var(--c-green-l);
+    background: rgba(16,185,129,0.08);
+}
+.agent-flow-node-wrap.done .agent-flow-label { color: var(--c-green-l); }
+
+/* Estado: activo — el punto está "aquí" ahora mismo */
+.agent-flow-node.active {
+    border-color: var(--c-gold);
+    color: var(--c-gold-l);
+    background: rgba(245,158,11,0.12);
+    box-shadow: 0 0 0 6px rgba(245,158,11,0.12);
+    animation: agent-pulse 1.1s ease-in-out infinite;
+}
+.agent-flow-node-wrap.active .agent-flow-label { color: var(--c-gold-l); }
+
+/* Nodo del PlannerAgent — decisión real, no solo un paso fijo */
+.agent-flow-node.decision {
+    border-style: dashed;
+}
+.agent-flow-node-wrap.decision .agent-flow-label::after {
+    content: " · decisión";
+    color: var(--c-purple);
+    text-transform: none;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+@keyframes agent-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(245,158,11,0.12); }
+    50%      { box-shadow: 0 0 0 10px rgba(245,158,11,0.04); }
+}
+
+.agent-flow-line-wrap {
+    flex: 0 0 32px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    margin-top: 0;
+}
+
+.agent-flow-line {
+    width: 100%;
+    height: 3px;
+    background: var(--border-l);
+    opacity: 0.35;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+}
+
+.agent-flow-line.done { background: var(--c-green); opacity: 0.6; }
+
+.agent-flow-line.flowing {
+    background: repeating-linear-gradient(
+        90deg, var(--c-gold) 0 8px, transparent 8px 16px
+    );
+    opacity: 0.9;
+    animation: agent-flow-dash 0.6s linear infinite;
+}
+
+@keyframes agent-flow-dash {
+    from { background-position: 0 0; }
+    to   { background-position: 16px 0; }
+}
+
 /* Pipeline steps en trazabilidad de consulta */
 .pipeline-step-hybrid {
     background: rgba(16,185,129,0.08) !important;
