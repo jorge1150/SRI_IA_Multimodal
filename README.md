@@ -82,15 +82,15 @@ SRI_IA_Multimodal/
 ├── setup.sh
 │
 ├── agents/                     # Sistema multiagente
-│   ├── coordinator.py          # Orquestador del pipeline (usa HybridRetriever)
+│   ├── coordinator.py          # Orquestador del pipeline + build_retrieval_pipeline()
 │   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG (tool-calling, ADR-0005)
 │   ├── rag_agent.py            # Recuperación semántica vectorial
-│   ├── response_agent.py       # Generación con citas (acepta graph_context, model=)
+│   ├── response_agent.py       # Generación con citas + fuentes estructuradas (last_sources)
 │   ├── voice_agent.py          # STT (Whisper)
 │   ├── vision_agent.py         # Análisis visual (Moondream)
 │   ├── video_agent.py          # Procesamiento de video
 │   ├── tts_agent.py            # Síntesis de voz (Piper)
-│   └── log_agent.py            # Trazabilidad
+│   └── log_agent.py            # Trazabilidad — vocabulario Stage + eventos estructurados
 │
 ├── rag/                        # Motor RAG vectorial
 │   ├── chunker.py              # Fragmentación PDF/DOCX/TXT/MD (MinerU-aware: kind, graph_text)
@@ -107,7 +107,8 @@ SRI_IA_Multimodal/
 │
 ├── services/                   # Servicios transversales
 │   ├── __init__.py
-│   └── hybrid_retriever.py     # RAG vectorial + GraphRAG combinados (mode=)
+│   ├── hybrid_retriever.py     # RAG vectorial + GraphRAG combinados (mode=)
+│   └── benchmark_format.py     # Formato compartido de métricas (script CLI + tab de la UI)
 │
 ├── scripts/                    # Scripts CLI
 │   ├── build_graph.py          # Construir grafo: python scripts/build_graph.py
@@ -353,8 +354,11 @@ Compara, por cada combinación pregunta × modo × modelo:
 
 Resultado en `outputs/benchmarks/` (CSV con datos crudos, HTML con reporte
 visual, JSON de resumen) — visible también en la tab **"📊 Benchmark RAGAS"**
-de la UI, que lee automáticamente el reporte más reciente (solo lectura, no
-lanza el proceso — correrlo sigue siendo por terminal).
+de la UI, que lee el reporte más reciente **cada vez que entrás a la tab**
+(al igual que "Base de Conocimiento" y "Estado del Sistema", los datos se
+refrescan al entrar — no hace falta reiniciar la app tras correr un benchmark
+o reingestar documentos). La tab es solo lectura: correr el benchmark sigue
+siendo por terminal.
 
 **Nota de compatibilidad:** RAGAS/`sentence-transformers` requieren versiones
 específicas fijadas en `requirements.txt` — las últimas versiones de esas
@@ -369,6 +373,11 @@ librerías arrastran dependencias incompatibles entre sí y con `torch==2.2.2`
 
 ## Tests
 
+Suite completa en verde (99 tests): chunker MinerU-aware, GraphRAG,
+PlannerAgent (con fallbacks mockeados), HybridRetriever (todos los modos),
+fuentes estructuradas, diagrama de flujo de agentes, rutas de error de
+visión y helpers del benchmark.
+
 ```bash
 # Todos los tests
 python -m pytest tests/ -v
@@ -376,10 +385,10 @@ python -m pytest tests/ -v
 # Solo GraphRAG
 python -m pytest tests/test_graph.py -v
 
-# Solo agentes/RAG (incluye PlannerAgent)
+# Solo agentes/RAG (incluye PlannerAgent, visión, fuentes, diagrama de flujo)
 python -m pytest tests/test_agents.py tests/test_rag.py -v
 
-# Solo benchmark/RAGAS
+# Solo benchmark/RAGAS (incluye formateadores compartidos)
 python -m pytest tests/test_benchmark.py tests/test_benchmark_dataset.py -v
 ```
 

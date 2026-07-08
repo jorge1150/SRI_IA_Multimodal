@@ -13,7 +13,7 @@ False, CoordinatorAgent sigue usando el modo "auto" fijo de HybridRetriever.
 import requests
 
 from config import OLLAMA_URL, LLM_MODEL, PLANNER_TIMEOUT
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
 
 # Una sola herramienta: si el modelo la llama, la consulta necesita grafo.
 # Si no la llama, alcanza con RAG vectorial. La decisión es la presencia
@@ -84,11 +84,11 @@ class PlannerAgent:
             return decision
 
         except requests.exceptions.ConnectionError:
-            self.log.log("PLANNER", "⚠ Ollama no disponible — usando solo RAG vectorial.")
+            self.log.log(Stage.PLANNER, "⚠ Ollama no disponible — usando solo RAG vectorial.")
             return False
         except requests.exceptions.Timeout:
-            self.log.log("PLANNER", f"⚠ Timeout después de {PLANNER_TIMEOUT}s — usando solo RAG vectorial.")
+            self.log.log(Stage.PLANNER, f"⚠ Timeout después de {PLANNER_TIMEOUT}s — usando solo RAG vectorial.")
             return False
         except Exception as exc:
-            self.log.log("PLANNER", f"⚠ Error decidiendo estrategia: {exc} — usando solo RAG vectorial.")
+            self.log.log(Stage.PLANNER, f"⚠ Error decidiendo estrategia: {exc} — usando solo RAG vectorial.")
             return False

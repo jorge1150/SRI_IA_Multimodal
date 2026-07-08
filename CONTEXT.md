@@ -17,3 +17,11 @@ _Avoid_: "modo automático" a secas para referirse a "agentic" — son modos dis
 
 **Benchmark de tesis**:
 `scripts/run_benchmark.py` — corre las preguntas de `preguntas.docx` contra los modos de recuperación y modelos LLM configurados, mide tiempo (retrieval/generación/planning) y calidad (RAGAS: faithfulness, answer relevancy, juez local vía Ollama). Resultado en `outputs/benchmarks/` (CSV + HTML + JSON de resumen), visible también en la tab "Benchmark RAGAS" de la UI.
+
+**Side-channel**:
+Patrón usado para que la UI lea datos estructurados de los agentes sin re-parsear texto de display: `LogAgent.get_events()` (eventos por etapa, alimenta el diagrama de flujo) y `ResponseAgent.last_answer`/`last_sources` (respuesta limpia + fuentes estructuradas, alimentan el bubble del chat, el panel de fragmentos, el corte para TTS y el benchmark). Los agentes publican el estado tras cada llamada; los consumidores lo leen en el mismo hilo después de cada yield del pipeline.
+_Avoid_: parsear con regex el texto del log o del bloque de fuentes — esos formatos son display puro y pueden cambiar sin aviso.
+
+**Etapa (Stage)**:
+Vocabulario único de etapas del pipeline (`INICIO`, `STT`, `VISION`, `PLANNER`, `RAG`, `GRAPH`, `NORMATIVA`, `GENERANDO`, `RESPUESTA`, `TTS`, `FIN`, …), definido en la clase `Stage` de `agents/log_agent.py` — la fuente única de verdad. Todos los productores loguean con `Stage.X` (no literales); los consumidores máquina (íconos, diagrama de flujo de agentes) se cuelgan de las mismas constantes. El diagrama consume `LogAgent.get_events()` (eventos estructurados), nunca re-parsea el texto del log.
+_Avoid_: literales de etapa en llamadas a `log()` — un typo degrada en silencio; con `Stage.X` falla visible.

@@ -41,7 +41,10 @@ class TestEntityExtractor(unittest.TestCase):
         entities = self.extractor.extract(text)
         names = [e.name for e in entities]
         self.assertIn("IVA", names)
-        self.assertIn("Impuesto a la Renta", names)
+        # Nombre canónico en la taxonomía: minúsculas (siglas como IVA/RUC
+        # son la excepción). No cambiar la taxonomía: los nodos del grafo
+        # persistido están keyeados por este nombre.
+        self.assertIn("impuesto a la renta", names)
 
     def test_no_overlap(self):
         text = "La tarifa del IVA vigente."
@@ -62,7 +65,7 @@ class TestEntityExtractor(unittest.TestCase):
         unique = self.extractor.extract_unique(text)
         iva_list = [e for e in unique if e["name"] == "IVA"]
         self.assertEqual(len(iva_list), 1)
-        self.assertEqual(iva_list[0]["occurrences"], 3)
+        self.assertEqual(iva_list[0]["count"], 3)
 
     def test_alias_recognition(self):
         text = "El impuesto al valor agregado grava el consumo final."
@@ -272,7 +275,13 @@ class TestGraphStore(unittest.TestCase):
         store = self._make_store()
         store.add_triples(self._sample_triples(), "LRTI")
         neighbors = store.get_neighbors("IVA", hops=1)
-        self.assertIn("IVA", neighbors)
+        # Shape documentado: {"nodes": [...], "edges": [...]}
+        node_ids = [n["id"] for n in neighbors["nodes"]]
+        self.assertIn("IVA", node_ids)
+        self.assertTrue(any(
+            e["source"] == "IVA" and e["relation"] == "aplica_tarifa" and e["target"] == "12%"
+            for e in neighbors["edges"]
+        ))
 
     def test_json_format(self):
         store = self._make_store()

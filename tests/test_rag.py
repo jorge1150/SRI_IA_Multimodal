@@ -21,6 +21,15 @@ def test_extract_articulo():
     assert _extract_articulo("Texto sin referencia a artículos") == ""
 
 
+def test_extract_articulo_preserva_subdivisiones():
+    # El sufijo (?:[.\-]\w+)* debe conservar subdivisiones reales de la
+    # normativa sin volver a capturar puntuación colgante de encabezados.
+    assert _extract_articulo("Art. 65-A subdivisión") == "Art. 65-A"
+    assert _extract_articulo("Art. 10.2 numeral") == "Art. 10.2"
+    assert _extract_articulo("Sección 3.- Deducciones") == "Sección 3"
+    assert _extract_articulo("Artículo 74.- De la base imponible") == "Artículo 74"
+
+
 def test_chunk_txt_basic():
     """chunk_txt produce chunks con metadatos completos."""
     import tempfile, os

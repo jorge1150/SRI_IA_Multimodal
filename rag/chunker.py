@@ -47,10 +47,13 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 60) -> List[str]
 
 def _extract_articulo(text: str) -> str:
     """Detecta referencia a artículo o sección en el texto."""
+    # Sufijo de subdivisión: permite "65-A", "10.2", pero exige carácter de
+    # palabra después de la puntuación — la clase antigua [\w\.\-]* capturaba
+    # la puntuación colgante de encabezados ("Art. 65.- Tarifa" → "Art. 65.-").
     patterns = [
-        r'Art\.\s*\d+[\w\.\-]*',
-        r'Artículo\s+\d+[\w\.\-]*',
-        r'Sección\s+\d+[\w\.\-]*',
+        r'Art\.\s*\d+(?:[.\-]\w+)*',
+        r'Artículo\s+\d+(?:[.\-]\w+)*',
+        r'Sección\s+\d+(?:[.\-]\w+)*',
         r'Capítulo\s+[IVXLC\d]+',
         r'Disposición\s+\w+\s+\w+',
         r'Numeral\s+\d+',

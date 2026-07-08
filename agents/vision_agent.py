@@ -11,7 +11,7 @@ import requests
 from PIL import Image
 
 from config import OLLAMA_URL, VISION_MODEL, VISION_TIMEOUT, MOONDREAM_PROMPT, MOONDREAM_NUM_PREDICT
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
 
 
 class VisionAgent:
@@ -32,24 +32,29 @@ class VisionAgent:
             if pil_img is None:
                 return ""
             b64 = self._to_base64(pil_img)
-            self.log.log("VISION", f"Analizando imagen {pil_img.size} con {VISION_MODEL}...")
+            self.log.log(Stage.VISION, f"Analizando imagen {pil_img.size} con {VISION_MODEL}...")
 
             description = self._call_generate(b64)
             if not description:
                 # Moondream2 in newer Ollama uses /api/chat
-                self.log.log("VISION", "generate vacío, intentando /api/chat...")
+                self.log.log(Stage.VISION, "generate vacío, intentando /api/chat...")
                 description = self._call_chat(b64)
 
-            self.log.log("VISION", f"Descripción: «{description[:100]}»")
+            self.log.log(Stage.VISION, f"Descripción: «{description[:100]}»")
             return description
+        # Todos los errores retornan "" — el detalle queda en el log. Nunca
+        # devolver strings-sentinela tipo "[Timeout...]": los consumidores no
+        # pueden distinguirlos de una descripción real, y filtrar por "[" da
+        # falsos positivos con descripciones legítimas de formularios
+        # (checkboxes "[X]", campos "[RUC]").
         except requests.exceptions.ConnectionError:
-            self.log.log("ERROR", "No se puede conectar a Ollama.")
-            return "[Ollama no disponible]"
+            self.log.log(Stage.ERROR, "No se puede conectar a Ollama.")
+            return ""
         except requests.exceptions.Timeout:
-            self.log.log("ERROR", f"Timeout después de {VISION_TIMEOUT}s esperando Moondream.")
-            return "[Timeout en visión]"
+            self.log.log(Stage.ERROR, f"Timeout después de {VISION_TIMEOUT}s esperando Moondream.")
+            return ""
         except Exception as exc:
-            self.log.log("ERROR", f"Falla en visión: {exc}")
+            self.log.log(Stage.ERROR, f"Falla en visión: {exc}")
             return ""
 
     def _call_generate(self, b64: str) -> str:
@@ -106,7 +111,7 @@ class VisionAgent:
                 val = image_input.get(key)
                 if val is not None:
                     return self._to_pil(val)
-        self.log.log("ERROR", f"Formato de imagen no reconocido: {type(image_input)}")
+        self.log.log(Stage.ERROR, f"Formato de imagen no reconocido: {type(image_input)}")
         return None
 
     def _to_base64(self, img: Image.Image) -> str:

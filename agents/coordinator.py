@@ -16,7 +16,7 @@ siendo el modo "auto" fijo de HybridRetriever (comportamiento sin cambios).
 from typing import Generator
 
 import config as _cfg
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
 from .voice_agent import VoiceAgent
 from .vision_agent import VisionAgent
 from .video_agent import VideoAgent
@@ -27,6 +27,31 @@ from .tts_agent import TTSAgent
 
 
 _Update = tuple[str, str, str | None, str]
+
+
+def build_retrieval_pipeline(log_agent):
+    """
+    Wiring compartido del tramo retrieval+generación del pipeline:
+    RAGAgent + ResponseAgent + PlannerAgent + GraphRetriever + HybridRetriever.
+    Lo usan CoordinatorAgent (que suma encima sus agentes de media) y
+    scripts/run_benchmark.py (que no necesita STT/visión/TTS) — un solo
+    lugar donde cambiar los argumentos de construcción.
+
+    Retorna (rag_agent, response_agent, planner_agent, hybrid_retriever,
+    graph_available).
+    """
+    rag_agent = RAGAgent(log_agent)
+    response_agent = ResponseAgent(log_agent)
+    planner_agent = PlannerAgent(log_agent)
+    graph_retriever = _init_graph_retriever(log_agent)
+
+    from services.hybrid_retriever import HybridRetriever
+    hybrid_retriever = HybridRetriever(
+        rag_agent=rag_agent,
+        log_agent=log_agent,
+        graph_retriever=graph_retriever,
+    )
+    return rag_agent, response_agent, planner_agent, hybrid_retriever, graph_retriever is not None
 
 
 def _init_graph_retriever(log_agent):
@@ -43,12 +68,12 @@ def _init_graph_retriever(log_agent):
         store = GraphStore(_cfg.GRAPH_DB_PATH)
         loaded = store.load()
         if not loaded or store.is_empty():
-            log_agent.log("GRAPH", "⚠ Grafo no encontrado o vacío. "
+            log_agent.log(Stage.GRAPH, "⚠ Grafo no encontrado o vacío. "
                           "Ejecuta: python scripts/build_graph.py")
             return None
 
         stats = store.stats()
-        log_agent.log("GRAPH", f"✓ Grafo cargado: {stats['n_nodes']} nodos, "
+        log_agent.log(Stage.GRAPH, f"✓ Grafo cargado: {stats['n_nodes']} nodos, "
                       f"{stats['n_edges']} aristas.")
         return GraphRetriever(
             store,
@@ -56,10 +81,10 @@ def _init_graph_retriever(log_agent):
             top_k=_cfg.GRAPH_TOP_K_TRIPLES,
         )
     except ImportError:
-        log_agent.log("GRAPH", "⚠ networkx no instalado. GraphRAG deshabilitado.")
+        log_agent.log(Stage.GRAPH, "⚠ networkx no instalado. GraphRAG deshabilitado.")
         return None
     except Exception as exc:
-        log_agent.log("GRAPH", f"⚠ Error iniciando GraphRAG: {exc}")
+        log_agent.log(Stage.GRAPH, f"⚠ Error iniciando GraphRAG: {exc}")
         return None
 
 
@@ -75,20 +100,11 @@ class CoordinatorAgent:
         self.voice_agent = VoiceAgent(self.log_agent)
         self.vision_agent = VisionAgent(self.log_agent)
         self.video_agent = VideoAgent(self.log_agent, self.vision_agent)
-        self.planner_agent = PlannerAgent(self.log_agent)
-        self.rag_agent = RAGAgent(self.log_agent)
-        self.response_agent = ResponseAgent(self.log_agent)
         self.tts_agent = TTSAgent(self.log_agent)
 
-        # GraphRAG — inicialización lazy-tolerant
-        graph_retriever = _init_graph_retriever(self.log_agent)
-
-        from services.hybrid_retriever import HybridRetriever
-        self.hybrid_retriever = HybridRetriever(
-            rag_agent=self.rag_agent,
-            log_agent=self.log_agent,
-            graph_retriever=graph_retriever,
-        )
+        # Tramo retrieval+generación — wiring compartido con el benchmark
+        (self.rag_agent, self.response_agent, self.planner_agent,
+         self.hybrid_retriever, _) = build_retrieval_pipeline(self.log_agent)
 
     # ── API pública ──────────────────────────────────────────────────────────
 
@@ -106,23 +122,28 @@ class CoordinatorAgent:
         Yield: (stt_text, response, audio_path, logs)
         """
         self.log_agent.clear()
+        # Side-channel de la consulta anterior fuera — si esta consulta
+        # termina antes de generar (ej. sin entrada), la UI no debe leer
+        # respuesta/fuentes stale.
+        self.response_agent.last_answer = ""
+        self.response_agent.last_sources = []
         stt_text = ""
         response = ""
 
         # ── [INICIO] ────────────────────────────────────────────────────────
-        self.log_agent.log("INICIO", "Asistente SRI IA Multimodal iniciado.")
+        self.log_agent.log(Stage.INICIO, "Asistente SRI IA Multimodal iniciado.")
         yield stt_text, response, None, self.log_agent.get_all()
 
         # ── [STT] — Transcripción de audio ──────────────────────────────────
         if audio_input is not None:
-            self.log_agent.log("STT", "Recibiendo consulta por voz — transcribiendo audio...")
+            self.log_agent.log(Stage.STT, "Recibiendo consulta por voz — transcribiendo audio...")
             yield stt_text, response, None, self.log_agent.get_all()
 
             stt_text = self.voice_agent.transcribe(audio_input)
             if stt_text:
-                self.log_agent.log("STT", f"✓ Transcripción completa: «{stt_text[:60]}...»")
+                self.log_agent.log(Stage.STT, f"✓ Transcripción completa: «{stt_text[:60]}...»")
             else:
-                self.log_agent.log("STT", "No se detectó voz en el audio.")
+                self.log_agent.log(Stage.STT, "No se detectó voz en el audio.")
             yield stt_text, response, None, self.log_agent.get_all()
 
         # Combinar texto escrito + texto de voz
@@ -131,7 +152,7 @@ class CoordinatorAgent:
         ).strip()
 
         if not full_query and image_input is None and video_input is None:
-            self.log_agent.log("ERROR", "No hay entrada. Proporcione texto, voz o imagen.")
+            self.log_agent.log(Stage.ERROR, "No hay entrada. Proporcione texto, voz o imagen.")
             yield (
                 stt_text,
                 "Por favor, proporcione al menos una consulta por texto, voz o imagen.",
@@ -146,33 +167,35 @@ class CoordinatorAgent:
         # ── [VISION] — Análisis de imagen/formulario ─────────────────────────
         visual_description = ""
         if image_input is not None:
-            self.log_agent.log("VISION", "Analizando imagen o captura con Moondream...")
+            self.log_agent.log(Stage.VISION, "Analizando imagen o captura con Moondream...")
             yield stt_text, response, None, self.log_agent.get_all()
 
             visual_description = self.vision_agent.analyze(image_input)
-            self.log_agent.log("VISION", f"✓ Descripción: «{visual_description[:80]}»")
+            self.log_agent.log(Stage.VISION, f"✓ Descripción: «{visual_description[:80]}»")
             yield stt_text, response, None, self.log_agent.get_all()
 
         # ── [VIDEO] — Extracción de información del video ────────────────────
         video_description = ""
         if video_input is not None:
-            self.log_agent.log("VIDEO", "Extrayendo información del video...")
+            self.log_agent.log(Stage.VIDEO, "Extrayendo información del video...")
             yield stt_text, response, None, self.log_agent.get_all()
 
             video_description = self.video_agent.process(str(video_input))
-            self.log_agent.log("VIDEO", f"✓ Video analizado: {video_description[:60]}...")
+            self.log_agent.log(Stage.VIDEO, f"✓ Video analizado: {video_description[:60]}...")
             yield stt_text, response, None, self.log_agent.get_all()
 
         all_visual = " | ".join(filter(None, [visual_description, video_description]))
 
         # ── [PLANNER] — Decisión agéntica de estrategia de retrieval ─────────
+        # Los agentes de visión/video retornan "" en error (nunca sentinelas
+        # "[...]"), así que basta chequear no-vacío.
         rag_query = full_query
-        if all_visual and "[" not in all_visual:
+        if all_visual:
             rag_query = f"{full_query} {all_visual}"
 
         retrieve_kwargs = {}
         if _cfg.USE_AGENTIC_PLANNER:
-            self.log_agent.log("PLANNER", "Decidiendo si esta consulta necesita GraphRAG...")
+            self.log_agent.log(Stage.PLANNER, "Decidiendo si esta consulta necesita GraphRAG...")
             yield stt_text, response, None, self.log_agent.get_all()
 
             needs_graph = self.planner_agent.should_use_graph(rag_query)
@@ -180,7 +203,7 @@ class CoordinatorAgent:
             yield stt_text, response, None, self.log_agent.get_all()
 
         # ── [RAG] — Búsqueda de normativa relacionada ────────────────────────
-        self.log_agent.log("RAG", f"Buscando normativa relacionada: «{rag_query[:80]}»...")
+        self.log_agent.log(Stage.RAG, f"Buscando normativa relacionada: «{rag_query[:80]}»...")
         yield stt_text, response, None, self.log_agent.get_all()
 
         hybrid_result = self.hybrid_retriever.retrieve(rag_query, **retrieve_kwargs)
@@ -190,13 +213,13 @@ class CoordinatorAgent:
         n_chunks = len(rag_chunks)
         mode_tag = " [+grafo]" if hybrid_result.get("mode") == "hybrid" else ""
         if n_chunks:
-            self.log_agent.log("RAG", f"✓ {n_chunks} artículo(s) relevante(s){mode_tag}.")
+            self.log_agent.log(Stage.RAG, f"✓ {n_chunks} artículo(s) relevante(s){mode_tag}.")
         else:
-            self.log_agent.log("RAG", "⚠ Sin normativa en base vectorial. Respuesta basada en conocimiento general.")
+            self.log_agent.log(Stage.RAG, "⚠ Sin normativa en base vectorial. Respuesta basada en conocimiento general.")
         yield stt_text, response, None, self.log_agent.get_all()
 
         # ── [GENERANDO] — Generación de respuesta tributaria ─────────────────
-        self.log_agent.log("GENERANDO", f"Generando respuesta tributaria con {_cfg.LLM_MODEL}...")
+        self.log_agent.log(Stage.GENERANDO, f"Generando respuesta tributaria con {_cfg.LLM_MODEL}...")
         yield stt_text, response, None, self.log_agent.get_all()
 
         response = self.response_agent.generate(
@@ -205,21 +228,22 @@ class CoordinatorAgent:
             visual_description=all_visual,
             graph_context=graph_context,
         )
-        self.log_agent.log("RESPUESTA", f"✓ Respuesta lista ({len(response)} caracteres).")
+        self.log_agent.log(Stage.RESPUESTA, f"✓ Respuesta lista ({len(response)} caracteres).")
         yield stt_text, response, None, self.log_agent.get_all()
 
         # ── [TTS] — Síntesis de voz ──────────────────────────────────────────
-        self.log_agent.log("TTS", "Generando audio con Piper TTS...")
+        self.log_agent.log(Stage.TTS, "Generando audio con Piper TTS...")
         yield stt_text, response, None, self.log_agent.get_all()
 
-        _sep = "─" * 37
-        tts_text = response.split(_sep)[0].strip() if _sep in response else response
+        # Respuesta limpia (sin bloque de fuentes) directo del agente —
+        # no se corta el texto por el separador de display.
+        tts_text = self.response_agent.last_answer or response
         audio_path = self.tts_agent.synthesize(tts_text)
         if audio_path:
-            self.log_agent.log("TTS", f"✓ Audio generado: {audio_path}")
+            self.log_agent.log(Stage.TTS, f"✓ Audio generado: {audio_path}")
         else:
-            self.log_agent.log("TTS", "⚠ No se generó audio (ver logs de TTS).")
+            self.log_agent.log(Stage.TTS, "⚠ No se generó audio (ver logs de TTS).")
 
         # ── [FIN] ────────────────────────────────────────────────────────────
-        self.log_agent.log("FIN", "Consulta tributaria procesada correctamente.")
+        self.log_agent.log(Stage.FIN, "Consulta tributaria procesada correctamente.")
         yield stt_text, response, audio_path, self.log_agent.get_all()

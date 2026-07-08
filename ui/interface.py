@@ -16,52 +16,10 @@ GRADIO_THEME = gr.themes.Base(
     neutral_hue=gr.themes.colors.slate,
 )
 
-_SEPARATOR = "─" * 37  # ─────────────────────────────────────
-
-
-# ── RAG parsing helpers ───────────────────────────────────────────────────────
-
-def _parse_source_line(line: str):
-    """Parse one source line: [N] Tipo: Doc (year) — Art. X — Pág. N  [sim: 0.XX]"""
-    m_num = re.match(r'\s*\[(\d+)\]\s*', line)
-    if not m_num:
-        return None
-    m_sim = re.search(r'\[sim:\s*([\d.]+)\]', line)
-    if not m_sim:
-        return None
-
-    num = m_num.group(1)
-    sim = float(m_sim.group(1))
-    content = line[m_num.end():m_sim.start()].strip()
-
-    tipo = ''
-    m_tipo = re.match(r'^([\w\s/À-ž]+):\s*', content)
-    if m_tipo:
-        tipo = m_tipo.group(1).strip()
-        content = content[m_tipo.end():]
-
-    parts = [p.strip() for p in content.split('—')]  # em dash —
-
-    doc = año = articulo = pagina = ''
-
-    if parts:
-        m_year = re.search(r'\((\d{4})\)$', parts[0])
-        if m_year:
-            año = m_year.group(1)
-            doc = parts[0][:m_year.start()].strip()
-        else:
-            doc = parts[0].strip()
-
-    for part in parts[1:]:
-        m_pag = re.match(r'Pág\.\s*(\d+)', part.strip())  # Pág.
-        if m_pag:
-            pagina = m_pag.group(1)
-        elif part.strip():
-            articulo = part.strip()
-
-    return {'num': num, 'tipo': tipo, 'doc': doc,
-            'año': año, 'articulo': articulo, 'pagina': pagina, 'sim': sim}
-
+# ── RAG panel ────────────────────────────────────────────────────────────────
+# Renderiza directo desde ResponseAgent.last_sources (lista estructurada,
+# shape {num, tipo, doc, año, articulo, pagina, sim}) — el texto de fuentes
+# del chat ya no se re-parsea con regex.
 
 def _rag_panel_html(fragments: list) -> str:
     search_icon = (
@@ -141,60 +99,38 @@ def _rag_panel_html(fragments: list) -> str:
     )
 
 
-def _parse_response(text: str):
-    """Split full LLM output into (answer_body, rag_html)."""
-    if not text:
-        return '', _rag_panel_html([])
-
-    if _SEPARATOR in text:
-        idx = text.index(_SEPARATOR)
-        main = text[:idx].strip()
-        sources_block = text[idx:]
-        fragments = [
-            f for f in (_parse_source_line(l) for l in sources_block.splitlines())
-            if f is not None
-        ]
-    else:
-        main = text.strip()
-        fragments = []
-
-    return main, _rag_panel_html(fragments)
-
-
 # ── Diagrama de flujo de agentes (vivo) ─────────────────────────────────────────
-# Reformula el log plano de LogAgent como un diagrama de nodos conectados —
-# aporte visual de tesis ("software agéntico"): se ve al coordinador pasarle
-# el turno a cada agente, con el PlannerAgent marcado como el único punto de
-# decisión real (el resto son pasos fijos, no negociación entre agentes).
+# Consume los eventos estructurados de LogAgent.get_events() — un diagrama de
+# nodos conectados como aporte visual de tesis ("software agéntico"): se ve al
+# coordinador pasarle el turno a cada agente, con el PlannerAgent marcado como
+# el único punto de decisión real (el resto son pasos fijos, no negociación).
+# Las etapas son las constantes Stage de agents/log_agent.py — la fuente única
+# de verdad del vocabulario; acá solo se agrupan en nodos de presentación.
 
-_LOG_LINE_RE = re.compile(r'\[\d{2}:\d{2}:\d{2}\]\s*\S+\s*\[(\w+)\]\s*(.*)')
+from agents.log_agent import Stage as _Stage
 
 _AGENT_FLOW_NODES = [
-    {"tags": ("INICIO",),                    "label": "Coordinador", "icon": "🧭"},
-    {"tags": ("STT",),                       "label": "STT",         "icon": "🎤"},
-    {"tags": ("VISION", "VIDEO"),             "label": "Visión",      "icon": "👁️"},
-    {"tags": ("PLANNER",), "label": "Planner", "icon": "🧠", "decision": True},
-    {"tags": ("RAG", "NORMATIVA", "GRAPH"),  "label": "RAG / Grafo", "icon": "📋"},
-    {"tags": ("GENERANDO", "RESPUESTA"),      "label": "Generación",  "icon": "🤖"},
-    {"tags": ("TTS",),                       "label": "TTS",         "icon": "🔊"},
+    {"tags": (_Stage.INICIO,),                              "label": "Coordinador", "icon": "🧭"},
+    {"tags": (_Stage.STT,),                                 "label": "STT",         "icon": "🎤"},
+    {"tags": (_Stage.VISION, _Stage.VIDEO),                 "label": "Visión",      "icon": "👁️"},
+    {"tags": (_Stage.PLANNER,), "label": "Planner", "icon": "🧠", "decision": True},
+    {"tags": (_Stage.RAG, _Stage.NORMATIVA, _Stage.GRAPH), "label": "RAG / Grafo", "icon": "📋"},
+    {"tags": (_Stage.GENERANDO, _Stage.RESPUESTA),          "label": "Generación",  "icon": "🤖"},
+    {"tags": (_Stage.TTS,),                                 "label": "TTS",         "icon": "🔊"},
 ]
 
 
-def _parse_agent_stages(log_text: str) -> dict:
-    """Último mensaje visto por cada etiqueta de log (['INICIO'], ['RAG'], etc.)."""
+def _last_message_by_stage(events: list) -> dict:
+    """Último mensaje visto por cada etapa, desde los eventos estructurados."""
     messages: dict = {}
-    for line in (log_text or "").splitlines():
-        m = _LOG_LINE_RE.match(line.strip())
-        if not m:
-            continue
-        tag, msg = m.group(1), m.group(2).strip()
-        messages[tag] = msg
+    for ev in events or []:
+        messages[ev["stage"]] = ev["message"]
     return messages
 
 
-def _render_agent_flow_html(log_text: str) -> str:
-    messages = _parse_agent_stages(log_text)
-    finished = "FIN" in messages or "ERROR" in messages
+def _render_agent_flow_html(events: list) -> str:
+    messages = _last_message_by_stage(events)
+    finished = _Stage.FIN in messages or _Stage.ERROR in messages
 
     reached = [any(tag in messages for tag in node["tags"]) for node in _AGENT_FLOW_NODES]
     active_index = max((i for i, r in enumerate(reached) if r), default=-1)
@@ -330,7 +266,7 @@ def build_interface(coordinator) -> gr.Blocks:
         parámetro correcto de coordinator.process().
         """
         if not text and media is None and audio is None:
-            yield (history or []), "", None, _rag_panel_html([]), None, "", _render_agent_flow_html("")
+            yield (history or []), "", None, _rag_panel_html([]), None, "", _render_agent_flow_html([])
             return
 
         media_type, media_data = _detect_media(media)
@@ -348,7 +284,7 @@ def build_interface(coordinator) -> gr.Blocks:
         })
 
         # Primer yield: muestra bubble de usuario + limpia entradas
-        yield history, "", None, _rag_panel_html([]), None, "", _render_agent_flow_html("")
+        yield history, "", None, _rag_panel_html([]), None, "", _render_agent_flow_html([])
 
         # Streaming del pipeline
         for stt, resp, audio_path, logs in coordinator.process(
@@ -357,17 +293,27 @@ def build_interface(coordinator) -> gr.Blocks:
             text_input=text,
             video_input=video,
         ):
-            main_text, rag_html = _parse_response(resp)
+            # Respuesta limpia y fuentes estructuradas directo del agente —
+            # sin re-parsear el texto del chat (candidata B del review).
+            if resp:
+                main_text = coordinator.response_agent.last_answer or resp
+                rag_html = _rag_panel_html(coordinator.response_agent.last_sources)
+            else:
+                main_text, rag_html = "", _rag_panel_html([])
 
             # Voz sin texto: actualiza bubble con transcripción STT
             if stt and not (text and text.strip()):
                 history[-2]["content"] = _user_chat_content(stt, image, video, audio)
 
             history[-1]["content"] = main_text if main_text else "⏳ Procesando..."
-            yield history, "", None, rag_html, audio_path, logs, _render_agent_flow_html(logs)
+            # Eventos estructurados directo del LogAgent — el diagrama no
+            # re-parsea el texto del log (el string `logs` queda solo para
+            # el panel de trazabilidad humano).
+            yield history, "", None, rag_html, audio_path, logs, \
+                _render_agent_flow_html(coordinator.log_agent.get_events())
 
     def clear_all():
-        return [], "", None, None, _rag_panel_html([]), None, "", _render_agent_flow_html("")
+        return [], "", None, None, _rag_panel_html([]), None, "", _render_agent_flow_html([])
 
     def toggle_agent_flow(is_visible):
         new_state = not is_visible
@@ -547,7 +493,7 @@ def build_interface(coordinator) -> gr.Blocks:
                         mensaje completo de esa etapa.
                     </p>
                     """)
-                    agent_flow_output = gr.HTML(value=_render_agent_flow_html(""))
+                    agent_flow_output = gr.HTML(value=_render_agent_flow_html([]))
 
                 # ── Trazabilidad del pipeline (colapsable) ────────────────
                 with gr.Accordion(
@@ -588,29 +534,29 @@ def build_interface(coordinator) -> gr.Blocks:
                             "[HH:MM:SS] [VISION] Analizando imagen con Moondream...\n"
                             "[HH:MM:SS] [RAG]    Buscando normativa: vector + grafo híbrido...\n"
                             "[HH:MM:SS] [GRAPH]  ✓ Entidades detectadas: IVA, RUC... | N triples.\n"
-                            f"[HH:MM:SS] [GEN]    Generando respuesta con {config.LLM_MODEL}...\n"
+                            f"[HH:MM:SS] [GENERANDO] Generando respuesta con {config.LLM_MODEL}...\n"
                             "[HH:MM:SS] [TTS]    Sintetizando audio con Piper TTS...\n"
                             "[HH:MM:SS] [FIN]    Consulta procesada correctamente."
                         ),
                     )
 
             # ═══════════════════════════════════════════════════════════════
-            # TAB 2 — Base de Conocimiento
+            # TAB 2 — Base de Conocimiento (se refresca al entrar a la tab)
             # ═══════════════════════════════════════════════════════════════
-            with gr.Tab("📚  Base de Conocimiento"):
-                _build_knowledge_tab()
+            with gr.Tab("📚  Base de Conocimiento") as tab_knowledge:
+                knowledge_html = gr.HTML(value=_knowledge_tab_html())
 
             # ═══════════════════════════════════════════════════════════════
-            # TAB 2b — Benchmark RAGAS (tesis)
+            # TAB 2b — Benchmark RAGAS (tesis; se refresca al entrar)
             # ═══════════════════════════════════════════════════════════════
-            with gr.Tab("📊  Benchmark RAGAS"):
-                _build_benchmark_tab()
+            with gr.Tab("📊  Benchmark RAGAS") as tab_benchmark:
+                benchmark_html = gr.HTML(value=_benchmark_tab_html())
 
             # ═══════════════════════════════════════════════════════════════
-            # TAB 3 — Estado del Sistema
+            # TAB 3 — Estado del Sistema (se refresca al entrar)
             # ═══════════════════════════════════════════════════════════════
-            with gr.Tab("⚙️  Estado del Sistema"):
-                _build_system_tab()
+            with gr.Tab("⚙️  Estado del Sistema") as tab_system:
+                system_html = gr.HTML(value=_system_tab_html())
 
             # ═══════════════════════════════════════════════════════════════
             # TAB 4 — Guía de Uso
@@ -648,12 +594,23 @@ def build_interface(coordinator) -> gr.Blocks:
             outputs=[agent_flow_visible, agent_flow_panel, btn_agent_flow],
         )
 
+        # Refresh al entrar a cada tab dinámica — los datos (Chroma, grafo,
+        # benchmarks en disco) se recalculan en ese momento, no quedan
+        # congelados al arranque de la app (candidata C del review).
+        tab_knowledge.select(fn=_knowledge_tab_html, outputs=[knowledge_html])
+        tab_benchmark.select(fn=_benchmark_tab_html, outputs=[benchmark_html])
+        tab_system.select(fn=_system_tab_html, outputs=[system_html])
+
     return demo
 
 
 # ── Tabs auxiliares ───────────────────────────────────────────────────────────
+# Cada tab dinámica se separa en dos: _X_tab_html() calcula los datos EN EL
+# MOMENTO de llamarse (Chroma, grafo, benchmarks en disco) y retorna el HTML;
+# el componente se registra una vez y se refresca con el evento Tab.select —
+# antes los datos se horneaban al arrancar la app y quedaban congelados.
 
-def _build_knowledge_tab():
+def _knowledge_tab_html() -> str:
     import config, chromadb, glob, os, json
 
     n_chunks = 0
@@ -749,7 +706,7 @@ def _build_knowledge_tab():
         for rel, cnt in sorted(g_rel_types.items(), key=lambda x: -x[1])
     ) if g_rel_types else '<span style="color:#64748b;font-size:0.78rem">Sin relaciones extraídas aún</span>'
 
-    gr.HTML(f"""
+    return (f"""
     <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
 
       <div class="stat-grid">
@@ -908,12 +865,13 @@ def _build_knowledge_tab():
     """)
 
 
-def _build_benchmark_tab():
+def _benchmark_tab_html() -> str:
     """
-    Solo lectura: muestra el resumen del último benchmark corrido con
-    scripts/run_benchmark.py (RAG vs GraphRAG vs Híbrido + comparación de
-    LLMs, validado con RAGAS). Correr el benchmark sigue siendo por
-    terminal — esta tab no lanza procesos, solo lee el JSON más reciente.
+    Solo lectura: resumen del último benchmark corrido con
+    scripts/run_benchmark.py (RAG vs GraphRAG vs Híbrido vs Agéntico,
+    validado con RAGAS). Correr el benchmark sigue siendo por terminal —
+    esta tab no lanza procesos, solo lee el JSON más reciente al momento
+    de entrar a la tab.
     """
     import config, glob, json, os
 
@@ -921,7 +879,7 @@ def _build_benchmark_tab():
     summaries = sorted(glob.glob(os.path.join(bench_dir, "*_summary.json")))
 
     if not summaries:
-        gr.HTML("""
+        return """
         <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
           <div class="info-card gold">
             <strong style="color:#e8edf5">Todavía no hay ningún benchmark corrido.</strong><br>
@@ -935,56 +893,42 @@ def _build_benchmark_tab():
             y permite comparar distintos modelos Ollama entre sí.
           </div>
         </div>
-        """)
-        return
+        """
 
     latest_path = summaries[-1]
     try:
         with open(latest_path, encoding="utf-8") as f:
             summary = json.load(f)
     except Exception as exc:
-        gr.HTML(f"<div style='padding:20px'>Error leyendo {latest_path}: {exc}</div>")
-        return
+        return f"<div style='padding:20px'>Error leyendo {latest_path}: {exc}</div>"
 
-    def _fmt(v, suffix=""):
-        import math as _math
-        if not isinstance(v, (int, float)) or (isinstance(v, float) and _math.isnan(v)):
-            return "—"
-        return f"{v:.2f}{suffix}"
+    # Convenciones de formato compartidas con scripts/run_benchmark.py —
+    # la semántica ("—" vacío, "(N/total)" evaluación parcial) vive en
+    # services/benchmark_format.py; acá solo se aplica el estilo visual.
+    from services.benchmark_format import (
+        EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct,
+    )
 
-    def _fmt_ragas(v, n_evaluated, n_total):
-        # "—" solo cuando el juez no evaluó nada del grupo (--no-ragas, o
-        # todas las filas sin contexto/respuesta) — distinto de "evaluó
-        # pero el juez local falló en algunas", que sí muestra el score
-        # junto con cuántas filas realmente contaron.
-        base = _fmt(v)
-        if base == "—" or n_total == 0:
-            return "—"
-        if n_evaluated < n_total:
-            return f"{base} <span style='color:#64748b;font-size:0.72em'>({n_evaluated}/{n_total})</span>"
+    def _fmt_ragas_styled(v, n_evaluated, n_total):
+        base, note = fmt_ragas_parts(v, n_evaluated, n_total)
+        if base is None:
+            return EMPTY
+        if note:
+            return f"{base} <span style='color:#64748b;font-size:0.72em'>({note})</span>"
         return base
-
-    def _fmt_planning(v):
-        p = v.get("avg_planning_seconds", 0.0) or 0.0
-        return _fmt(p, "s") if p > 0 else "—"
-
-    def _fmt_graph_usage(v):
-        r = v.get("planner_graph_usage_rate")
-        return "%.0f%%" % (r * 100) if r is not None else "—"
 
     def _rows(agg: dict) -> str:
         return "".join(
             f"<tr><td>{k}</td>"
             f"<td style='text-align:center'>{v.get('n', 0)}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{_fmt_planning(v)}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{_fmt(v.get('avg_retrieval_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{_fmt(v.get('avg_generation_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{_fmt(v.get('avg_total_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
-            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
-            f"<td style='text-align:center;color:#6ee7b7'>"
-            f"{'%.0f%%' % (v['source_match_rate']*100) if v.get('source_match_rate') is not None else '—'}</td>"
-            f"<td style='text-align:center;color:#6ee7b7'>{_fmt_graph_usage(v)}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_generation_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
+            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+            f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('source_match_rate'))}</td>"
+            f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('planner_graph_usage_rate'))}</td>"
             f"</tr>"
             for k, v in sorted(agg.items())
         )
@@ -1041,7 +985,7 @@ def _build_benchmark_tab():
       </details>
     """
 
-    gr.HTML(f"""
+    return (f"""
     <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
 
       {ragas_warning}
@@ -1090,7 +1034,7 @@ def _build_benchmark_tab():
     """)
 
 
-def _build_system_tab():
+def _system_tab_html() -> str:
     import config, torch, os
 
     cuda_ok = torch.cuda.is_available()
@@ -1104,7 +1048,7 @@ def _build_system_tab():
     mode_label = "Híbrido RAG + GraphRAG" if graph_enabled else "Solo RAG Vectorial"
     mode_color = "#a78bfa" if graph_enabled else "#f59e0b"
 
-    gr.HTML(f"""
+    return (f"""
     <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
 
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;

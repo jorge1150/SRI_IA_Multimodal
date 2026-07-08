@@ -14,7 +14,13 @@ import re
 import requests
 
 from config import OLLAMA_URL, LLM_MODEL, LLM_TEMPERATURE, OLLAMA_TIMEOUT
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
+
+# Fuente ÚNICA del separador respuesta/fuentes en el texto del chat.
+# Los demás consumidores (coordinator para TTS, benchmark para RAGAS, UI
+# para el panel) ya NO cortan por este separador: leen last_answer /
+# last_sources directo del agente — el separador es formato de display puro.
+SOURCES_SEPARATOR = "─" * 37
 
 _SYSTEM_PROMPT = (
     "Eres un asistente tributario del SRI Ecuador. "
@@ -51,6 +57,11 @@ class ResponseAgent:
 
     def __init__(self, log_agent: LogAgent):
         self.log = log_agent
+        # Side-channel de la última generación (mismo patrón que
+        # LogAgent.get_events): la respuesta limpia y las fuentes
+        # estructuradas quedan legibles sin re-parsear el texto del chat.
+        self.last_answer: str = ""
+        self.last_sources: list[dict] = []
 
     # ── API pública ──────────────────────────────────────────────────────────
 
@@ -68,7 +79,9 @@ class ResponseAgent:
         varios LLMs sin cambiar config.py ni afectar el chat de producción.
         """
         model = model or LLM_MODEL
-        self.log.log("GENERANDO", f"Enviando consulta a {model}...")
+        self.last_answer = ""
+        self.last_sources = []
+        self.log.log(Stage.GENERANDO, f"Enviando consulta a {model}...")
 
         try:
             user_msg = self._build_user_message(query, rag_context, visual_description, graph_context)
@@ -113,23 +126,29 @@ class ResponseAgent:
                     "o con un profesional tributario."
                 )
 
-            sources_section = self._build_sources_section(rag_context)
-            final = answer + sources_section
+            sources = self._collect_sources(rag_context)
+            final = answer + self._build_sources_section(sources)
 
-            self.log.log("RESPUESTA", f"✓ Respuesta lista ({len(final)} caracteres).")
+            self.last_answer = answer
+            self.last_sources = sources
+
+            self.log.log(Stage.RESPUESTA, f"✓ Respuesta lista ({len(final)} caracteres).")
             return final
 
         except requests.exceptions.ConnectionError:
             msg = "[ERROR] Ollama no está ejecutándose. Inicia con: ollama serve"
-            self.log.log("ERROR", msg)
+            self.log.log(Stage.ERROR, msg)
+            self.last_answer = msg
             return msg
         except requests.exceptions.Timeout:
             msg = f"[ERROR] Timeout después de {OLLAMA_TIMEOUT}s."
-            self.log.log("ERROR", msg)
+            self.log.log(Stage.ERROR, msg)
+            self.last_answer = msg
             return msg
         except Exception as exc:
             msg = f"[ERROR] {exc}"
-            self.log.log("ERROR", msg)
+            self.log.log(Stage.ERROR, msg)
+            self.last_answer = msg
             return msg
 
     # ── Construcción del mensaje de usuario ──────────────────────────────────
@@ -157,7 +176,8 @@ class ResponseAgent:
             parts.append(graph_context)
             parts.append("")
 
-        if visual_description and "[" not in visual_description:
+        # Visión/video retornan "" en error — no hace falta filtrar sentinelas.
+        if visual_description:
             parts.append(f"Imagen: {visual_description}\n")
 
         if not deduped and not graph_context:
@@ -169,49 +189,63 @@ class ResponseAgent:
 
     # ── Fuentes (construidas en Python) ─────────────────────────────────────
 
-    def _build_sources_section(self, rag_context: list[dict]) -> str:
+    @staticmethod
+    def _collect_sources(rag_context: list[dict]) -> list[dict]:
         """
-        Sección de fuentes compacta al final de la respuesta.
-        Formato: resumen una línea + lista deduplicada por doc.
-        El separador ─────... permite al UI dividir respuesta y fuentes.
+        Lista estructurada de fuentes, deduplicada por documento — la misma
+        estructura alimenta el texto de fuentes del chat y el panel de la UI
+        (via self.last_sources), sin serializar-y-reparsear texto.
+        Shape por fuente: {num, tipo, doc, año, articulo, pagina, sim}.
         """
-        if not rag_context:
-            return (
-                "\n\n─────────────────────────────────────\n"
-                "📋 Sin normativa consultada. Verifique en sri.gob.ec"
-            )
-
-        # Deduplicar fuentes — el panel HTML ya muestra todos los fragmentos
         seen: dict[str, dict] = {}
-        for c in rag_context:
+        for c in rag_context or []:
             meta = c.get("metadata", {})
-            doc  = meta.get("doc_name") or meta.get("source", "Documento SRI")
+            doc = meta.get("doc_name") or meta.get("source", "Documento SRI")
             if doc not in seen:
                 seen[doc] = {"meta": meta, "sim": c.get("similarity", 0)}
 
-        lines = ["\n\n─────────────────────────────────────", "📋 FUENTES CONSULTADAS:"]
+        sources = []
         for i, (doc, info) in enumerate(seen.items(), 1):
             meta = info["meta"]
-            tipo = meta.get("tipo_normativa", "")
-            art  = meta.get("articulo_seccion", "")
-            pag  = meta.get("pagina", "")
-            año  = meta.get("año", "")
-            sim  = info["sim"]
+            sources.append({
+                "num": str(i),
+                "tipo": meta.get("tipo_normativa", ""),
+                "doc": doc,
+                "año": str(meta.get("año", "") or ""),
+                "articulo": meta.get("articulo_seccion", ""),
+                "pagina": str(meta.get("pagina", "") or ""),
+                "sim": float(info["sim"]),
+            })
+        return sources
 
-            line = f"  [{i}] "
-            if tipo:
-                line += f"{tipo}: "
-            line += doc
-            if año:
-                line += f" ({año})"
-            if art:
-                line += f" — {art}"
-            if pag:
-                line += f" — Pág. {pag}"
-            line += f"  [sim: {sim:.2f}]"
+    def _build_sources_section(self, sources: list[dict]) -> str:
+        """
+        Sección de fuentes en texto para el bubble del chat, renderizada
+        desde la lista estructurada de _collect_sources. El separador
+        SOURCES_SEPARATOR delimita respuesta y fuentes en el texto plano.
+        """
+        if not sources:
+            return (
+                f"\n\n{SOURCES_SEPARATOR}\n"
+                "📋 Sin normativa consultada. Verifique en sri.gob.ec"
+            )
+
+        lines = [f"\n\n{SOURCES_SEPARATOR}", "📋 FUENTES CONSULTADAS:"]
+        for s in sources:
+            line = f"  [{s['num']}] "
+            if s["tipo"]:
+                line += f"{s['tipo']}: "
+            line += s["doc"]
+            if s["año"]:
+                line += f" ({s['año']})"
+            if s["articulo"]:
+                line += f" — {s['articulo']}"
+            if s["pagina"]:
+                line += f" — Pág. {s['pagina']}"
+            line += f"  [sim: {s['sim']:.2f}]"
             lines.append(line)
 
-        lines.append("─────────────────────────────────────")
+        lines.append(SOURCES_SEPARATOR)
         lines.append("⚠️  Respuesta orientativa. Verifique en sri.gob.ec")
         return "\n".join(lines)
 
@@ -265,22 +299,3 @@ class ResponseAgent:
                 break
         return result
 
-    @staticmethod
-    def _source_label(num: int, meta: dict) -> str:
-        doc  = meta.get("doc_name") or meta.get("source", "Documento SRI")
-        tipo = meta.get("tipo_normativa", "")
-        art  = meta.get("articulo_seccion", "")
-        pag  = meta.get("pagina", "")
-        año  = meta.get("año", "")
-
-        parts = [f"[{num}]"]
-        if tipo:
-            parts.append(tipo + ":")
-        parts.append(doc)
-        if año:
-            parts.append(f"({año})")
-        if art:
-            parts.append(f"| {art}")
-        if pag:
-            parts.append(f"| Pág. {pag}")
-        return " ".join(parts)

@@ -42,10 +42,13 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+from services.benchmark_format import (
+    EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct,
+)
+
 DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "preguntas.docx")
 DEFAULT_OUT_DIR = os.path.join(_ROOT, "outputs", "benchmarks")
 ALL_MODES = ["vector_only", "graph_only", "hybrid", "agentic"]
-SOURCES_SEPARATOR = "─" * 37  # ver agents/response_agent.py
 
 
 def _normalize(s: str) -> str:
@@ -69,10 +72,6 @@ def _source_matched(expected_doc: str, vector_chunks: list) -> "bool | None":
     return False
 
 
-def _strip_sources_section(answer: str) -> str:
-    return answer.split(SOURCES_SEPARATOR)[0].strip()
-
-
 def _none_if_nan(value) -> "float | None":
     """RAGAS devuelve NaN (no excepción) cuando el juez local no logra
     producir una respuesta parseable para una fila — pasa seguido con un
@@ -85,23 +84,15 @@ def _none_if_nan(value) -> "float | None":
     return None if math.isnan(value) else value
 
 
-def _build_pipeline(graph_hop_depth=None, graph_top_k=None):
-    """Reusa las mismas clases que agents/coordinator.py, sin STT/visión."""
-    import config
-    from agents.coordinator import _init_graph_retriever
+def _build_pipeline():
+    """Mismo wiring del tramo retrieval+generación que CoordinatorAgent,
+    sin STT/visión/TTS — un solo lugar donde cambia la construcción."""
+    from agents.coordinator import build_retrieval_pipeline
     from agents.log_agent import LogAgent
-    from agents.planner_agent import PlannerAgent
-    from agents.rag_agent import RAGAgent
-    from agents.response_agent import ResponseAgent
-    from services.hybrid_retriever import HybridRetriever
 
-    log_agent = LogAgent()
-    rag_agent = RAGAgent(log_agent)
-    response_agent = ResponseAgent(log_agent)
-    planner_agent = PlannerAgent(log_agent)
-    graph_retriever = _init_graph_retriever(log_agent)
-    hybrid = HybridRetriever(rag_agent, log_agent, graph_retriever)
-    return hybrid, response_agent, planner_agent, graph_retriever is not None
+    _, response_agent, planner_agent, hybrid, graph_available = \
+        build_retrieval_pipeline(LogAgent())
+    return hybrid, response_agent, planner_agent, graph_available
 
 
 def _run_single(hybrid, response_agent, planner_agent, question: str, mode: str, model: str) -> dict:
@@ -120,7 +111,7 @@ def _run_single(hybrid, response_agent, planner_agent, question: str, mode: str,
     retrieval_seconds = time.time() - t0
 
     t1 = time.time()
-    raw_answer = response_agent.generate(
+    response_agent.generate(
         query=question,
         rag_context=retrieval["vector_chunks"],
         graph_context=retrieval["graph_context"],
@@ -128,7 +119,9 @@ def _run_single(hybrid, response_agent, planner_agent, question: str, mode: str,
     )
     generation_seconds = time.time() - t1
 
-    answer = _strip_sources_section(raw_answer)
+    # Respuesta limpia (sin bloque de fuentes) directo del side-channel del
+    # agente — antes se cortaba el texto por el separador de display.
+    answer = response_agent.last_answer
     retrieved_texts = [c["text"] for c in retrieval["vector_chunks"]]
     if retrieval["graph_context"]:
         retrieved_texts.append(retrieval["graph_context"])
@@ -265,50 +258,40 @@ def _bar(value: float, max_value: float, color: str) -> str:
             f'<div style="background:{color};height:100%;width:{pct}%"></div></div>')
 
 
-def _fmt_ragas_html(v, n_evaluated: int, n_total: int) -> str:
-    if v is None or (isinstance(v, float) and math.isnan(v)) or n_total == 0:
-        return "—"
-    base = "%.2f" % v
-    if n_evaluated < n_total:
-        return f"{base} ({n_evaluated}/{n_total})"
-    return base
+def _fmt_ragas_cell(v, n_evaluated: int, n_total: int) -> str:
+    base, note = fmt_ragas_parts(v, n_evaluated, n_total)
+    if base is None:
+        return EMPTY
+    return f"{base} ({note})" if note else base
 
 
 def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict) -> None:
     max_total = max((v["avg_total_seconds"] for v in by_mode.values()), default=1) or 1
     ragas_enabled = meta.get("ragas_enabled", True)
 
-    def _planning_cell(v):
-        p = v.get("avg_planning_seconds", 0.0)
-        return f"{p:.2f}s" if p > 0 else "—"
-
-    def _graph_usage_cell(v):
-        r = v.get("planner_graph_usage_rate")
-        return "%.0f%%" % (r * 100) if r is not None else "—"
-
     mode_rows = "".join(
         f"<tr><td>{html.escape(mode)}</td>"
         f"<td>{v['n']}</td>"
-        f"<td>{_planning_cell(v)}</td>"
-        f"<td>{v['avg_retrieval_seconds']:.2f}s</td>"
-        f"<td>{v['avg_generation_seconds']:.2f}s</td>"
-        f"<td>{v['avg_total_seconds']:.2f}s<br>{_bar(v['avg_total_seconds'], max_total, '#3b82f6')}</td>"
-        f"<td>{_fmt_ragas_html(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
-        f"<td>{_fmt_ragas_html(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
-        f"<td>{'%.0f%%' % (v['source_match_rate'] * 100) if v['source_match_rate'] is not None else '—'}</td>"
-        f"<td>{_graph_usage_cell(v)}</td>"
+        f"<td>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
+        f"<td>{fmt_number(v['avg_retrieval_seconds'], 's')}</td>"
+        f"<td>{fmt_number(v['avg_generation_seconds'], 's')}</td>"
+        f"<td>{fmt_number(v['avg_total_seconds'], 's')}<br>{_bar(v['avg_total_seconds'], max_total, '#3b82f6')}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
+        f"<td>{fmt_rate_pct(v['source_match_rate'])}</td>"
+        f"<td>{fmt_rate_pct(v.get('planner_graph_usage_rate'))}</td>"
         f"</tr>"
         for mode, v in sorted(by_mode.items())
     )
     model_rows = "".join(
         f"<tr><td>{html.escape(model)}</td>"
         f"<td>{v['n']}</td>"
-        f"<td>{_planning_cell(v)}</td>"
-        f"<td>{v['avg_retrieval_seconds']:.2f}s</td>"
-        f"<td>{v['avg_generation_seconds']:.2f}s</td>"
-        f"<td>{v['avg_total_seconds']:.2f}s<br>{_bar(v['avg_total_seconds'], max_total, '#a78bfa')}</td>"
-        f"<td>{_fmt_ragas_html(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
-        f"<td>{_fmt_ragas_html(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
+        f"<td>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
+        f"<td>{fmt_number(v['avg_retrieval_seconds'], 's')}</td>"
+        f"<td>{fmt_number(v['avg_generation_seconds'], 's')}</td>"
+        f"<td>{fmt_number(v['avg_total_seconds'], 's')}<br>{_bar(v['avg_total_seconds'], max_total, '#a78bfa')}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
         f"</tr>"
         for model, v in sorted(by_model.items())
     )

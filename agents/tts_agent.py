@@ -17,7 +17,7 @@ from config import (
     PIPER_MODEL_PATH, PIPER_CONFIG_PATH, TTS_SAMPLE_RATE,
     TEMP_DIR, AUDIO_OUTPUT_DIR,
 )
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
 
 
 class TTSAgent:
@@ -37,19 +37,19 @@ class TTSAgent:
             try:
                 from piper import PiperVoice  # noqa: F401
                 self._backend = "piper_python"
-                self.log.log("TTS", "Backend: piper-tts (Python package)")
+                self.log.log(Stage.TTS, "Backend: piper-tts (Python package)")
                 return
             except ImportError:
                 pass
         if self._command_exists("piper"):
             self._backend = "piper_binary"
-            self.log.log("TTS", "Backend: piper (binario del sistema)")
+            self.log.log(Stage.TTS, "Backend: piper (binario del sistema)")
             return
         if self._command_exists("say"):
             self._backend = "macos_say"
-            self.log.log("TTS", "Backend: macOS say (fallback nativo)")
+            self.log.log(Stage.TTS, "Backend: macOS say (fallback nativo)")
             return
-        self.log.log("TTS", "ADVERTENCIA: no se encontró motor TTS.")
+        self.log.log(Stage.TTS, "ADVERTENCIA: no se encontró motor TTS.")
         self._backend = None
 
     def synthesize(self, text: str) -> str | None:
@@ -57,7 +57,7 @@ class TTSAgent:
             return None
         output_path = os.path.join(TEMP_DIR, "sri_response_audio.wav")
         text_clean = text[:800].strip()
-        self.log.log("TTS", f"Sintetizando {len(text_clean)} caracteres...")
+        self.log.log(Stage.TTS, f"Sintetizando {len(text_clean)} caracteres...")
         success = False
         if self._backend == "piper_python":
             success = self._synth_piper_python(text_clean, output_path)
@@ -66,9 +66,9 @@ class TTSAgent:
         elif self._backend == "macos_say":
             success = self._synth_macos_say(text_clean, output_path)
         if success and os.path.exists(output_path):
-            self.log.log("TTS", f"Audio generado: {output_path}")
+            self.log.log(Stage.TTS, f"Audio generado: {output_path}")
             return output_path
-        self.log.log("TTS", "No se pudo generar audio.")
+        self.log.log(Stage.TTS, "No se pudo generar audio.")
         return None
 
     def play_async(self, audio_path: str):
@@ -98,7 +98,7 @@ class TTSAgent:
                     wf.writeframes(chunk.audio_int16_bytes)
             return True
         except Exception as exc:
-            self.log.log("TTS", f"piper-tts Python falló: {exc}")
+            self.log.log(Stage.TTS, f"piper-tts Python falló: {exc}")
             return False
 
     def _synth_piper_binary(self, text: str, output_path: str) -> bool:
@@ -111,7 +111,7 @@ class TTSAgent:
             )
             return result.returncode == 0
         except Exception as exc:
-            self.log.log("TTS", f"piper binario falló: {exc}")
+            self.log.log(Stage.TTS, f"piper binario falló: {exc}")
             return False
 
     def _synth_macos_say(self, text: str, output_path: str) -> bool:
@@ -129,7 +129,7 @@ class TTSAgent:
                 os.remove(aiff_path)
                 return True
         except Exception as exc:
-            self.log.log("TTS", f"macOS say falló: {exc}")
+            self.log.log(Stage.TTS, f"macOS say falló: {exc}")
             try:
                 subprocess.run(["say", "-v", "Monica", text], timeout=30)
             except Exception:

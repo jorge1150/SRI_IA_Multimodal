@@ -18,7 +18,7 @@ from config import (
     RECORD_DURATION, AUDIO_SAFETY_CEILING,
     MIC_DEVICE_INDEX,
 )
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
 
 
 class VoiceAgent:
@@ -34,7 +34,7 @@ class VoiceAgent:
     def _load_model(self):
         if self._model is not None:
             return
-        self.log.log("STT", f"Cargando Whisper '{WHISPER_MODEL_SIZE}' ({WHISPER_COMPUTE_TYPE})...")
+        self.log.log(Stage.STT, f"Cargando Whisper '{WHISPER_MODEL_SIZE}' ({WHISPER_COMPUTE_TYPE})...")
         from faster_whisper import WhisperModel
         self._model = WhisperModel(
             WHISPER_MODEL_SIZE,
@@ -43,27 +43,27 @@ class VoiceAgent:
             cpu_threads=1,
             num_workers=1,
         )
-        self.log.log("STT", "Modelo Whisper listo.")
+        self.log.log(Stage.STT, "Modelo Whisper listo.")
 
     def transcribe(self, audio_input) -> str:
         self._load_model()
         audio_array = self._get_audio_array(audio_input)
         if audio_array is None or len(audio_array) == 0:
-            self.log.log("STT", "Entrada de audio inválida o vacía.")
+            self.log.log(Stage.STT, "Entrada de audio inválida o vacía.")
             return ""
         dur = len(audio_array) / SAMPLE_RATE_WHISPER
-        self.log.log("STT", f"Transcribiendo consulta: {dur:.1f}s de audio...")
+        self.log.log(Stage.STT, f"Transcribiendo consulta: {dur:.1f}s de audio...")
         segments, info = self._model.transcribe(
             audio_array,
             beam_size=WHISPER_BEAM_SIZE,
             language=WHISPER_LANGUAGE,
         )
         text = " ".join(s.text for s in segments).strip()
-        self.log.log("STT", f"Transcripción ({info.language}): «{text[:80]}»")
+        self.log.log(Stage.STT, f"Transcripción ({info.language}): «{text[:80]}»")
         return text
 
     def record_and_transcribe(self) -> str:
-        self.log.log("STT", f"Escuchando {RECORD_DURATION} segundos...")
+        self.log.log(Stage.STT, f"Escuchando {RECORD_DURATION} segundos...")
         try:
             grabacion = sd.rec(
                 int(RECORD_DURATION * SAMPLE_RATE_RECORD),
@@ -74,7 +74,7 @@ class VoiceAgent:
             )
             sd.wait()
         except Exception as exc:
-            self.log.log("ERROR", f"Falla al grabar audio: {exc}")
+            self.log.log(Stage.ERROR, f"Falla al grabar audio: {exc}")
             return ""
         audio_array = self._normalize_audio(grabacion.flatten(), SAMPLE_RATE_RECORD)
         return self.transcribe(audio_array)
@@ -124,12 +124,12 @@ class VoiceAgent:
                 capture_output=True, timeout=30,
             )
             if proc.returncode != 0:
-                self.log.log("ERROR", f"ffmpeg: {proc.stderr.decode()[:200]}")
+                self.log.log(Stage.ERROR, f"ffmpeg: {proc.stderr.decode()[:200]}")
                 return None
             return np.frombuffer(proc.stdout, dtype=np.float32).copy()
         except FileNotFoundError:
-            self.log.log("ERROR", "ffmpeg no disponible en PATH")
+            self.log.log(Stage.ERROR, "ffmpeg no disponible en PATH")
             return None
         except Exception as exc:
-            self.log.log("ERROR", f"Error cargando audio: {exc}")
+            self.log.log(Stage.ERROR, f"Error cargando audio: {exc}")
             return None

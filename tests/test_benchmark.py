@@ -12,7 +12,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)
 
 import math
-from scripts.run_benchmark import _normalize, _source_matched, _strip_sources_section, _aggregate, _none_if_nan
+from scripts.run_benchmark import _normalize, _source_matched, _aggregate, _none_if_nan
 
 
 class TestNormalize(unittest.TestCase):
@@ -48,18 +48,6 @@ class TestSourceMatched(unittest.TestCase):
     def test_no_match_returns_false(self):
         chunks = [{"metadata": {"doc_name": "Reglamento LRTI 2023", "source": "reglamento.pdf"}}]
         self.assertFalse(_source_matched("Art 37 Tarifas para sociedades", chunks))
-
-
-class TestStripSourcesSection(unittest.TestCase):
-
-    def test_strips_separator_and_below(self):
-        sep = "─" * 37
-        answer = f"Esta es la respuesta.\n\n{sep}\n📋 FUENTES CONSULTADAS:\n  [1] LRTI"
-        self.assertEqual(_strip_sources_section(answer), "Esta es la respuesta.")
-
-    def test_no_separator_returns_unchanged(self):
-        answer = "Respuesta sin fuentes."
-        self.assertEqual(_strip_sources_section(answer), answer)
 
 
 class TestAggregate(unittest.TestCase):
@@ -128,6 +116,37 @@ class TestNoneIfNan(unittest.TestCase):
     def test_zero_is_not_treated_as_missing(self):
         self.assertEqual(_none_if_nan(0.0), 0.0)
 
+
+class TestBenchmarkFormat(unittest.TestCase):
+    """Formateadores compartidos entre el HTML del script y la tab de la UI —
+    la convención vive en UN solo lugar (services/benchmark_format.py)."""
+
+    def test_fmt_number(self):
+        from services.benchmark_format import fmt_number, EMPTY
+        self.assertEqual(fmt_number(1.5, "s"), "1.50s")
+        self.assertEqual(fmt_number(None), EMPTY)
+        self.assertEqual(fmt_number(float("nan")), EMPTY)
+        self.assertEqual(fmt_number(0.0, "s"), "0.00s")  # cero es un valor, no "falta"
+
+    def test_fmt_ragas_parts(self):
+        from services.benchmark_format import fmt_ragas_parts
+        self.assertEqual(fmt_ragas_parts(None, 0, 3), (None, None))       # --no-ragas
+        self.assertEqual(fmt_ragas_parts(float("nan"), 0, 3), (None, None))
+        self.assertEqual(fmt_ragas_parts(0.42, 3, 3), ("0.42", None))     # todo evaluado
+        self.assertEqual(fmt_ragas_parts(0.42, 2, 3), ("0.42", "2/3"))    # juez falló en 1
+        self.assertEqual(fmt_ragas_parts(0.42, 0, 0), (None, None))       # grupo vacío
+
+    def test_fmt_planning_seconds(self):
+        from services.benchmark_format import fmt_planning_seconds, EMPTY
+        self.assertEqual(fmt_planning_seconds(16.3), "16.30s")
+        self.assertEqual(fmt_planning_seconds(0.0), EMPTY)   # modos sin paso de planning
+        self.assertEqual(fmt_planning_seconds(None), EMPTY)
+
+    def test_fmt_rate_pct(self):
+        from services.benchmark_format import fmt_rate_pct, EMPTY
+        self.assertEqual(fmt_rate_pct(0.5), "50%")
+        self.assertEqual(fmt_rate_pct(0.0), "0%")   # tasa cero es un dato real
+        self.assertEqual(fmt_rate_pct(None), EMPTY)  # no aplica (ej. graph_only)
 
 if __name__ == "__main__":
     unittest.main()

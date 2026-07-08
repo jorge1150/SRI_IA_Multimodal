@@ -182,7 +182,12 @@ Consulta del usuario
   RAG vectorial, GraphRAG, Híbrido y Agéntico por tiempo y calidad.
 - Soporte para PDF (MinerU: layout, tablas, OCR), DOCX, TXT y MD del SRI.
 - Interfaz profesional con logs de trazabilidad y diagrama animado del flujo
-  de agentes en vivo.
+  de agentes en vivo (alimentado por eventos estructurados, no por parseo
+  de texto); las tabs de estadísticas se refrescan al entrar, sin reiniciar.
+- Calidad de ingeniería verificable: suite de 99 tests en verde, decisiones
+  de arquitectura registradas en ADRs, y dos revisiones de arquitectura
+  documentadas que eliminaron contratos frágiles (datos estructurados entre
+  módulos en vez de texto re-parseado con regex).
 
 **Limitaciones actuales:**
 - Qwen2.5 (3B) tiene capacidad de razonamiento limitada frente a modelos más grandes (pueden cometerse errores en lógica compleja); reemplazó a TinyLlama tras detectarse alucinaciones (ver ADR-0003).

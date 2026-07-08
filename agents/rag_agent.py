@@ -15,7 +15,7 @@ from config import (
     CHROMA_DB_PATH, CHROMA_COLLECTION,
     RAG_TOP_K, RAG_MIN_SIMILARITY,
 )
-from .log_agent import LogAgent
+from .log_agent import LogAgent, Stage
 
 # Stopwords del dominio tributario — no aportan señal de búsqueda
 _STOPWORDS_SRI = {
@@ -53,26 +53,26 @@ class RAGAgent:
     def _load_clip(self):
         if self._clip_model is not None:
             return
-        self.log.log("RAG", f"Cargando OpenCLIP {CLIP_MODEL} en CPU...")
+        self.log.log(Stage.RAG, f"Cargando OpenCLIP {CLIP_MODEL} en CPU...")
         kwargs = {} if CLIP_MODEL.startswith("hf-hub:") else {"pretrained": CLIP_PRETRAINED}
         self._clip_model, _, self._preprocessor = open_clip.create_model_and_transforms(
             CLIP_MODEL, **kwargs
         )
         self._clip_model = self._clip_model.to(self._clip_device).eval()
         self._tokenizer = open_clip.get_tokenizer(CLIP_MODEL)
-        self.log.log("RAG", "OpenCLIP listo.")
+        self.log.log(Stage.RAG, "OpenCLIP listo.")
 
     def _load_chroma(self):
         if self._collection is not None:
             return
-        self.log.log("RAG", f"Conectando a ChromaDB: {CHROMA_DB_PATH}...")
+        self.log.log(Stage.RAG, f"Conectando a ChromaDB: {CHROMA_DB_PATH}...")
         client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
         try:
             self._collection = client.get_collection(name=CHROMA_COLLECTION)
             count = self._collection.count()
-            self.log.log("RAG", f"Colección '{CHROMA_COLLECTION}': {count} fragmentos normativos.")
+            self.log.log(Stage.RAG, f"Colección '{CHROMA_COLLECTION}': {count} fragmentos normativos.")
         except Exception:
-            self.log.log("ERROR", (
+            self.log.log(Stage.ERROR, (
                 f"Colección '{CHROMA_COLLECTION}' no existe. "
                 "Carga documentos SRI y ejecuta: python rag/build_db.py"
             ))
@@ -99,10 +99,10 @@ class RAGAgent:
 
         candidate_k = self._collection.count()
         if candidate_k == 0:
-            self.log.log("RAG", "Base vectorial vacía. Carga documentos SRI primero.")
+            self.log.log(Stage.RAG, "Base vectorial vacía. Carga documentos SRI primero.")
             return []
 
-        self.log.log("NORMATIVA", f"Buscando normativa relacionada con: «{query[:80]}»...")
+        self.log.log(Stage.NORMATIVA, f"Buscando normativa relacionada con: «{query[:80]}»...")
 
         results = self._collection.query(
             query_embeddings=[query_vector],
@@ -130,15 +130,15 @@ class RAGAgent:
         chunks = chunks[:top_k]
 
         if chunks:
-            self.log.log("NORMATIVA", f"✓ {len(chunks)} artículo(s)/fragmento(s) recuperado(s).")
+            self.log.log(Stage.NORMATIVA, f"✓ {len(chunks)} artículo(s)/fragmento(s) recuperado(s).")
             for c in chunks:
                 meta = c.get("metadata", {})
                 doc_name = meta.get("doc_name", meta.get("source", "—"))
                 pag = f" | Pág. {meta['pagina']}" if meta.get("pagina") else ""
                 art = f" | {meta['articulo_seccion']}" if meta.get("articulo_seccion") else ""
-                self.log.log("NORMATIVA", f"  [{c['id']}] sim={c['similarity']:.2f} — {doc_name}{art}{pag}")
+                self.log.log(Stage.NORMATIVA, f"  [{c['id']}] sim={c['similarity']:.2f} — {doc_name}{art}{pag}")
         else:
-            self.log.log("NORMATIVA", "⚠ Sin normativa relevante encontrada en la base vectorial.")
+            self.log.log(Stage.NORMATIVA, "⚠ Sin normativa relevante encontrada en la base vectorial.")
 
         return chunks
 
@@ -182,7 +182,7 @@ class RAGAgent:
                 vec /= vec.norm(dim=-1, keepdim=True)
             return vec.cpu().numpy().flatten().tolist()
         except Exception as exc:
-            self.log.log("ERROR", f"Error vectorizando texto: {exc}")
+            self.log.log(Stage.ERROR, f"Error vectorizando texto: {exc}")
             return None
 
     def embed_image(self, pil_image) -> list[float] | None:
@@ -195,5 +195,5 @@ class RAGAgent:
                 vec /= vec.norm(dim=-1, keepdim=True)
             return vec.cpu().numpy().flatten().tolist()
         except Exception as exc:
-            self.log.log("ERROR", f"Error vectorizando imagen: {exc}")
+            self.log.log(Stage.ERROR, f"Error vectorizando imagen: {exc}")
             return None

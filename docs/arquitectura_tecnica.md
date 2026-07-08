@@ -39,15 +39,20 @@ SRI_IA_Multimodal/
 ├── app.py                      # Punto de entrada — instancia CoordinatorAgent + Gradio
 ├── config.py                   # Configuración central (todos los parámetros)
 ├── agents/
-│   ├── coordinator.py          # Orquestador — pipeline completo
+│   ├── coordinator.py          # Orquestador — pipeline completo + build_retrieval_pipeline()
+│   │                            #   (wiring compartido con el benchmark: un solo lugar
+│   │                            #   donde se construye RAG+Planner+Graph+Hybrid)
 │   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG vía tool-calling (ADR-0005)
 │   ├── rag_agent.py            # Recuperación vectorial con OpenCLIP + ChromaDB
-│   ├── response_agent.py       # Generación LLM + construcción de fuentes (model= override)
-│   ├── vision_agent.py         # Análisis de imágenes con Moondream
+│   ├── response_agent.py       # Generación LLM + fuentes estructuradas (side-channel
+│   │                            #   last_answer/last_sources; model= override)
+│   ├── vision_agent.py         # Análisis de imágenes con Moondream ("" en error, sin sentinelas)
 │   ├── video_agent.py          # Extracción de frames de video
 │   ├── voice_agent.py          # STT con faster-whisper
 │   ├── tts_agent.py            # TTS con Piper (3 backends en cascada)
-│   └── log_agent.py            # Log en tiempo real para la UI
+│   └── log_agent.py            # Vocabulario de etapas (clase Stage, fuente única) +
+│                                #   log de texto para humanos + eventos estructurados
+│                                #   (get_events()) para el diagrama de flujo de agentes
 ├── graph/
 │   ├── entity_extractor.py     # Taxonomía de 37 entidades tributarias
 │   ├── relation_extractor.py   # Extracción de relaciones por patrones léxicos
@@ -59,7 +64,9 @@ SRI_IA_Multimodal/
 │   ├── ingesta.py              # Ingesta masiva a ChromaDB con embeddings CLIP + build_metadata.json
 │   └── build_db.py             # Script de construcción/reconstrucción de la BD
 ├── services/
-│   └── hybrid_retriever.py     # Combina RAG vectorial + GraphRAG (mode=vector_only|graph_only|hybrid|auto)
+│   ├── hybrid_retriever.py     # Combina RAG vectorial + GraphRAG (mode=vector_only|graph_only|hybrid|auto)
+│   └── benchmark_format.py     # Formateo compartido de métricas ("—", "(N/total)") —
+│                                #   una sola convención para el HTML del script y la tab de la UI
 ├── scripts/
 │   ├── build_graph.py          # Script de construcción del grafo de conocimiento
 │   ├── run_benchmark.py        # Benchmark de tesis — modos × modelos × RAGAS
@@ -382,10 +389,14 @@ Antes de enviar al LLM: máximo **1 chunk por documento único**, máximo **3 ch
 
 ### Construcción de fuentes (en Python, no LLM)
 
-La sección de fuentes se construye programáticamente en `_build_sources_section()`:
-- Deduplica por `doc_name`.
-- Lista cada fuente con tipo, año, artículo/sección, página y similitud.
-- Separada de la respuesta por `─` × 37 (U+2500 × 37) — la UI divide en dos paneles en este carácter.
+`_collect_sources()` produce la lista **estructurada** de fuentes (deduplicada
+por `doc_name`, con tipo, año, artículo/sección, página y similitud) y
+`generate()` la publica en el side-channel `last_sources` junto con
+`last_answer` (la respuesta limpia). Los consumidores leen esa estructura
+directo — el panel de fragmentos de la UI, el corte para TTS del coordinador
+y el benchmark ya **no** parsean el texto del chat. El separador
+`SOURCES_SEPARATOR` (`─` × 37, definido una sola vez en `response_agent.py`)
+es formato de display puro para el bubble del chat.
 
 ---
 
@@ -429,7 +440,8 @@ La sección de fuentes se construye programáticamente en `_build_sources_sectio
 - Convierte a JPEG base64.
 - Envía a Moondream via `POST /api/generate` con prompt especializado para formularios tributarios.
 - Retorna descripción de máximo ~30 palabras en español.
-- La descripción se concatena a la query RAG si no contiene `[` (descarta mensajes de error).
+- En error (Ollama caído, timeout) retorna `""` — el detalle queda en el log. Nunca retorna strings-sentinela tipo `"[Timeout...]"`: los consumidores no podrían distinguirlos de una descripción real, y filtrar por `[` daba falsos positivos con descripciones legítimas de formularios (checkboxes `[X]`, campos `[RUC]`).
+- La descripción se concatena a la query RAG si no está vacía.
 
 ### Video
 
@@ -506,6 +518,31 @@ Ningún componente requiere internet en tiempo de ejecución: Ollama corre los L
 ### ¿Por qué agregar un PlannerAgent y no dejar la arquitectura multiagente clásica?
 
 La arquitectura original (`CoordinatorAgent` orquestando agentes especializados en una secuencia fija de `if/else`) es una arquitectura multiagente **clásica** — módulos con responsabilidad única, sin autonomía real. No calificaba como "software agéntico" en el sentido moderno (LLM decidiendo dinámicamente, no una regla programada). El `PlannerAgent` (ADR-0005) agrega ese único punto de decisión real: decide vía tool-calling si la consulta necesita GraphRAG. Se prefirió una decisión **binaria** ("¿también necesita grafo?", vector siempre corre) en vez de "elegir entre dos herramientas", porque pruebas reales mostraron que un modelo de 3B discrimina mucho mejor una decisión binaria que una elección exclusiva entre dos tools con nombres similares — un hallazgo empírico documentado, no una suposición de diseño.
+
+### Datos estructurados entre módulos, nunca texto de display re-parseado
+
+Segunda revisión de arquitectura (2026-07): se eliminaron todos los contratos
+"string-typed" — lugares donde un módulo serializaba datos a texto de display
+y otro los re-parseaba con regex, con degradación silenciosa si el formato
+cambiaba. Cuatro decisiones resultantes:
+
+- **Vocabulario de etapas (`Stage`)**: las etiquetas del pipeline (`INICIO`,
+  `PLANNER`, `RAG`, …) se definen una sola vez en `agents/log_agent.py`;
+  todos los productores usan `Stage.X` (un typo falla con `AttributeError`
+  visible, no en silencio). El diagrama de flujo de agentes consume
+  `LogAgent.get_events()` (eventos estructurados), no regex sobre el log.
+- **Side-channel de fuentes**: `ResponseAgent` publica `last_answer`
+  (respuesta limpia) y `last_sources` (lista estructurada) tras cada
+  generación; el panel de la UI, el corte para TTS y el benchmark leen esa
+  estructura — el separador `─×37` del chat es display puro, definido una
+  sola vez (`SOURCES_SEPARATOR`).
+- **Sin strings-sentinela**: visión/video retornan `""` en error (detalle al
+  log), nunca `"[Timeout...]"` — el filtro por `[` descartaba descripciones
+  legítimas de formularios (`[X]`, `[RUC]`).
+- **Tabs con datos frescos**: las tabs de estadísticas (Base de Conocimiento,
+  Benchmark RAGAS, Estado del Sistema) recalculan sus datos al entrar
+  (`Tab.select`) en vez de hornearlos al arranque de la app — correr un
+  benchmark o reingestar documentos se refleja sin reiniciar.
 
 ### ¿Por qué un flag (`USE_AGENTIC_PLANNER`) en vez de activarlo directo?
 

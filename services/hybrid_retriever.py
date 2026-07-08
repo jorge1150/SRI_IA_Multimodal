@@ -17,6 +17,8 @@ _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _BASE not in sys.path:
     sys.path.insert(0, _BASE)
 
+from agents.log_agent import Stage
+
 
 class HybridRetriever:
     """
@@ -62,7 +64,7 @@ class HybridRetriever:
             vector_chunks = []
         else:
             vector_chunks = self.rag.retrieve(query, **kwargs)
-            self.log.log("RAG", f"✓ Vectorial: {len(vector_chunks)} fragmento(s) recuperado(s).")
+            self.log.log(Stage.RAG, f"✓ Vectorial: {len(vector_chunks)} fragmento(s) recuperado(s).")
 
         # 2. Recuperación de grafo (solo si disponible y el modo lo permite)
         graph_context = ""
@@ -78,7 +80,7 @@ class HybridRetriever:
 
                 if graph_entities:
                     self.log.log(
-                        "GRAPH",
+                        Stage.GRAPH,
                         f"Entidades detectadas: {', '.join(graph_entities[:5])}"
                     )
 
@@ -88,15 +90,15 @@ class HybridRetriever:
                     graph_context = self.graph.retrieve(query)
                     mode_result = "graph_only" if mode == "graph_only" else "hybrid"
                     self.log.log(
-                        "GRAPH",
+                        Stage.GRAPH,
                         f"✓ Grafo: {len(graph_triples)} relación(es) recuperada(s) "
                         f"[{', '.join(graph_stats['relations_types'][:3])}]"
                     )
                 else:
-                    self.log.log("GRAPH", "Sin relaciones relevantes en el grafo para esta consulta.")
+                    self.log.log(Stage.GRAPH, "Sin relaciones relevantes en el grafo para esta consulta.")
 
             except Exception as exc:
-                self.log.log("GRAPH", f"⚠ Error en GraphRAG: {exc} — usando solo RAG vectorial.")
+                self.log.log(Stage.GRAPH, f"⚠ Error en GraphRAG: {exc} — usando solo RAG vectorial.")
 
         return {
             "vector_chunks": vector_chunks,
