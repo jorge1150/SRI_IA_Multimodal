@@ -23,6 +23,13 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
+│  🧠 PLANNER AGENT (opcional, USE_AGENTIC_PLANNER)               │
+│  Decide vía tool-calling de Ollama: ¿esta consulta necesita     │
+│  GraphRAG además del RAG vectorial? Único punto del pipeline    │
+│  donde el LLM decide dinámicamente, no una regla fija (ADR-0005)│
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
 │              HYBRID RETRIEVER (recuperación híbrida)            │
 │                                                                 │
 │  ┌─────────────────────────┐  ┌──────────────────────────────┐ │
@@ -43,6 +50,10 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
               🔊 Piper TTS → Respuesta en voz
 ```
 
+> La UI incluye un diagrama animado en vivo de este flujo (botón "🕸️ Ver
+> Flujo de Agentes" en la tab Consulta Tributaria) — se ve el nodo activo
+> pulsando y el Planner marcado como el único punto de decisión real.
+
 ## Stack Tecnológico
 
 | Componente | Tecnología |
@@ -58,6 +69,8 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 | TTS | Piper TTS es_ES-sharvard |
 | PDF | MinerU (layout/tablas/OCR), fallback a PyMuPDF (fitz) |
 | DOCX | python-docx |
+| Decisión agéntica | PlannerAgent — tool-calling nativo de Ollama (ADR-0005) |
+| Evaluación / benchmark | RAGAS (juez local Ollama) + sentence-transformers (embeddings) |
 
 ## Estructura del Proyecto
 
@@ -70,8 +83,9 @@ SRI_IA_Multimodal/
 │
 ├── agents/                     # Sistema multiagente
 │   ├── coordinator.py          # Orquestador del pipeline (usa HybridRetriever)
+│   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG (tool-calling, ADR-0005)
 │   ├── rag_agent.py            # Recuperación semántica vectorial
-│   ├── response_agent.py       # Generación con citas (acepta graph_context)
+│   ├── response_agent.py       # Generación con citas (acepta graph_context, model=)
 │   ├── voice_agent.py          # STT (Whisper)
 │   ├── vision_agent.py         # Análisis visual (Moondream)
 │   ├── video_agent.py          # Procesamiento de video
@@ -79,8 +93,8 @@ SRI_IA_Multimodal/
 │   └── log_agent.py            # Trazabilidad
 │
 ├── rag/                        # Motor RAG vectorial
-│   ├── chunker.py              # Fragmentación PDF/DOCX/TXT/MD
-│   ├── ingesta.py              # Carga a ChromaDB con metadatos
+│   ├── chunker.py              # Fragmentación PDF/DOCX/TXT/MD (MinerU-aware: kind, graph_text)
+│   ├── ingesta.py              # Carga a ChromaDB con metadatos + tiempo de build
 │   └── build_db.py             # Script de construcción vectorial
 │
 ├── graph/                      # Módulo GraphRAG (grafo de conocimiento)
@@ -93,25 +107,30 @@ SRI_IA_Multimodal/
 │
 ├── services/                   # Servicios transversales
 │   ├── __init__.py
-│   └── hybrid_retriever.py     # RAG vectorial + GraphRAG combinados
+│   └── hybrid_retriever.py     # RAG vectorial + GraphRAG combinados (mode=)
 │
 ├── scripts/                    # Scripts CLI
-│   └── build_graph.py          # Construir grafo: python scripts/build_graph.py
+│   ├── build_graph.py          # Construir grafo: python scripts/build_graph.py
+│   ├── run_benchmark.py        # Benchmark de tesis: RAG vs GraphRAG vs Híbrido vs Agéntico + RAGAS
+│   ├── ragas_local.py          # Juez RAGAS local (Ollama) + embeddings (sentence-transformers)
+│   └── benchmark_dataset.py    # Parser de preguntas.docx
 │
 ├── ui/                         # Interfaz Gradio
-│   ├── interface.py            # Layout, panel RAG, eventos
+│   ├── interface.py            # Layout, panel RAG, eventos, diagrama de flujo de agentes
 │   └── styles.py               # CSS tema SRI (dark + Ecuador colors)
 │
-├── data/                       # Documentos normativos SRI
-│   ├── normativas_sri/         # LORTI, Código Tributario, Reglamentos
-│   ├── resoluciones/           # Resoluciones NAC del SRI
-│   ├── guias_tributarias/      # Guías de declaración, RUC, comprobantes
-│   └── formularios/            # Instructivos de formularios 104, 101, etc.
+├── data/                       # Documentos normativos SRI — categorías DINÁMICAS
+│   └── <categoría>/            # Cada subcarpeta de data/ es una categoría; el nombre
+│                                # de la carpeta se usa como tipo_normativa (sin tabla
+│                                # de mapeo fija). Ej.: data/IVA (Impuesto al Valor Agregado)/
 │
+├── preguntas.docx               # Dataset de preguntas para scripts/run_benchmark.py
 ├── vector_db/chroma_sri/       # Base vectorial ChromaDB (generada)
-├── graph_db/sri_graph.json     # Grafo de conocimiento (generado)
+├── vector_db/build_metadata.json # Tiempo acumulado de construcción del vector store
+├── graph_db/sri_graph.json     # Grafo de conocimiento (generado, incl. build_seconds)
 ├── outputs/respuestas_audio/   # Audio generado
 ├── outputs/logs/               # Logs de sesión
+├── outputs/benchmarks/         # Reportes de scripts/run_benchmark.py (CSV/HTML/JSON)
 └── audio/piper_models/         # Modelos TTS (descargados)
 ```
 
@@ -138,7 +157,9 @@ source venv/bin/activate
 # 2. PortAudio
 brew install portaudio
 
-# 3. Dependencias (incluye networkx para GraphRAG)
+# 3. Dependencias (incluye networkx para GraphRAG, ragas + sentence-transformers
+#    para el benchmark de tesis — versiones fijadas, ver comentario en
+#    requirements.txt sobre compatibilidad con torch==2.2.2)
 pip install -r requirements.txt
 
 # 4. Modelos Ollama
@@ -161,12 +182,15 @@ python app.py
 
 ## Cargar Documentos Oficiales del SRI
 
+Las categorías son **dinámicas**: cada subcarpeta directa de `data/` (excepto
+`data/output/`, reservado para salidas de MinerU) es una categoría normativa —
+el nombre de la carpeta se usa tal cual como `tipo_normativa`, sin tabla de
+mapeo. Renombrar o agregar una carpeta cambia la categoría sin tocar código.
+
 ```bash
-# Copiar documentos en las carpetas correspondientes:
-data/normativas_sri/     → LORTI, Código Tributario, Reglamento Aplicación LORTI
-data/resoluciones/       → Resoluciones NAC-DGERCGC del SRI
-data/guias_tributarias/  → Guías oficiales del SRI
-data/formularios/        → Instructivos de formularios
+# Crear una carpeta con el nombre de la categoría y copiar los documentos:
+mkdir -p "data/IVA (Impuesto al Valor Agregado)"
+cp mis_pdfs/*.pdf "data/IVA (Impuesto al Valor Agregado)/"
 
 # Formatos soportados: .pdf, .txt, .docx, .md
 
@@ -207,17 +231,21 @@ Cada fragmento normativo almacenado incluye:
 
 ```
 1. Usuario hace consulta (texto/voz/imagen)
-2. [STT]    Whisper transcribe audio → texto
-3. [VISION] Moondream describe imagen → contexto visual
-4. [HYBRID] HybridRetriever ejecuta en paralelo:
-   4a. [RAG]    OpenCLIP vectoriza consulta → ChromaDB similitud coseno
-   4b. [GRAPH]  EntityExtractor detecta entidades (IVA, RUC, RISE, ...)
+2. [STT]     Whisper transcribe audio → texto
+3. [VISION]  Moondream describe imagen → contexto visual
+4. [PLANNER] (si USE_AGENTIC_PLANNER=True) el LLM decide vía tool-calling
+             si esta consulta necesita GraphRAG además del RAG vectorial
+5. [HYBRID]  HybridRetriever ejecuta según el modo (auto o el decidido por el planner):
+   5a. [RAG]    OpenCLIP vectoriza consulta → ChromaDB similitud coseno
+   5b. [GRAPH]  EntityExtractor detecta entidades (IVA, RUC, RISE, ...)
                GraphRetriever explora relaciones en NetworkX (hop_depth=2)
                → Triples: "Contribuyente —debe_presentar→ Declaración IVA"
-5. [LLM]   Qwen2.5 recibe: fragmentos RAG + relaciones de grafo
+6. [LLM]    Qwen2.5 recibe: fragmentos RAG + relaciones de grafo
            → Respuesta con citas de fuente normativa
-6. [TTS]   Piper sintetiza respuesta en español
-7. [LOGS]  Trazabilidad completa: modo hybrid/vector_only, entidades, triples
+7. [TTS]    Piper sintetiza respuesta en español
+8. [LOGS]   Trazabilidad completa: modo hybrid/vector_only, entidades, triples,
+            decisión del planner — visible también como diagrama animado
+            (botón "Ver Flujo de Agentes")
 ```
 
 ## GraphRAG — Grafo de Conocimiento Tributario
@@ -268,6 +296,71 @@ GRAPH_ENABLED: bool = True   # False = solo RAG vectorial
 
 Si `GRAPH_ENABLED=True` pero el grafo no existe aún, el sistema cae back a RAG vectorial automáticamente sin errores.
 
+## PlannerAgent — Decisión Agéntica (ADR-0005)
+
+El resto de agentes del sistema ejecutan una tarea fija — el `PlannerAgent` es
+el único punto donde el LLM **decide** dinámicamente, en vez de seguir una
+regla programada. Vía tool-calling nativo de Ollama, decide si una consulta
+necesita GraphRAG además del RAG vectorial (que siempre corre):
+
+```python
+# config.py
+USE_AGENTIC_PLANNER: bool = False   # default: chat de producción usa modo "auto" fijo
+PLANNER_TIMEOUT: int = 30            # decisión corta, no una generación completa
+```
+
+```bash
+# Activar para probarlo:
+USE_AGENTIC_PLANNER=true python app.py
+```
+
+Con el planner activo, la tab "Consulta Tributaria" muestra un botón
+**"🕸️ Ver Flujo de Agentes"** — diagrama animado en vivo que va marcando qué
+agente está trabajando en cada momento del pipeline, con el nodo del Planner
+distinguido visualmente como el único punto de decisión real (borde punteado).
+
+Ante cualquier falla (Ollama caído, timeout, respuesta sin parsear) el planner
+degrada a `False` — solo RAG vectorial, mismo criterio de degradación segura
+que ya usa el sistema cuando el grafo no está disponible.
+
+**Limitación conocida** (documentada, no oculta): un modelo de 3B tiene sesgo
+hacia elegir "no usar grafo" incluso en preguntas donde ayudaría — por eso la
+decisión se validó empíricamente con `scripts/run_benchmark.py` antes de
+considerar activarlo por defecto (ver sección Benchmark abajo).
+
+## Benchmark de Tesis — RAG vs GraphRAG vs Híbrido vs Agéntico + RAGAS
+
+```bash
+# Prueba rápida (solo tiempos, sin juez RAGAS):
+python scripts/run_benchmark.py --limit 5 --no-ragas
+
+# Corrida completa (puede tardar horas en CPU — 42 preguntas × modos × modelos):
+python scripts/run_benchmark.py
+
+# Elegir modos/modelos específicos:
+python scripts/run_benchmark.py --modes vector_only,agentic --models qwen2.5:3b-instruct-q4_K_M,tinyllama:latest
+```
+
+Compara, por cada combinación pregunta × modo × modelo:
+
+| Métrica | Qué mide |
+|---|---|
+| `retrieval_seconds` | Tiempo en buscar contexto (vectorial y/o grafo) |
+| `planning_seconds` | Solo en modo `agentic` — tiempo de la decisión sí/no grafo |
+| `generation_seconds` | Tiempo en que el LLM redacta la respuesta |
+| `faithfulness` / `answer_relevancy` | RAGAS — juez local vía Ollama, embeddings `sentence-transformers` (nunca OpenAI, sistema 100% local) |
+| `source_matched` | Si el retrieval trajo el documento fuente esperado (según `preguntas.docx`) |
+
+Resultado en `outputs/benchmarks/` (CSV con datos crudos, HTML con reporte
+visual, JSON de resumen) — visible también en la tab **"📊 Benchmark RAGAS"**
+de la UI, que lee automáticamente el reporte más reciente (solo lectura, no
+lanza el proceso — correrlo sigue siendo por terminal).
+
+**Nota de compatibilidad:** RAGAS/`sentence-transformers` requieren versiones
+específicas fijadas en `requirements.txt` — las últimas versiones de esas
+librerías arrastran dependencias incompatibles entre sí y con `torch==2.2.2`
+(pinneado por MinerU/OpenCLIP). Ver comentario en `requirements.txt`.
+
 ## Notas Importantes
 
 > Las respuestas son orientativas e informativas. No constituyen asesoría legal
@@ -283,8 +376,11 @@ python -m pytest tests/ -v
 # Solo GraphRAG
 python -m pytest tests/test_graph.py -v
 
-# Solo agentes/RAG
+# Solo agentes/RAG (incluye PlannerAgent)
 python -m pytest tests/test_agents.py tests/test_rag.py -v
+
+# Solo benchmark/RAGAS
+python -m pytest tests/test_benchmark.py tests/test_benchmark_dataset.py -v
 ```
 
 ## Diferencias con S3 IA Multimodal (Proyecto Base)
@@ -292,12 +388,14 @@ python -m pytest tests/test_agents.py tests/test_rag.py -v
 | Aspecto | S3 IA Multimodal | SRI IA Multimodal |
 |---|---|---|
 | Dominio | Soporte técnico PC | Normativa tributaria SRI |
-| Documentos | TXT manuales técnicos | PDF/DOCX/TXT normativos |
-| Metadatos RAG | source, id | + tipo, año, artículo, página |
-| Recuperación | RAG vectorial | RAG vectorial + GraphRAG híbrido |
+| Documentos | TXT manuales técnicos | PDF/DOCX/TXT normativos (MinerU) |
+| Metadatos RAG | source, id | + tipo, año, artículo, página, kind |
+| Recuperación | RAG vectorial | RAG vectorial + GraphRAG + decisión agéntica |
 | Grafo conocimiento | No | Sí (NetworkX + JSON, 100% local) |
+| Decisión agéntica | No | Sí — PlannerAgent vía tool-calling (ADR-0005) |
+| Evaluación | Manual | RAGAS + benchmark comparable por modo/modelo |
 | Prompt | Soporte técnico | Citas normativas, no inventa |
 | Disclaimer | No | Sí (respuestas orientativas) |
-| Carpetas datos | `manuals/` | `data/normativas_sri/`, etc. |
+| Carpetas datos | `manuals/` (fija) | Subcarpetas dinámicas de `data/` |
 | Puerto Gradio | 7864 | 7865 |
 | Colección ChromaDB | `manual_tecnico` | `normativa_tributaria` |

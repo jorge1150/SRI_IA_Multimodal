@@ -30,10 +30,11 @@ Consulta del usuario
        ↓
 [Multimodal: Texto + Voz + Imagen + Video]
        ↓
-[OpenCLIP] → Vector semántico
+[PlannerAgent] (opcional) → decide vía tool-calling si necesita GraphRAG
        ↓
-[ChromaDB] → Fragmentos normativos relevantes
-  (con metadatos: ley, artículo, página)
+[HybridRetriever]
+  ├─ RAG Vectorial: OpenCLIP → ChromaDB → fragmentos con metadatos
+  └─ GraphRAG: EntityExtractor + NetworkX → relaciones estructurales
        ↓
 [Qwen2.5 vía Ollama] → Respuesta con citas
        ↓
@@ -43,6 +44,12 @@ Consulta del usuario
 **Puntos clave a destacar:**
 - Todo funciona localmente (sin APIs de pago, sin internet obligatorio)
 - ChromaDB almacena embeddings vectoriales de la normativa
+- El grafo de conocimiento (GraphRAG) complementa con relaciones estructurales
+  entre entidades tributarias (ej. contribuyente → debe_presentar → declaración)
+- El `PlannerAgent` es el único punto del pipeline donde el LLM **decide**
+  dinámicamente (vía tool-calling) en vez de seguir una regla fija — es lo
+  que hace que el sistema califique como "software agéntico" en el sentido
+  moderno, no solo "arquitectura multiagente clásica"
 - Los metadatos permiten citar la fuente exacta: ley, artículo y página
 - El prompt obliga al LLM a no inventar información no respaldada
 
@@ -52,8 +59,9 @@ Consulta del usuario
 
 **Demo 1: Consulta por texto simple**
 - Escribe: "¿Cuál es la tarifa actual del IVA en Ecuador?"
-- Muestra: respuesta con cita LORTI Art. 65
-- Señala en los logs: RAG recupera fragmento de iva_lorti.txt
+- Muestra: respuesta con cita del documento normativo real (ver panel de
+  fragmentos recuperados — nombre del documento, artículo y página)
+- Señala en los logs: RAG recupera fragmento del corpus de tesis (22 documentos)
 
 **Demo 2: Consulta por voz**
 - Habla: "¿Cuáles son los plazos para declarar el IVA?"
@@ -70,9 +78,49 @@ Consulta del usuario
 - Muestra: el sistema dice "No encontré normativa específica sobre este tema"
 - Enfatiza: el sistema NO inventa información
 
+**Demo 5: Decisión agéntica en vivo (el aporte central de la tesis)**
+- Antes de la demo: lanzar la app con `USE_AGENTIC_PLANNER=true python app.py`
+- Abrir el botón **"🕸️ Ver Flujo de Agentes"** en la tab Consulta Tributaria
+- Pregunta simple ("¿Qué es el RUC?"): mostrar cómo el nodo Planner se activa,
+  decide "no necesita grafo", y el flujo pasa directo a RAG vectorial
+- Pregunta relacional ("¿Qué relación existe entre el contribuyente y la
+  obligación de retener el IVA?"): mostrar cómo el Planner decide "sí,
+  necesita grafo" — el nodo con borde punteado marcado como "decisión"
+- Enfatiza: es el único paso del pipeline donde el LLM decide dinámicamente,
+  vía tool-calling nativo de Ollama — no una regla `if/else` fija (ADR-0005)
+
+**Demo 6: Benchmark comparativo (evidencia cuantitativa)**
+- Mostrar la tab **"📊 Benchmark RAGAS"** con el resultado de una corrida
+  previa (`python scripts/run_benchmark.py`)
+- Señalar la comparación RAG vectorial vs GraphRAG vs Híbrido vs Agéntico:
+  tiempo (retrieval/planning/generación) y calidad (RAGAS: faithfulness,
+  answer relevancy) lado a lado
+- Enfatiza: la decisión de activar o no el planner en producción está
+  respaldada por datos medidos, no por intuición
+
 ---
 
 ### 4. Innovaciones Técnicas (3-4 min)
+
+**PlannerAgent — decisión agéntica real (aporte central de la tesis):**
+- Único componente del pipeline donde el LLM decide dinámicamente vía
+  tool-calling nativo de Ollama, en vez de una regla `if/else` fija.
+- Decide si una consulta necesita GraphRAG además del RAG vectorial (que
+  siempre corre) — decisión binaria, no elección exclusiva entre herramientas
+  (ver limitación de modelos de 3B abajo).
+- Visible en vivo en la UI: diagrama animado de flujo de agentes que marca
+  el nodo del Planner como el único punto de decisión real, distinto de los
+  demás pasos (fijos, sin negociación entre agentes).
+- Validado empíricamente con benchmark propio (RAGAS + tiempos) antes de
+  activarlo por defecto — decisión respaldada por datos, no por intuición.
+
+**GraphRAG — grafo de conocimiento tributario:**
+- Complementa el RAG vectorial con relaciones **estructurales** entre
+  entidades tributarias (ej. `contribuyente → debe_presentar → declaración
+  de IVA`), extraídas automáticamente por reglas léxico-verbales, sin NLP
+  entrenado externo.
+- Persistido en NetworkX + JSON, 100% local — sin depender de un motor de
+  grafos externo (Neo4j es opcional, no requerido).
 
 **Metadatos ricos en el RAG:**
 - A diferencia de sistemas genéricos, cada fragmento tiene: nombre del documento, tipo de normativa, año, artículo/sección y número de página.
@@ -84,7 +132,18 @@ Consulta del usuario
 
 **Soporte multiformat:**
 - El sistema procesa PDFs (con número de página), DOCX, TXT y MD.
-- MinerU extrae layout, tablas y aplica OCR para una cita precisa; PyMuPDF queda como fallback automático si MinerU falla en un documento puntual.
+- MinerU extrae layout, tablas y aplica OCR para una cita precisa; reconoce
+  jerarquía de encabezados (ningún fragmento cruza dos artículos distintos) y
+  preserva tablas de tarifas intactas; PyMuPDF queda como fallback automático
+  si MinerU falla en un documento puntual.
+
+**Evaluación con RAGAS (juez y embeddings 100% locales):**
+- `scripts/run_benchmark.py` compara RAG vectorial, GraphRAG, Híbrido y
+  Agéntico por tiempo y calidad (faithfulness, answer relevancy) usando el
+  mismo Ollama del proyecto como juez — sin depender de OpenAI/GPT-4.
+- Limitación documentada, no oculta: un juez de 3B falla con más frecuencia
+  que GPT-4 en producir una evaluación parseable — el reporte lo hace
+  explícito mostrando "(N/total)" evaluado, en vez de promediar en silencio.
 
 **Prompt con restricciones legales:**
 - El prompt del sistema prohíbe explícitamente inventar artículos, porcentajes o plazos.
@@ -100,8 +159,11 @@ Consulta del usuario
 | Aspecto | S3 IA (base) | SRI IA (nuevo) |
 |---|---|---|
 | Dominio | Fallas de computadora | Leyes y normativas tributarias |
-| Documentos | TXT manuales simples | PDF/DOCX legales con paginación |
+| Documentos | TXT manuales simples | PDF/DOCX legales con paginación (MinerU) |
 | Metadatos | source, id | + tipo, año, artículo, página |
+| Recuperación | RAG vectorial | RAG vectorial + GraphRAG + decisión agéntica |
+| Decisión agéntica | No | Sí — PlannerAgent vía tool-calling (ADR-0005) |
+| Evaluación | Manual | RAGAS + benchmark comparable por modo/modelo |
 | Citas de fuente | No | Sí (obligatorio por prompt) |
 | Disclaimer | No | Sí (ético y legal) |
 | Carpetas | 1 carpeta manuals/ | Categorías normativas dinámicas (subcarpetas de `data/`) |
@@ -113,17 +175,26 @@ Consulta del usuario
 **Logros:**
 - Sistema RAG multimodal funcional y 100% local.
 - Respuestas que citan la fuente exacta de la normativa.
-- Soporte para PDF, DOCX, TXT y MD del SRI.
-- Interfaz profesional con logs de trazabilidad.
+- GraphRAG — grafo de conocimiento tributario complementando el RAG vectorial.
+- **Decisión agéntica real** (`PlannerAgent`, ADR-0005) — el LLM decide
+  dinámicamente la estrategia de retrieval vía tool-calling, no una regla fija.
+- Benchmark propio con RAGAS (juez y embeddings 100% locales) que compara
+  RAG vectorial, GraphRAG, Híbrido y Agéntico por tiempo y calidad.
+- Soporte para PDF (MinerU: layout, tablas, OCR), DOCX, TXT y MD del SRI.
+- Interfaz profesional con logs de trazabilidad y diagrama animado del flujo
+  de agentes en vivo.
 
 **Limitaciones actuales:**
 - Qwen2.5 (3B) tiene capacidad de razonamiento limitada frente a modelos más grandes (pueden cometerse errores en lógica compleja); reemplazó a TinyLlama tras detectarse alucinaciones (ver ADR-0003).
+- El `PlannerAgent` tiene sesgo medido hacia "no usar grafo" incluso en preguntas donde ayudaría — limitación de modelos de 3B en decisiones de tool-calling, documentada empíricamente (ADR-0005), por eso queda detrás de un flag hasta validarse más.
+- El juez local de RAGAS (mismo modelo de 3B) falla con más frecuencia que GPT-4 en producir una evaluación parseable — el benchmark lo reporta explícito en vez de ocultarlo.
 - OpenCLIP es un modelo de visión, no optimizado para texto legal — el reranking compensa esto.
 - La calidad de las respuestas depende de qué documentos se hayan cargado.
 
 **Mejoras propuestas:**
-- Usar un LLM más capaz (Llama 3, Mistral) cuando el hardware lo permita.
-- Implementar un embedder de texto especializado en español legal (e.g., multilingual-e5).
+- Usar un LLM más capaz (Llama 3, Mistral) cuando el hardware lo permita — comparable directo vía `scripts/run_benchmark.py --models`.
+- Extender el `PlannerAgent` a más decisiones (ej. reformular la consulta y reintentar si el contexto recuperado no alcanza — loop tipo ReAct), evaluado primero en el benchmark antes de producción.
+- Implementar un embedder de texto especializado en español legal para el RAG vectorial (e.g., multilingual-e5) — hoy solo el benchmark usa un embedder de texto dedicado (`sentence-transformers`, para RAGAS), el RAG de producción sigue con OpenCLIP.
 - Agregar actualización automática de normativa desde sri.gob.ec.
 - Interfaz de administración para cargar nuevos documentos desde la UI.
 
@@ -138,13 +209,22 @@ La normativa tributaria cambia frecuentemente (nuevas resoluciones, cambios en t
 El prompt del sistema tiene restricciones explícitas: el LLM DEBE basarse solo en el contexto RAG recuperado. Si no hay normativa en el contexto, el sistema está programado para decirlo claramente y recomendar consultar sri.gob.ec.
 
 **¿Por qué OpenCLIP y no un embedder de texto?**
-El proyecto reutiliza la arquitectura del S3 IA Multimodal que usa OpenCLIP para compatibilidad multimodal (texto + imagen). El keyword reranking compensa sus limitaciones en texto especializado. Una mejora futura sería usar sentence-transformers con modelos de español.
+El proyecto reutiliza la arquitectura del S3 IA Multimodal que usa OpenCLIP para compatibilidad multimodal (texto + imagen). El keyword reranking compensa sus limitaciones en texto especializado. El benchmark de tesis (`scripts/run_benchmark.py`) ya incorpora un embedder de texto dedicado (`sentence-transformers`) — pero solo para el juez RAGAS, no para el RAG de producción, precisamente porque CLIP no está optimizado para comparar dos textos entre sí (ver ADR-0004). Migrar el RAG de producción a un embedder de texto sigue siendo una mejora futura.
 
 **¿Qué pasa si la normativa del SRI cambia?**
-El sistema es agnóstico al contenido: simplemente se cargan los nuevos documentos en las carpetas data/ y se ejecuta `python rag/build_db.py --reset`. En minutos la base vectorial está actualizada con la nueva normativa.
+El sistema es agnóstico al contenido: simplemente se cargan los nuevos documentos en una subcarpeta de `data/` (categorías dinámicas, sin editar código) y se ejecuta `python rag/build_db.py --reset`. En minutos la base vectorial está actualizada con la nueva normativa.
 
 **¿Funciona con documentos en otro idioma?**
 El sistema está configurado para español (Whisper con idioma español). Los documentos en inglés o quechua no tendrían respuestas óptimas, pero el sistema no falla — simplemente tendrá menor precisión.
+
+**¿En qué sentido es "software agéntico"?**
+La arquitectura multiagente (Coordinador orquestando agentes especializados) por sí sola es una arquitectura multiagente **clásica** — módulos con responsabilidad única, sin autonomía. Lo que hace al sistema agéntico en el sentido moderno es el `PlannerAgent` (ADR-0005): antes del retrieval, el LLM decide vía tool-calling nativo de Ollama si la consulta necesita GraphRAG, en vez de que el desarrollador lo decida con una regla fija. Es autonomía real, medible y visible (diagrama de flujo en vivo), no solo terminología.
+
+**¿Por qué el PlannerAgent está desactivado por defecto (`USE_AGENTIC_PLANNER=False`)?**
+Porque su confiabilidad se midió antes de recomendarlo, no se asumió. Pruebas con `scripts/run_benchmark.py` mostraron que un modelo de 3B tiene sesgo hacia "no usar grafo" en algunas preguntas donde ayudaría. Activarlo por defecto sin ese dato habría sido reemplazar una regla fija conocida por una decisión de fiabilidad desconocida — el flag permite decidir con evidencia, mismo criterio que otras decisiones del proyecto (`USE_MINERU_PDF`, `GRAPH_ENABLED`).
+
+**¿Cómo se valida que el sistema responde bien, más allá de verlo funcionar?**
+Con RAGAS: métricas de *faithfulness* (¿la respuesta está basada en el contexto recuperado, o el LLM inventó algo?) y *answer relevancy* (¿contesta la pregunta hecha?), calculadas por un juez LLM — en este caso el mismo Ollama local, sin depender de GPT-4/OpenAI, manteniendo el principio 100% local del proyecto. El benchmark compara estas métricas entre RAG vectorial, GraphRAG, Híbrido y Agéntico, con los mismos datos y el mismo juez para que la comparación sea justa.
 
 ---
 
@@ -160,8 +240,15 @@ ollama list
 # Construir/actualizar base vectorial
 python rag/build_db.py
 
-# Lanzar el asistente
+# Lanzar el asistente (modo normal — planner desactivado)
 source venv/bin/activate
 python app.py
 # → Abrir http://localhost:7865
+
+# Lanzar con el PlannerAgent activo (para Demo 5 — decisión agéntica)
+USE_AGENTIC_PLANNER=true python app.py
+
+# Generar/actualizar el reporte de benchmark antes de la exposición (Demo 6)
+python scripts/run_benchmark.py --limit 5        # prueba rápida
+python scripts/run_benchmark.py                  # corrida completa (tarda horas en CPU)
 ```

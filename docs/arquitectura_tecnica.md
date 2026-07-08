@@ -27,6 +27,8 @@ Sistema de asistencia tributaria local que responde preguntas sobre normativa de
 | Extracción DOCX | **python-docx** | Párrafos concatenados |
 | Cómputo | **PyTorch** | CPU (macOS Intel) — CLIP en float32 |
 | Audio | **sounddevice + scipy** | Grabación a 48kHz, resample a 16kHz para Whisper |
+| Decisión agéntica | **Ollama tool-calling** | `PlannerAgent` — sí/no GraphRAG (ver ADR-0005) |
+| Evaluación (RAGAS) | **ragas 0.2.15** + **sentence-transformers 2.7.0** | Juez local vía Ollama, embeddings `paraphrase-multilingual-MiniLM-L12-v2` — versiones fijadas por compatibilidad con `torch==2.2.2` |
 
 ---
 
@@ -38,8 +40,9 @@ SRI_IA_Multimodal/
 ├── config.py                   # Configuración central (todos los parámetros)
 ├── agents/
 │   ├── coordinator.py          # Orquestador — pipeline completo
+│   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG vía tool-calling (ADR-0005)
 │   ├── rag_agent.py            # Recuperación vectorial con OpenCLIP + ChromaDB
-│   ├── response_agent.py       # Generación LLM + construcción de fuentes
+│   ├── response_agent.py       # Generación LLM + construcción de fuentes (model= override)
 │   ├── vision_agent.py         # Análisis de imágenes con Moondream
 │   ├── video_agent.py          # Extracción de frames de video
 │   ├── voice_agent.py          # STT con faster-whisper
@@ -48,26 +51,29 @@ SRI_IA_Multimodal/
 ├── graph/
 │   ├── entity_extractor.py     # Taxonomía de 37 entidades tributarias
 │   ├── relation_extractor.py   # Extracción de relaciones por patrones léxicos
-│   ├── graph_builder.py        # Constructor del grafo desde chunks RAG
-│   ├── graph_store.py          # Almacenamiento NetworkX + persistencia JSON
+│   ├── graph_builder.py        # Constructor del grafo desde chunks RAG (esquema plano)
+│   ├── graph_store.py          # Almacenamiento NetworkX + persistencia JSON + build_seconds
 │   └── graph_retriever.py      # Recuperación por sub-grafo para una consulta
 ├── rag/
-│   ├── chunker.py              # Fragmentación PDF/DOCX/TXT/MD con overlap
-│   ├── ingesta.py              # Ingesta masiva a ChromaDB con embeddings CLIP
+│   ├── chunker.py              # Fragmentación PDF/DOCX/TXT/MD — MinerU-aware (kind, graph_text)
+│   ├── ingesta.py              # Ingesta masiva a ChromaDB con embeddings CLIP + build_metadata.json
 │   └── build_db.py             # Script de construcción/reconstrucción de la BD
 ├── services/
-│   └── hybrid_retriever.py     # Combina RAG vectorial + GraphRAG
+│   └── hybrid_retriever.py     # Combina RAG vectorial + GraphRAG (mode=vector_only|graph_only|hybrid|auto)
 ├── scripts/
-│   └── build_graph.py          # Script de construcción del grafo de conocimiento
+│   ├── build_graph.py          # Script de construcción del grafo de conocimiento
+│   ├── run_benchmark.py        # Benchmark de tesis — modos × modelos × RAGAS
+│   ├── ragas_local.py          # Juez RAGAS local (Ollama) + embeddings locales
+│   └── benchmark_dataset.py    # Parser de preguntas.docx
 ├── data/
-│   ├── normativas_sri/         # Leyes, LORTI, Código Tributario
-│   ├── resoluciones/           # Resoluciones NAC del SRI
-│   ├── guias_tributarias/      # Guías de declaración, RUC, comprobantes
-│   └── formularios/            # Instructivos formularios 104, 101, 103…
+│   └── <categoría>/            # Subcarpetas dinámicas — el nombre es el tipo_normativa
+├── preguntas.docx               # Dataset de evaluación (42 preguntas, 22 documentos)
 ├── vector_db/chroma_sri/       # Base vectorial persistida (ChromaDB)
+├── vector_db/build_metadata.json # Tiempo acumulado de construcción del vector store
 ├── graph_db/sri_graph.json     # Grafo de conocimiento (NetworkX serializado)
+├── outputs/benchmarks/         # Reportes de scripts/run_benchmark.py
 ├── ui/
-│   ├── interface.py            # Componentes Gradio y lógica de la UI
+│   ├── interface.py            # Componentes Gradio, lógica de la UI, diagrama de flujo de agentes
 │   └── styles.py               # CSS del tema institucional
 └── audio/piper_models/         # Modelo ONNX de Piper TTS
 ```
@@ -87,6 +93,12 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
     └─ Video (pantalla)      ─┘→ [VIDEO] extracción de frames → Moondream
                                       │
                               Consulta combinada
+                                      │
+                    [PLANNER] (si USE_AGENTIC_PLANNER=True)
+                    PlannerAgent decide vía tool-calling de Ollama:
+                    ¿esta consulta necesita GraphRAG? (ADR-0005)
+                    Único paso del pipeline con decisión real del LLM —
+                    el resto son pasos fijos, no negociación entre agentes.
                                       │
                         [RAG HÍBRIDO — HybridRetriever]
                          /                           \
@@ -137,24 +149,31 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
    - Corte secundario en espacio (` `) garantizando avance real (> overlap).
    - Protección contra loop infinito: `start = new_start if new_start > start else end`.
 
-3. **Metadatos por chunk:** `id`, `doc_name`, `tipo_normativa`, `año`, `pagina`, `articulo_seccion`, `source`, `ruta_archivo`.
+3. **Metadatos por chunk (esquema unificado, un solo constructor `make_chunk` para los 5 formatos):**
+   `id`, `text`, `kind` (`paragraph`/`table`/`equation`, MinerU-aware), `graph_text` (caption+footnote sin HTML/LaTeX, usado por el embedding CLIP y por el knowledge graph — ver ADR-0004), `doc_name`, `tipo_normativa`, `año`, `pagina`, `articulo_seccion`, `source`, `ruta_archivo`.
+   Con MinerU, cada heading abre una nueva sección: ningún chunk de prosa cruza dos artículos distintos, y `articulo_seccion` se recalcula contra el texto del heading (no contra prosa aplanada). Un cambio de página corta igual, aunque la sección siga — `pagina` siempre es exacta.
 
 4. **Vectorización:**
    - OpenCLIP ViT-B-32 (512 dimensiones).
    - Normalización L2: `vec /= vec.norm(dim=-1, keepdim=True)`.
    - Cómputo en CPU (float32), ~50–200 ms por chunk.
+   - Para chunks `table`/`equation`: se embebe `graph_text` (caption+footnote), no el HTML/LaTeX crudo de `text` — evita que el vector solo capture las primeras etiquetas (ADR-0004).
 
 5. **Almacenamiento:** ChromaDB con espacio coseno (`hnsw:space = cosine`).
 
-**Estado actual:** 9.448 fragmentos de 176 documentos.
+**Estado actual (corpus de tesis, ADR-0002):** 10.944 fragmentos de 22 documentos curados.
 
-**Tiempos de construcción (macOS Intel, CPU):**
+**Tiempos de construcción (macOS Intel, sin GPU):**
 | Operación | Tiempo aprox. |
 |-----------|--------------|
-| Extracción PDF (por documento) | 0.1–2 s |
+| Extracción PDF con MinerU (por documento) | segundos a varios minutos — layout/OCR en CPU; cae a PyMuPDF si supera `MINERU_TIMEOUT` (600s) |
 | Embedding CLIP (por chunk) | 50–200 ms |
-| Ingesta completa 176 docs | 15–40 min |
+| Ingesta completa 22 docs (MinerU) | del orden de horas — dominado por MinerU, no por CLIP |
 | Reconexión a BD ya existente | < 1 s |
+
+El tiempo real acumulado de la última construcción se ve en vivo en la tab
+"Base de Conocimiento" de la UI (`vector_db/build_metadata.json`, acumula
+desde el último `--reset` — incluye corridas interrumpidas y retomadas).
 
 ### 5b. Grafo de Conocimiento (GraphRAG)
 
@@ -171,22 +190,28 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
    - Desambiguación de solapamientos: conserva el match más largo.
 
 3. **Extracción de relaciones (`relation_extractor.py`):**
-   - Patrones léxico-verbales sobre oraciones.
-   - **12 tipos de relación:** `debe_presentar`, `debe_retener`, `puede_deducir`, `esta_exento`, `aplica_tarifa`, `debe_inscribirse`, `establece`, `declara_en`, `genera_obligacion`, `tiene_plazo`, `puede_acogerse`, `relacionado_con`.
-   - Cada relación emite un **triple** `(fuente, relación, destino)` con evidencia textual y nombre del documento.
+   - Patrones léxico-verbales sobre oraciones (`_SENT_SPLIT`, solo aplica a chunks `kind="paragraph"` — chunks `table`/`equation` usan `graph_text`, nunca el HTML/LaTeX crudo, para no romper el splitter).
+   - **8 tipos de relación observados en el corpus de tesis:** `relacionado_con`, `establece`, `aplica_tarifa`, `debe_presentar`, `esta_exento`, `puede_deducir`, `debe_retener`, `puede_acogerse`. (El extractor reconoce patrones para más tipos — `debe_inscribirse`, `declara_en`, `tiene_plazo`, etc. — pero no todos aparecen necesariamente en un corpus dado; depende de qué patrones verbales contiene el texto real.)
+   - Cada relación emite un **triple** `(fuente, relación, destino)` con evidencia textual y nombre del documento (identificado correctamente desde el esquema plano de chunk — ver nota de esquema unificado abajo).
 
 4. **Almacenamiento NetworkX:**
    - `nx.DiGraph` — nodos son entidades, aristas son relaciones.
-   - Persistido en JSON (`graph_db/sri_graph.json`).
+   - Persistido en JSON (`graph_db/sri_graph.json`), incluye `metadata.build_seconds` (acumulado desde el último `--reset`).
    - Soporte opcional Neo4j (no requerido — sistema funciona 100% local).
 
-**Estado actual:** 37 entidades (nodos), 568 relaciones (aristas), 933 triples.
+**Estado actual (corpus de tesis, 22 documentos):** 37 entidades (nodos), 542 relaciones únicas (aristas), 996 triples nuevos, 10.743 chunks procesados.
 
 **Tiempos de construcción:**
 | Operación | Tiempo aprox. |
 |-----------|--------------|
-| Construcción grafo completo (9.448 chunks) | 2–5 min |
+| Construcción grafo completo (corpus de tesis, MinerU) | del orden de horas — MinerU vuelve a parsear cada PDF (el grafo no comparte el chunking con la ingesta vectorial) |
 | Carga del grafo JSON al iniciar app | < 0.5 s |
+
+> **Nota de esquema (candidata de arquitectura resuelta):** `GraphBuilder.build_from_chunks`
+> antes esperaba un dict anidado (`{"metadata": {...}}`) que ningún llamador real
+> producía — `doc_name` caía siempre a `"chunk_N"` en el grafo. Se corrigió para
+> leer el dict plano que sí produce `rag/chunker.py`; la trazabilidad
+> documento→triple ahora es correcta.
 
 ---
 
@@ -252,9 +277,20 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
 
 ### 6c. Recuperación Híbrida
 
-**Clase:** `HybridRetriever.retrieve(query)`
+**Clase:** `HybridRetriever.retrieve(query, mode="auto")`
 
-Ejecuta ambos retrievers y combina sus salidas. Si el grafo no está disponible o no retorna triples, opera en modo `vector_only` sin degradar el sistema.
+`mode` controla qué se **calcula**, no solo qué se descarta — permite medir
+tiempo de cada camino por separado (`scripts/run_benchmark.py`) y, con
+`USE_AGENTIC_PLANNER=True`, permite que el `PlannerAgent` fuerce el modo real:
+
+| `mode` | Comportamiento |
+|---|---|
+| `"auto"` (default de producción) | Intenta grafo si está disponible, cae a `vector_only` si no hay triples — comportamiento histórico sin cambios |
+| `"vector_only"` | Nunca consulta el grafo, aunque esté disponible |
+| `"graph_only"` | Nunca consulta ChromaDB, solo el grafo |
+| `"hybrid"` | Fuerza intento de grafo igual que `"auto"` |
+
+Si el grafo no está disponible o no retorna triples, opera en modo `vector_only` sin degradar el sistema.
 
 ```
 hybrid_result = {
@@ -262,9 +298,41 @@ hybrid_result = {
     "graph_context":  "texto...",   # relaciones formateadas para el LLM
     "graph_triples":  [...],        # triples estructurados
     "graph_entities": [...],        # entidades detectadas en la query
-    "mode":           "hybrid" | "vector_only"
+    "mode":           "hybrid" | "vector_only" | "graph_only"  # modo REAL resultante
 }
 ```
+
+### 6d. PlannerAgent — Decisión Agéntica (opcional, ADR-0005)
+
+**Clase:** `PlannerAgent.should_use_graph(query, model=None) -> bool`
+
+Único punto del pipeline donde el LLM decide dinámicamente en vez de seguir
+una regla fija programada. Activo solo si `config.USE_AGENTIC_PLANNER=True`
+(default `False`).
+
+1. Llama a Ollama `/api/chat` con una sola herramienta definida
+   (`buscar_relaciones_grafo`, descripción detallada de cuándo usarla).
+2. La decisión es la **presencia o ausencia** del `tool_call` en la respuesta
+   — no un parámetro booleano dentro de él. Más simple y más confiable de
+   parsear con un modelo de 3B que pedirle un booleano explícito.
+3. Si el LLM llama la herramienta → `mode="hybrid"`. Si no → `mode="vector_only"`.
+4. Ante cualquier falla (Ollama caído, timeout `PLANNER_TIMEOUT=30s`,
+   respuesta sin `tool_calls` parseable) → degrada a `False` (solo vectorial),
+   mismo criterio de degradación segura que `_init_graph_retriever`.
+
+**Por qué decisión binaria y no "elegir entre vector y grafo":** pruebas
+reales (curl directo contra Ollama) mostraron sesgo fuerte del modelo de 3B
+hacia elegir la herramienta vectorial cuando se ofrecen dos herramientas para
+elegir entre sí, incluso con prompts diseñados para forzar el grafo.
+Reformulada como decisión binaria ("¿esta pregunta *también* necesita
+grafo?", vector siempre corre), la discriminación mejora notablemente.
+
+**Validación empírica:** `scripts/run_benchmark.py --modes agentic` compara
+el modo agéntico contra `vector_only`/`graph_only`/`hybrid` con las mismas
+métricas (tiempo, RAGAS, `% Doc. correcto`), más una columna `planning_seconds`
+propia y `planner_graph_usage_rate` (% de preguntas donde decidió usar grafo
+— descriptivo, no una métrica de acierto, no hay ground truth de qué debería
+haber decidido cada pregunta).
 
 ---
 
@@ -385,6 +453,8 @@ La sección de fuentes se construye programáticamente en `_build_sources_sectio
 | `GRAPH_TOP_K_TRIPLES` | 10 | Máx. triples a incluir del grafo |
 | `GRAPH_HOP_DEPTH` | 2 | Saltos de exploración en el grafo |
 | `GRAPH_MIN_WEIGHT` | 0.4 | Peso mínimo de relación para incluir |
+| `USE_AGENTIC_PLANNER` | `False` | Activa el `PlannerAgent` (decisión agéntica sí/no grafo, ADR-0005) en el chat de producción |
+| `PLANNER_TIMEOUT` | 30 s | Timeout de la decisión del planner (corto — no es una generación completa) |
 | `WHISPER_MODEL_SIZE` | `base` | Tamaño del modelo STT |
 | `LLM_TEMPERATURE` | 0.1 | Creatividad del LLM (baja = más determinista) |
 | `OLLAMA_TIMEOUT` | 180 s | Timeout máximo de respuesta del LLM |
@@ -431,7 +501,15 @@ El dominio tributario ecuatoriano tiene terminología fija y bien delimitada. Un
 
 ### Arquitectura 100% local
 
-Ningún componente requiere internet en tiempo de ejecución: Ollama corre los LLMs localmente, ChromaDB es una BD embebida, Piper TTS funciona con modelos ONNX en disco, faster-whisper descarga el modelo una vez. Esto garantiza privacidad de la consulta y funcionamiento sin conectividad.
+Ningún componente requiere internet en tiempo de ejecución: Ollama corre los LLMs localmente, ChromaDB es una BD embebida, Piper TTS funciona con modelos ONNX en disco, faster-whisper descarga el modelo una vez. Esto garantiza privacidad de la consulta y funcionamiento sin conectividad. El benchmark/RAGAS respeta el mismo principio: juez local vía Ollama, embeddings `sentence-transformers` locales, nunca OpenAI (ver ADR-0005 y `scripts/ragas_local.py`).
+
+### ¿Por qué agregar un PlannerAgent y no dejar la arquitectura multiagente clásica?
+
+La arquitectura original (`CoordinatorAgent` orquestando agentes especializados en una secuencia fija de `if/else`) es una arquitectura multiagente **clásica** — módulos con responsabilidad única, sin autonomía real. No calificaba como "software agéntico" en el sentido moderno (LLM decidiendo dinámicamente, no una regla programada). El `PlannerAgent` (ADR-0005) agrega ese único punto de decisión real: decide vía tool-calling si la consulta necesita GraphRAG. Se prefirió una decisión **binaria** ("¿también necesita grafo?", vector siempre corre) en vez de "elegir entre dos herramientas", porque pruebas reales mostraron que un modelo de 3B discrimina mucho mejor una decisión binaria que una elección exclusiva entre dos tools con nombres similares — un hallazgo empírico documentado, no una suposición de diseño.
+
+### ¿Por qué un flag (`USE_AGENTIC_PLANNER`) en vez de activarlo directo?
+
+El planner tiene una limitación conocida y medida: sesgo hacia "no usar grafo" incluso en preguntas donde ayudaría. Activar la decisión agéntica en el chat de producción sin antes medir su impacto real (tiempo, calidad de respuesta) sería reemplazar una regla fija conocida por una decisión de fiabilidad desconocida. El flag permite validar con `scripts/run_benchmark.py --modes agentic` antes de decidir si conviene por defecto — mismo patrón que `USE_MINERU_PDF`/`GRAPH_ENABLED`: agregar la capacidad, medirla, decidir con datos.
 
 ---
 
@@ -446,11 +524,16 @@ Usuario hace pregunta (texto / voz / imagen)
   Imagen → Moondream → descripción
           │
           ▼
+  [PlannerAgent] (opcional, USE_AGENTIC_PLANNER)
+  Tool-calling de Ollama: ¿necesita GraphRAG? sí/no
+  Único paso con decisión real del LLM (ADR-0005)
+          │
+          ▼
   [HybridRetriever]
   ┌─────────────────────┐    ┌──────────────────────┐
   │   RAG Vectorial     │    │      GraphRAG         │
   │  OpenCLIP + Chroma  │    │  37 entidades +       │
-  │  similitud coseno   │    │  12 tipos relación    │
+  │  similitud coseno   │    │  8 tipos relación     │
   │  + keyword boost    │    │  NetworkX 2-hop       │
   └────────┬────────────┘    └──────────┬───────────┘
            │                            │
@@ -468,4 +551,5 @@ Usuario hace pregunta (texto / voz / imagen)
           Respuesta en español
           + fuentes citadas (Python)
           + audio Piper TTS
+          + diagrama animado de flujo de agentes en la UI
 ```
