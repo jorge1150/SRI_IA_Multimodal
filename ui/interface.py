@@ -113,6 +113,8 @@ _AGENT_FLOW_NODES = [
     {"tags": (_Stage.INICIO,),                              "label": "Coordinador", "icon": "🧭"},
     {"tags": (_Stage.STT,),                                 "label": "STT",         "icon": "🎤"},
     {"tags": (_Stage.VISION, _Stage.VIDEO),                 "label": "Visión",      "icon": "👁️"},
+    {"tags": (_Stage.REFINADOR,), "label": "Refinador", "icon": "✏️"},
+    {"tags": (_Stage.VALIDADOR,), "label": "Validador", "icon": "✅", "decision": True},
     {"tags": (_Stage.PLANNER,), "label": "Planner", "icon": "🧠", "decision": True},
     {"tags": (_Stage.RAG, _Stage.NORMATIVA, _Stage.GRAPH), "label": "RAG / Grafo", "icon": "📋"},
     {"tags": (_Stage.GENERANDO, _Stage.RESPUESTA),          "label": "Generación",  "icon": "🤖"},

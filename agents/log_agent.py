@@ -33,6 +33,8 @@ class Stage:
     STT         = "STT"
     VISION      = "VISION"
     VIDEO       = "VIDEO"
+    REFINADOR   = "REFINADOR"
+    VALIDADOR   = "VALIDADOR"
     PLANNER     = "PLANNER"
     RAG         = "RAG"
     GRAPH       = "GRAPH"
@@ -60,6 +62,8 @@ class LogAgent:
         Stage.STT:         "🎤",
         Stage.VISION:      "👁️",
         Stage.VIDEO:       "🎬",
+        Stage.REFINADOR:   "✏️",
+        Stage.VALIDADOR:   "✅",
         Stage.PLANNER:     "🧠",
         Stage.RAG:         "📋",
         Stage.GRAPH:       "🕸️",

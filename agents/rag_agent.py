@@ -28,6 +28,12 @@ _STOPWORDS_SRI = {
     'artículo', 'articulo', 'según', 'segun', 'numeral', 'literal',
     'siguiente', 'siguiente', 'dicho', 'dichos', 'caso', 'casos',
     'forma', 'manera', 'establece', 'establece', 'dispone',
+    # Genéricas de TÍTULO — casi todo el corpus se llama "Reglamento..." o
+    # "Ley..." (son reglamentos y leyes). Sin esto, meta_hits boostea
+    # cualquier chunk de un documento grande y genérico (ej. Reglamento LRTI,
+    # cientos de páginas) por encima del documento chico y específicamente
+    # relevante que CLIP sí había rankeado primero en similitud cruda.
+    'reglamento', 'reglamentos', 'ley', 'leyes',
 }
 
 
@@ -102,7 +108,7 @@ class RAGAgent:
             self.log.log(Stage.RAG, "Base vectorial vacía. Carga documentos SRI primero.")
             return []
 
-        self.log.log(Stage.NORMATIVA, f"Buscando normativa relacionada con: «{query[:80]}»...")
+        self.log.log(Stage.NORMATIVA, f"Buscando normativa relacionada con: «{query[:150]}»...")
 
         results = self._collection.query(
             query_embeddings=[query_vector],

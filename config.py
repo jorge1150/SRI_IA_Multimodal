@@ -32,7 +32,8 @@ OLLAMA_PORT: int = 11434
 OLLAMA_URL: str = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 OLLAMA_TIMEOUT: int = 180
 
-LLM_MODEL: str = "qwen2.5:3b-instruct-q4_K_M"
+#LLM_MODEL: str = "qwen2.5:3b-instruct-q4_K_M"
+LLM_MODEL: str = "gemma4:31b-cloud"
 VISION_MODEL: str = "moondream"
 LLM_TEMPERATURE: float = 0.1
 
@@ -184,6 +185,22 @@ USE_AGENTIC_PLANNER: bool = os.getenv("USE_AGENTIC_PLANNER", "false").lower() ==
 # Corto a propósito: es una decisión de pocos tokens, no una generación
 # completa de 400 tokens (ver OLLAMA_TIMEOUT).
 PLANNER_TIMEOUT: int = 30
+
+# ─────────────────────────────────────────────
+# QUERY REFINER / VALIDATOR — loop de refinamiento agéntico (ver ADR-0006)
+# ─────────────────────────────────────────────
+# Detrás del mismo USE_AGENTIC_PLANNER: si está en False, no corre ni el
+# Refinador ni el Validador (comportamiento idéntico al pipeline actual).
+REFINEMENT_MAX_ITERATIONS: int = int(os.getenv("REFINEMENT_MAX_ITERATIONS", "2"))
+REFINER_TIMEOUT: int = 30
+VALIDATOR_TIMEOUT: int = 30
+
+# Memoria de ejemplos del Refinador — aprendizaje in-context (few-shot vía
+# similitud CLIP), no reentrenamiento de pesos. JSON plano, mismo espíritu
+# simple/local que graph_db/sri_graph.json.
+REFINEMENT_MEMORY_PATH: str = os.path.join(OUTPUTS_DIR, "refinement_memory.json")
+REFINEMENT_MEMORY_TOP_K: int = 3
+REFINEMENT_MEMORY_MIN_SIMILARITY: float = RAG_MIN_SIMILARITY
 
 # ─────────────────────────────────────────────
 # CREAR DIRECTORIOS NECESARIOS EN IMPORTACIÓN

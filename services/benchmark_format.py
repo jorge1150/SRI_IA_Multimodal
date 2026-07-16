@@ -52,6 +52,16 @@ def fmt_planning_seconds(avg_planning_seconds) -> str:
     return fmt_number(p, "s") if p > 0 else EMPTY
 
 
+def fmt_refinement(avg_refinement_seconds, avg_refinement_iterations) -> str:
+    """Solo el modo agentic tiene loop Refinador⇄Validador — 0/None → EMPTY.
+    Ej.: '1.42s (1.8 it.)'."""
+    s = avg_refinement_seconds or 0.0
+    if s <= 0:
+        return EMPTY
+    it = fmt_number(avg_refinement_iterations) if avg_refinement_iterations is not None else EMPTY
+    return f"{fmt_number(s, 's')} ({it} it.)"
+
+
 def fmt_rate_pct(rate) -> str:
     """Tasa 0..1 como porcentaje entero, o EMPTY si no aplica (None)."""
     if _is_missing(rate):

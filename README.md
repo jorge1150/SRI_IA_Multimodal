@@ -23,10 +23,19 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
+│  ✏️ REFINADOR ⇄ ✅ VALIDADOR (opcional, USE_AGENTIC_PLANNER)     │
+│  Refinador reescribe la pregunta (+ memoria in-context de       │
+│  correcciones pasadas) → Validador la valida contra un          │
+│  retrieval de prueba real. Rechazo → vuelve al Refinador con    │
+│  el motivo, hasta REFINEMENT_MAX_ITERATIONS (default 2) (ADR-0006)│
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
 │  🧠 PLANNER AGENT (opcional, USE_AGENTIC_PLANNER)               │
 │  Decide vía tool-calling de Ollama: ¿esta consulta necesita     │
-│  GraphRAG además del RAG vectorial? Único punto del pipeline    │
-│  donde el LLM decide dinámicamente, no una regla fija (ADR-0005)│
+│  GraphRAG además del RAG vectorial? Con Refinador/Validador,    │
+│  son los 3 puntos del pipeline donde el LLM decide/mejora       │
+│  dinámicamente, no una regla fija (ADR-0005, ADR-0006)          │
 └────────────────────────┬────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -52,7 +61,7 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 
 > La UI incluye un diagrama animado en vivo de este flujo (botón "🕸️ Ver
 > Flujo de Agentes" en la tab Consulta Tributaria) — se ve el nodo activo
-> pulsando y el Planner marcado como el único punto de decisión real.
+> pulsando y el Validador/Planner marcados como los puntos de decisión real.
 
 ## Stack Tecnológico
 
@@ -70,6 +79,7 @@ Sistema multimodal 100% local que responde consultas sobre normativa tributaria 
 | PDF | MinerU (layout/tablas/OCR), fallback a PyMuPDF (fitz) |
 | DOCX | python-docx |
 | Decisión agéntica | PlannerAgent — tool-calling nativo de Ollama (ADR-0005) |
+| Refinamiento agéntico + memoria | QueryRefinerAgent/QueryValidatorAgent — reescritura + tool-calling + memoria in-context vía similitud CLIP (ADR-0006) |
 | Evaluación / benchmark | RAGAS (juez local Ollama) + sentence-transformers (embeddings) |
 
 ## Estructura del Proyecto
@@ -84,6 +94,9 @@ SRI_IA_Multimodal/
 ├── agents/                     # Sistema multiagente
 │   ├── coordinator.py          # Orquestador del pipeline + build_retrieval_pipeline()
 │   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG (tool-calling, ADR-0005)
+│   ├── query_refiner_agent.py  # Reescribe la pregunta + few-shot de memoria (ADR-0006)
+│   ├── query_validator_agent.py # Valida la pregunta contra retrieval de prueba (ADR-0006)
+│   ├── refinement_memory.py    # Memoria in-context (JSON + similitud CLIP)
 │   ├── rag_agent.py            # Recuperación semántica vectorial
 │   ├── response_agent.py       # Generación con citas + fuentes estructuradas (last_sources)
 │   ├── voice_agent.py          # STT (Whisper)
@@ -132,6 +145,7 @@ SRI_IA_Multimodal/
 ├── outputs/respuestas_audio/   # Audio generado
 ├── outputs/logs/               # Logs de sesión
 ├── outputs/benchmarks/         # Reportes de scripts/run_benchmark.py (CSV/HTML/JSON)
+├── outputs/refinement_memory.json # Memoria de aprendizaje in-context del Refinador (ADR-0006)
 └── audio/piper_models/         # Modelos TTS (descargados)
 ```
 
@@ -234,19 +248,24 @@ Cada fragmento normativo almacenado incluye:
 1. Usuario hace consulta (texto/voz/imagen)
 2. [STT]     Whisper transcribe audio → texto
 3. [VISION]  Moondream describe imagen → contexto visual
-4. [PLANNER] (si USE_AGENTIC_PLANNER=True) el LLM decide vía tool-calling
+4. [REFINADOR⇄VALIDADOR] (si USE_AGENTIC_PLANNER=True) el Refinador reescribe
+             la pregunta (+ few-shot de memoria), el Validador la valida
+             contra un retrieval de prueba real; rechazo → vuelve al
+             Refinador con el motivo, hasta REFINEMENT_MAX_ITERATIONS
+5. [PLANNER] (si USE_AGENTIC_PLANNER=True) el LLM decide vía tool-calling
              si esta consulta necesita GraphRAG además del RAG vectorial
-5. [HYBRID]  HybridRetriever ejecuta según el modo (auto o el decidido por el planner):
-   5a. [RAG]    OpenCLIP vectoriza consulta → ChromaDB similitud coseno
-   5b. [GRAPH]  EntityExtractor detecta entidades (IVA, RUC, RISE, ...)
+6. [HYBRID]  HybridRetriever ejecuta según el modo (auto o el decidido por el planner);
+             si el Validador ya trajo chunks, se reusan sin repetir la búsqueda
+   6a. [RAG]    OpenCLIP vectoriza consulta → ChromaDB similitud coseno
+   6b. [GRAPH]  EntityExtractor detecta entidades (IVA, RUC, RISE, ...)
                GraphRetriever explora relaciones en NetworkX (hop_depth=2)
                → Triples: "Contribuyente —debe_presentar→ Declaración IVA"
-6. [LLM]    Qwen2.5 recibe: fragmentos RAG + relaciones de grafo
+7. [LLM]    Qwen2.5 recibe: fragmentos RAG + relaciones de grafo
            → Respuesta con citas de fuente normativa
-7. [TTS]    Piper sintetiza respuesta en español
-8. [LOGS]   Trazabilidad completa: modo hybrid/vector_only, entidades, triples,
-            decisión del planner — visible también como diagrama animado
-            (botón "Ver Flujo de Agentes")
+8. [TTS]    Piper sintetiza respuesta en español
+9. [LOGS]   Trazabilidad completa: refinamiento, modo hybrid/vector_only,
+            entidades, triples, decisión del planner — visible también como
+            diagrama animado (botón "Ver Flujo de Agentes")
 ```
 
 ## GraphRAG — Grafo de Conocimiento Tributario
@@ -297,37 +316,66 @@ GRAPH_ENABLED: bool = True   # False = solo RAG vectorial
 
 Si `GRAPH_ENABLED=True` pero el grafo no existe aún, el sistema cae back a RAG vectorial automáticamente sin errores.
 
-## PlannerAgent — Decisión Agéntica (ADR-0005)
+## Refinador → Validador → PlannerAgent — Tramo Agéntico (ADR-0005, ADR-0006)
 
-El resto de agentes del sistema ejecutan una tarea fija — el `PlannerAgent` es
-el único punto donde el LLM **decide** dinámicamente, en vez de seguir una
-regla programada. Vía tool-calling nativo de Ollama, decide si una consulta
-necesita GraphRAG además del RAG vectorial (que siempre corre):
+El resto de agentes del sistema ejecutan una tarea fija — este tramo de 3
+agentes es donde el LLM **decide/mejora** dinámicamente, en vez de seguir
+una regla programada, todos detrás del mismo flag:
 
 ```python
 # config.py
-USE_AGENTIC_PLANNER: bool = False   # default: chat de producción usa modo "auto" fijo
-PLANNER_TIMEOUT: int = 30            # decisión corta, no una generación completa
+USE_AGENTIC_PLANNER: bool = False       # default: chat de producción usa el pipeline fijo histórico
+PLANNER_TIMEOUT: int = 30                # decisión corta, no una generación completa
+REFINEMENT_MAX_ITERATIONS: int = 2       # tope Refinador⇄Validador antes de forzar el paso
+REFINER_TIMEOUT: int = 30
+VALIDATOR_TIMEOUT: int = 30
+REFINEMENT_MEMORY_PATH: str = "outputs/refinement_memory.json"
 ```
 
 ```bash
-# Activar para probarlo:
+# Activar para probarlo (activa Refinador + Validador + Planner):
 USE_AGENTIC_PLANNER=true python app.py
 ```
 
-Con el planner activo, la tab "Consulta Tributaria" muestra un botón
+**`QueryRefinerAgent`** reescribe la pregunta (texto+STT+visual combinados)
+para que sea más clara y específica, inyectando como few-shot ejemplos de
+correcciones pasadas similares guardadas en `RefinementMemory`.
+
+**`QueryValidatorAgent`** corre un retrieval de prueba real sobre la
+pregunta refinada y decide vía tool-calling (`rechazar_pregunta(motivo)`) si
+alcanza para responder. Si rechaza, el motivo vuelve al Refinador para la
+siguiente vuelta — hasta `REFINEMENT_MAX_ITERATIONS`, luego se fuerza el
+paso con la última versión (nunca bloquea al usuario). Los chunks de ese
+retrieval de prueba se reusan en `[RAG]` final, sin duplicar la búsqueda.
+
+**`PlannerAgent`** decide si la pregunta ya refinada/aprobada necesita
+GraphRAG además del RAG vectorial (que siempre corre).
+
+**Memoria de aprendizaje in-context**: cuando el loop tuvo al menos 1
+rechazo antes de converger, se guarda `{rejected_query, motivo,
+approved_query, vector}` en `outputs/refinement_memory.json` (vector =
+embedding OpenCLIP, mismo modelo que `RAGAgent`). El Refinador la reusa como
+few-shot en preguntas futuras similares — el sistema mejora con el uso sin
+reentrenar pesos (no hay fine-tuning en este proyecto 100% de inferencia
+local).
+
+Con el tramo activo, la tab "Consulta Tributaria" muestra un botón
 **"🕸️ Ver Flujo de Agentes"** — diagrama animado en vivo que va marcando qué
-agente está trabajando en cada momento del pipeline, con el nodo del Planner
-distinguido visualmente como el único punto de decisión real (borde punteado).
+agente está trabajando en cada momento del pipeline, con los nodos Validador
+y Planner distinguidos visualmente como puntos de decisión real (borde
+punteado).
 
-Ante cualquier falla (Ollama caído, timeout, respuesta sin parsear) el planner
-degrada a `False` — solo RAG vectorial, mismo criterio de degradación segura
-que ya usa el sistema cuando el grafo no está disponible.
+Ante cualquier falla (Ollama caído, timeout, respuesta sin parsear) cada
+agente degrada sin bloquear el pipeline: el Refinador devuelve la pregunta
+sin cambios, el Validador aprueba por defecto, el Planner cae a `False` —
+mismo criterio de degradación segura que ya usa el sistema cuando el grafo
+no está disponible.
 
-**Limitación conocida** (documentada, no oculta): un modelo de 3B tiene sesgo
-hacia elegir "no usar grafo" incluso en preguntas donde ayudaría — por eso la
-decisión se validó empíricamente con `scripts/run_benchmark.py` antes de
-considerar activarlo por defecto (ver sección Benchmark abajo).
+**Limitaciones conocidas** (documentadas, no ocultas): un modelo de 3B tiene
+sesgo hacia elegir "no usar grafo" incluso en preguntas donde ayudaría, y
+puede no converger en preguntas límite dentro del loop de refinamiento — por
+eso ambas decisiones se validan empíricamente con `scripts/run_benchmark.py`
+antes de considerar activarlas por defecto (ver sección Benchmark abajo).
 
 ## Benchmark de Tesis — RAG vs GraphRAG vs Híbrido vs Agéntico + RAGAS
 
@@ -347,6 +395,7 @@ Compara, por cada combinación pregunta × modo × modelo:
 | Métrica | Qué mide |
 |---|---|
 | `retrieval_seconds` | Tiempo en buscar contexto (vectorial y/o grafo) |
+| `refinement_seconds` / `refinement_iterations` | Solo en modo `agentic` — tiempo y vueltas del loop Refinador⇄Validador |
 | `planning_seconds` | Solo en modo `agentic` — tiempo de la decisión sí/no grafo |
 | `generation_seconds` | Tiempo en que el LLM redacta la respuesta |
 | `faithfulness` / `answer_relevancy` | RAGAS — juez local vía Ollama, embeddings `sentence-transformers` (nunca OpenAI, sistema 100% local) |
@@ -359,6 +408,10 @@ de la UI, que lee el reporte más reciente **cada vez que entrás a la tab**
 refrescan al entrar — no hace falta reiniciar la app tras correr un benchmark
 o reingestar documentos). La tab es solo lectura: correr el benchmark sigue
 siendo por terminal.
+
+**Nota:** correr el benchmark en modo `agentic` también alimenta
+`outputs/refinement_memory.json` con lecciones reales del loop de
+refinamiento (ver ADR-0006) — no es solo medición, deja rastro persistente.
 
 **Nota de compatibilidad:** RAGAS/`sentence-transformers` requieren versiones
 específicas fijadas en `requirements.txt` — las últimas versiones de esas
@@ -373,10 +426,11 @@ librerías arrastran dependencias incompatibles entre sí y con `torch==2.2.2`
 
 ## Tests
 
-Suite completa en verde (99 tests): chunker MinerU-aware, GraphRAG,
-PlannerAgent (con fallbacks mockeados), HybridRetriever (todos los modos),
-fuentes estructuradas, diagrama de flujo de agentes, rutas de error de
-visión y helpers del benchmark.
+Suite completa en verde (111 tests): chunker MinerU-aware, GraphRAG,
+PlannerAgent + QueryRefinerAgent + QueryValidatorAgent + RefinementMemory
+(con fallbacks mockeados), loop de refinamiento (`run_refinement_loop`),
+HybridRetriever (todos los modos), fuentes estructuradas, diagrama de flujo
+de agentes, rutas de error de visión y helpers del benchmark.
 
 ```bash
 # Todos los tests
@@ -385,7 +439,7 @@ python -m pytest tests/ -v
 # Solo GraphRAG
 python -m pytest tests/test_graph.py -v
 
-# Solo agentes/RAG (incluye PlannerAgent, visión, fuentes, diagrama de flujo)
+# Solo agentes/RAG (incluye Planner/Refiner/Validator, visión, fuentes, diagrama de flujo)
 python -m pytest tests/test_agents.py tests/test_rag.py -v
 
 # Solo benchmark/RAGAS (incluye formateadores compartidos)
@@ -401,7 +455,8 @@ python -m pytest tests/test_benchmark.py tests/test_benchmark_dataset.py -v
 | Metadatos RAG | source, id | + tipo, año, artículo, página, kind |
 | Recuperación | RAG vectorial | RAG vectorial + GraphRAG + decisión agéntica |
 | Grafo conocimiento | No | Sí (NetworkX + JSON, 100% local) |
-| Decisión agéntica | No | Sí — PlannerAgent vía tool-calling (ADR-0005) |
+| Decisión agéntica | No | Sí — Refiner→Validator→Planner vía reescritura + tool-calling (ADR-0005, ADR-0006) |
+| Aprendizaje del sistema | No | Memoria in-context de correcciones pasadas (few-shot, sin fine-tuning) |
 | Evaluación | Manual | RAGAS + benchmark comparable por modo/modelo |
 | Prompt | Soporte técnico | Citas normativas, no inventa |
 | Disclaimer | No | Sí (respuestas orientativas) |

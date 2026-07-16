@@ -43,7 +43,7 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from services.benchmark_format import (
-    EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct,
+    EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct, fmt_refinement,
 )
 
 DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "preguntas.docx")
@@ -90,29 +90,59 @@ def _build_pipeline():
     from agents.coordinator import build_retrieval_pipeline
     from agents.log_agent import LogAgent
 
-    _, response_agent, planner_agent, hybrid, graph_available = \
-        build_retrieval_pipeline(LogAgent())
-    return hybrid, response_agent, planner_agent, graph_available
+    log_agent = LogAgent()
+    _, response_agent, planner_agent, refiner_agent, validator_agent, hybrid, graph_available = \
+        build_retrieval_pipeline(log_agent)
+    return hybrid, response_agent, planner_agent, refiner_agent, validator_agent, log_agent, graph_available
 
 
-def _run_single(hybrid, response_agent, planner_agent, question: str, mode: str, model: str) -> dict:
+def _run_single(hybrid, response_agent, planner_agent, refiner_agent, validator_agent,
+                 log_agent, question: str, mode: str, model: str) -> dict:
     planning_seconds = 0.0
     planner_used_graph = None
+    refinement_seconds = 0.0
+    refinement_iterations = None
     retrieve_mode = mode
+    rag_query = question
+    validated_chunks = None
 
     if mode == "agentic":
+        # Mismo loop Refinador⇄Validador que CoordinatorAgent.process() (ver
+        # agents/coordinator.py::run_refinement_loop) — el benchmark de
+        # tesis mide el pipeline agentic completo, no solo el Planner.
+        # También alimenta outputs/refinement_memory.json con lecciones
+        # reales de estas corridas.
+        from agents.coordinator import consume_refinement_loop
+
+        t_ref = time.time()
+        rag_query, validated_chunks, refinement_iterations = consume_refinement_loop(
+            refiner_agent, validator_agent, question, log_agent,
+        )
+        refinement_seconds = time.time() - t_ref
+
         t_plan = time.time()
-        planner_used_graph = planner_agent.should_use_graph(question, model=model)
+        planner_used_graph = planner_agent.should_use_graph(rag_query, model=model)
         planning_seconds = time.time() - t_plan
         retrieve_mode = "hybrid" if planner_used_graph else "vector_only"
 
     t0 = time.time()
-    retrieval = hybrid.retrieve(question, mode=retrieve_mode)
+    if validated_chunks is not None:
+        if retrieve_mode == "hybrid":
+            graph_only = hybrid.retrieve(rag_query, mode="graph_only")
+            combined_mode = "hybrid" if graph_only.get("graph_context") else "vector_only"
+            retrieval = {**graph_only, "vector_chunks": validated_chunks, "mode": combined_mode}
+        else:
+            retrieval = {
+                "vector_chunks": validated_chunks, "graph_context": "",
+                "graph_triples": [], "graph_entities": [], "mode": "vector_only",
+            }
+    else:
+        retrieval = hybrid.retrieve(rag_query, mode=retrieve_mode)
     retrieval_seconds = time.time() - t0
 
     t1 = time.time()
     response_agent.generate(
-        query=question,
+        query=rag_query,
         rag_context=retrieval["vector_chunks"],
         graph_context=retrieval["graph_context"],
         model=model,
@@ -128,6 +158,8 @@ def _run_single(hybrid, response_agent, planner_agent, question: str, mode: str,
 
     return {
         "mode_result": retrieval["mode"],
+        "refinement_seconds": refinement_seconds,
+        "refinement_iterations": refinement_iterations,
         "planning_seconds": planning_seconds,
         "planner_used_graph": planner_used_graph,
         "retrieval_seconds": retrieval_seconds,
@@ -193,6 +225,7 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
 def _write_csv(rows: list, path: str) -> None:
     fields = [
         "category", "source_doc", "question", "model", "mode_requested", "mode_result",
+        "refinement_seconds", "refinement_iterations",
         "planning_seconds", "planner_used_graph",
         "retrieval_seconds", "generation_seconds", "total_seconds",
         "n_vector_chunks", "n_graph_triples", "source_matched",
@@ -224,10 +257,13 @@ def _aggregate(rows: list, key: str) -> dict:
         # "esta pregunta debería haber usado grafo". Solo aplica al modo
         # "agentic"; en el resto, planner_used_graph es siempre None.
         planner_decisions = [i.get("planner_used_graph") for i in items if i.get("planner_used_graph") is not None]
+        refinement_iters = [i.get("refinement_iterations") for i in items if i.get("refinement_iterations") is not None]
         out[k] = {
             "n": n,
             "n_faithfulness_evaluated": len(faith),
             "n_answer_relevancy_evaluated": len(rel),
+            "avg_refinement_seconds": sum(i.get("refinement_seconds", 0.0) for i in items) / n,
+            "avg_refinement_iterations": (sum(refinement_iters) / len(refinement_iters)) if refinement_iters else None,
             "avg_planning_seconds": sum(i.get("planning_seconds", 0.0) for i in items) / n,
             "avg_retrieval_seconds": sum(i["retrieval_seconds"] for i in items) / n,
             "avg_generation_seconds": sum(i["generation_seconds"] for i in items) / n,
@@ -272,6 +308,7 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
     mode_rows = "".join(
         f"<tr><td>{html.escape(mode)}</td>"
         f"<td>{v['n']}</td>"
+        f"<td>{fmt_refinement(v.get('avg_refinement_seconds'), v.get('avg_refinement_iterations'))}</td>"
         f"<td>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
         f"<td>{fmt_number(v['avg_retrieval_seconds'], 's')}</td>"
         f"<td>{fmt_number(v['avg_generation_seconds'], 's')}</td>"
@@ -286,6 +323,7 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
     model_rows = "".join(
         f"<tr><td>{html.escape(model)}</td>"
         f"<td>{v['n']}</td>"
+        f"<td>{fmt_refinement(v.get('avg_refinement_seconds'), v.get('avg_refinement_iterations'))}</td>"
         f"<td>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
         f"<td>{fmt_number(v['avg_retrieval_seconds'], 's')}</td>"
         f"<td>{fmt_number(v['avg_generation_seconds'], 's')}</td>"
@@ -317,14 +355,14 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
 
   <h2>Comparación por modo de recuperación</h2>
   <table>
-    <thead><tr><th>Modo</th><th>N</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
+    <thead><tr><th>Modo</th><th>N</th><th>Refinamiento</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
     <th>Faithfulness</th><th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th></tr></thead>
     <tbody>{mode_rows}</tbody>
   </table>
 
   <h2>Comparación por modelo LLM</h2>
   <table>
-    <thead><tr><th>Modelo</th><th>N</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
+    <thead><tr><th>Modelo</th><th>N</th><th>Refinamiento</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
     <th>Faithfulness</th><th>Answer Relevancy</th></tr></thead>
     <tbody>{model_rows}</tbody>
   </table>
@@ -340,10 +378,15 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
     una pregunta puntual (limitación conocida, ver ADR-0003) — cuando pasa,
     esa fila se excluye del promedio y se muestra "(N/total)" junto al
     score para dejarlo explícito, en vez de promediar con NaN en silencio.
-    "Planning" y "Grafo usado (planner)" solo aplican al modo "agentic" —
-    es la decisión sí/no GraphRAG que toma el PlannerAgent vía tool-calling;
-    "Grafo usado" es descriptivo (qué % de preguntas activó el grafo), no
-    una métrica de acierto — no hay ground truth de qué debería haber decidido.
+    "Refinamiento", "Planning" y "Grafo usado (planner)" solo aplican al modo
+    "agentic" — "Refinamiento" mide el loop Refinador⇄Validador (ver
+    ADR-0006, tiempo total y promedio de iteraciones hasta converger o
+    forzar el paso), "Planning" es la decisión sí/no GraphRAG que toma el
+    PlannerAgent vía tool-calling; "Grafo usado" es descriptivo (qué % de
+    preguntas activó el grafo), no una métrica de acierto — no hay ground
+    truth de qué debería haber decidido. Esta corrida también alimenta
+    <code>outputs/refinement_memory.json</code> con las lecciones reales
+    del loop (few-shot para corridas futuras).
   </p>
 </body></html>
 """
@@ -400,7 +443,7 @@ def main():
           f"= {len(questions) * len(modes) * len(models)} corrida(s) de generación.", flush=True)
 
     os.makedirs(args.out_dir, exist_ok=True)
-    hybrid, response_agent, planner_agent, graph_available = _build_pipeline()
+    hybrid, response_agent, planner_agent, refiner_agent, validator_agent, log_agent, graph_available = _build_pipeline()
 
     rows = []
     total_runs = len(questions) * len(modes) * len(models)
@@ -415,7 +458,10 @@ def main():
                 done += 1
                 print(f"[BENCHMARK] [{done}/{total_runs}] modelo={model} modo={mode} "
                       f"pregunta={q['question'][:60]!r}", flush=True)
-                result = _run_single(hybrid, response_agent, planner_agent, q["question"], mode, model)
+                result = _run_single(
+                    hybrid, response_agent, planner_agent, refiner_agent, validator_agent,
+                    log_agent, q["question"], mode, model,
+                )
                 row = {
                     "category": q["category"],
                     "source_doc": q["source_doc"],
@@ -423,12 +469,15 @@ def main():
                     "model": model,
                     "mode_requested": mode,
                     "mode_result": result["mode_result"],
+                    "refinement_seconds": round(result["refinement_seconds"], 3),
+                    "refinement_iterations": result["refinement_iterations"],
                     "planning_seconds": round(result["planning_seconds"], 3),
                     "planner_used_graph": result["planner_used_graph"],
                     "retrieval_seconds": round(result["retrieval_seconds"], 3),
                     "generation_seconds": round(result["generation_seconds"], 3),
                     "total_seconds": round(
-                        result["planning_seconds"] + result["retrieval_seconds"] + result["generation_seconds"], 3
+                        result["refinement_seconds"] + result["planning_seconds"]
+                        + result["retrieval_seconds"] + result["generation_seconds"], 3
                     ),
                     "n_vector_chunks": result["n_vector_chunks"],
                     "n_graph_triples": result["n_graph_triples"],

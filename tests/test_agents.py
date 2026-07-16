@@ -343,6 +343,273 @@ def test_vision_agent_returns_empty_on_timeout(monkeypatch):
     assert agent.analyze(Image.new("RGB", (50, 50))) == ""
 
 
+def test_refinement_memory_similar_returns_closest_above_threshold(tmp_path):
+    from agents.refinement_memory import RefinementMemory
+
+    class FakeRag:
+        def _embed_text(self, text):
+            # Vectores 2D fijos y conocidos — similitud coseno predecible
+            # sin cargar OpenCLIP real.
+            return {
+                "rechazada cercana": [1.0, 0.1],
+                "rechazada lejana": [0.0, 1.0],
+                "consulta nueva": [1.0, 0.0],
+            }[text]
+
+    path = tmp_path / "refinement_memory.json"
+    mem = RefinementMemory(FakeRag(), LogAgent(), path=str(path))
+    mem.record("rechazada cercana", "muy ambigua", "pregunta corregida cercana")
+    mem.record("rechazada lejana", "otro motivo", "pregunta corregida lejana")
+
+    results = mem.similar("consulta nueva", top_k=1, min_similarity=0.5)
+    assert len(results) == 1
+    assert results[0]["approved_query"] == "pregunta corregida cercana"
+
+
+def test_refinement_memory_similar_empty_when_no_file(tmp_path):
+    from agents.refinement_memory import RefinementMemory
+
+    class FakeRag:
+        def _embed_text(self, text):
+            return [1.0, 0.0]
+
+    path = tmp_path / "no_existe.json"
+    mem = RefinementMemory(FakeRag(), LogAgent(), path=str(path))
+    assert mem.similar("cualquier cosa") == []
+
+
+def test_refinement_memory_persists_to_disk(tmp_path):
+    from agents.refinement_memory import RefinementMemory
+
+    class FakeRag:
+        def _embed_text(self, text):
+            return [1.0, 0.0]
+
+    path = tmp_path / "refinement_memory.json"
+    mem = RefinementMemory(FakeRag(), LogAgent(), path=str(path))
+    mem.record("rechazada", "motivo", "aprobada")
+
+    reloaded = RefinementMemory(FakeRag(), LogAgent(), path=str(path))
+    assert len(reloaded.similar("rechazada", min_similarity=0.99)) == 1
+
+
+def test_query_refiner_agent_rewrites_query(monkeypatch):
+    from agents.query_refiner_agent import QueryRefinerAgent
+    import agents.query_refiner_agent as refiner_module
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "¿Cuál es la tarifa del IVA para servicios en Ecuador?"}}
+
+    monkeypatch.setattr(refiner_module.requests, "post", lambda *a, **k: FakeResponse())
+
+    log = LogAgent()
+    refiner = QueryRefinerAgent(log)
+    result = refiner.refine("iva cuanto")
+    assert result == "¿Cuál es la tarifa del IVA para servicios en Ecuador?"
+    assert "Refinada" in log.get_all()
+
+
+def test_query_refiner_agent_falls_back_to_original_on_connection_error(monkeypatch):
+    import requests
+    from agents.query_refiner_agent import QueryRefinerAgent
+    import agents.query_refiner_agent as refiner_module
+
+    def raise_connection_error(*a, **k):
+        raise requests.exceptions.ConnectionError("sin ollama")
+
+    monkeypatch.setattr(refiner_module.requests, "post", raise_connection_error)
+
+    log = LogAgent()
+    refiner = QueryRefinerAgent(log)
+    assert refiner.refine("iva cuanto") == "iva cuanto"
+
+
+def test_query_refiner_agent_uses_memory_examples(monkeypatch):
+    from agents.query_refiner_agent import QueryRefinerAgent
+    import agents.query_refiner_agent as refiner_module
+
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "pregunta reformulada"}}
+
+    def fake_post(url, json, timeout):
+        captured["messages"] = json["messages"]
+        return FakeResponse()
+
+    monkeypatch.setattr(refiner_module.requests, "post", fake_post)
+
+    class FakeMemory:
+        def similar(self, query):
+            return [{"rejected_query": "x", "motivo": "ambigua", "approved_query": "x mejor"}]
+
+    log = LogAgent()
+    refiner = QueryRefinerAgent(log, refinement_memory=FakeMemory())
+    refiner.refine("pregunta vaga")
+
+    user_content = captured["messages"][1]["content"]
+    assert "x mejor" in user_content
+    assert "ambigua" in user_content
+
+
+def test_query_validator_agent_approves_when_no_tool_call(monkeypatch):
+    from agents.query_validator_agent import QueryValidatorAgent
+    import agents.query_validator_agent as validator_module
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "ok", "tool_calls": None}}
+
+    monkeypatch.setattr(validator_module.requests, "post", lambda *a, **k: FakeResponse())
+
+    class FakeRag:
+        def retrieve(self, query, top_k=None):
+            return [{"text": "Art. 65.- tarifa 15%", "similarity": 0.8, "id": "x", "metadata": {}}]
+
+    validator = QueryValidatorAgent(LogAgent(), FakeRag())
+    result = validator.validate("¿Cuál es la tarifa del IVA?")
+    assert result["approved"] is True
+    assert result["reason"] == ""
+    assert len(result["chunks"]) == 1
+
+
+def test_query_validator_agent_rejects_with_reason_when_tool_called(monkeypatch):
+    from agents.query_validator_agent import QueryValidatorAgent
+    import agents.query_validator_agent as validator_module
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"content": "", "tool_calls": [
+                {"function": {"name": "rechazar_pregunta", "arguments": {"motivo": "pregunta muy ambigua"}}}
+            ]}}
+
+    monkeypatch.setattr(validator_module.requests, "post", lambda *a, **k: FakeResponse())
+
+    class FakeRag:
+        def retrieve(self, query, top_k=None):
+            return []
+
+    validator = QueryValidatorAgent(LogAgent(), FakeRag())
+    result = validator.validate("algo")
+    assert result["approved"] is False
+    assert result["reason"] == "pregunta muy ambigua"
+    assert result["chunks"] == []
+
+
+def test_query_validator_agent_approves_by_default_on_connection_error(monkeypatch):
+    import requests
+    from agents.query_validator_agent import QueryValidatorAgent
+    import agents.query_validator_agent as validator_module
+
+    def raise_connection_error(*a, **k):
+        raise requests.exceptions.ConnectionError("sin ollama")
+
+    monkeypatch.setattr(validator_module.requests, "post", raise_connection_error)
+
+    class FakeRag:
+        def retrieve(self, query, top_k=None):
+            return []
+
+    validator = QueryValidatorAgent(LogAgent(), FakeRag())
+    result = validator.validate("algo")
+    assert result["approved"] is True
+
+
+def test_run_refinement_loop_converges_on_first_approval():
+    from agents.coordinator import consume_refinement_loop
+
+    class ApprovingRefiner:
+        memory = None
+
+        def refine(self, query, rejection_reason=""):
+            return query + " refinada"
+
+    class ApprovingValidator:
+        def validate(self, query):
+            return {"approved": True, "reason": "", "chunks": [{"text": "x"}]}
+
+    log = LogAgent()
+    final_query, chunks, n_iterations = consume_refinement_loop(
+        ApprovingRefiner(), ApprovingValidator(), "pregunta", log,
+    )
+    assert final_query == "pregunta refinada"
+    assert chunks == [{"text": "x"}]
+    assert n_iterations == 1
+
+
+def test_run_refinement_loop_forces_pass_at_max_iterations():
+    from agents.coordinator import consume_refinement_loop
+
+    class RejectingRefiner:
+        memory = None
+
+        def refine(self, query, rejection_reason=""):
+            return query + "+"
+
+    class RejectingValidator:
+        def validate(self, query):
+            return {"approved": False, "reason": "nunca alcanza", "chunks": []}
+
+    log = LogAgent()
+    final_query, chunks, n_iterations = consume_refinement_loop(
+        RejectingRefiner(), RejectingValidator(), "pregunta", log, max_iterations=2,
+    )
+    assert final_query == "pregunta++"
+    assert n_iterations == 2
+
+
+def test_run_refinement_loop_records_memory_after_rejection_then_approval():
+    from agents.coordinator import consume_refinement_loop
+
+    recorded = {}
+
+    class FakeMemory:
+        def record(self, rejected_query, motivo, approved_query):
+            recorded["args"] = (rejected_query, motivo, approved_query)
+
+    class Refiner:
+        memory = FakeMemory()
+
+        def __init__(self):
+            self.calls = 0
+
+        def refine(self, query, rejection_reason=""):
+            self.calls += 1
+            return f"version-{self.calls}"
+
+    class Validator:
+        def __init__(self):
+            self.calls = 0
+
+        def validate(self, query):
+            self.calls += 1
+            if self.calls == 1:
+                return {"approved": False, "reason": "poco clara", "chunks": []}
+            return {"approved": True, "reason": "", "chunks": [{"text": "y"}]}
+
+    log = LogAgent()
+    final_query, chunks, n_iterations = consume_refinement_loop(
+        Refiner(), Validator(), "pregunta", log, max_iterations=2,
+    )
+    assert final_query == "version-2"
+    assert n_iterations == 2
+    assert recorded["args"] == ("version-1", "poco clara", "version-2")
+
+
 def test_response_agent_keeps_legit_brackets_in_visual_description():
     from agents.response_agent import ResponseAgent
 

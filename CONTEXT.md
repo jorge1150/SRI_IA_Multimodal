@@ -9,7 +9,18 @@ El conjunto final de 22 documentos PDF curados sobre los que se miden los result
 _Avoid_: "los documentos", "la base de datos actual" (ambiguo entre el corpus de desarrollo y el de tesis)
 
 **PlannerAgent**:
-Agente que decide, vía tool-calling nativo de Ollama, si una consulta necesita GraphRAG además del RAG vectorial (que siempre corre). Es el único punto del pipeline donde el LLM decide dinámicamente en vez de seguir una regla fija programada — el resto de agentes (STT, Visión, RAG, Respuesta, TTS) ejecutan una tarea determinística. Activado con `config.USE_AGENTIC_PLANNER` (default `False`). Ver ADR-0005.
+Agente que decide, vía tool-calling nativo de Ollama, si una consulta necesita GraphRAG además del RAG vectorial (que siempre corre). Corre como el tercer paso de un tramo de 3 agentes agénticos (Refiner→Validator→Planner), todos activados con `config.USE_AGENTIC_PLANNER` (default `False`) — el resto de agentes (STT, Visión, RAG, Respuesta, TTS) ejecutan una tarea determinística. Ver ADR-0005.
+
+**QueryRefinerAgent**:
+Agente que reescribe la pregunta (texto+STT+descripción visual/video ya combinados) para que sea más clara y específica al consultar la base normativa SRI. Corre en loop con `QueryValidatorAgent` hasta `config.REFINEMENT_MAX_ITERATIONS` (default `2`) — al llegar al tope, se fuerza el paso con la última versión sin bloquear al usuario. Usa `RefinementMemory` para inyectar ejemplos de correcciones pasadas similares como few-shot (aprendizaje in-context, no reentrenamiento de pesos). Ver ADR-0006.
+
+**QueryValidatorAgent**:
+Agente que decide, vía tool-calling nativo de Ollama, si una pregunta refinada alcanza para responder correctamente — validando contra un retrieval de prueba real (`RAGAgent.retrieve`, vector_only), no solo la forma lingüística de la pregunta. Si rechaza, devuelve un motivo breve que el `QueryRefinerAgent` usa en la siguiente vuelta. Ver ADR-0006.
+_Avoid_: confundir esta validación con RAGAS (`faithfulness`/`answer_relevancy`) — el Validador juzga si la pregunta+contexto alcanzan *antes* de generar la respuesta, RAGAS evalúa la respuesta ya generada.
+
+**Memoria de refinamiento**:
+Archivo `outputs/refinement_memory.json` — lista de `{rejected_query, motivo, approved_query, vector}` guardada por `RefinementMemory` cada vez que el loop Refinador⇄Validador tuvo al menos 1 rechazo antes de converger. El vector es el embedding OpenCLIP de la pregunta rechazada (mismo modelo que usa `RAGAgent`), usado para buscar por similitud coseno los ejemplos más parecidos a inyectar como few-shot. Ver ADR-0006.
+_Avoid_: confundir con la base vectorial normativa (`CHROMA_DB_PATH`/ChromaDB) — son dos vector stores distintos con propósitos distintos (normativa tributaria vs. lecciones de refinamiento).
 
 **Modo de recuperación**:
 Estrategia que usa `HybridRetriever.retrieve(mode=...)` para una consulta: `vector_only` (solo RAG vectorial), `graph_only` (solo GraphRAG), `hybrid` (ambos), `agentic` (decide el PlannerAgent), `auto` (default de producción — comportamiento fijo histórico, intenta grafo si está disponible). Los primeros cuatro son comparables entre sí en `scripts/run_benchmark.py`.

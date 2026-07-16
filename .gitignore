@@ -24,7 +24,7 @@ outputs/respuestas_audio/
 data/output/
 
 # Logs de sesión
-outputs/logs/*.log
+outputs/
 
 # Reportes de benchmark (generados localmente, ver scripts/run_benchmark.py)
 outputs/benchmarks/

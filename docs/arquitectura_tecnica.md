@@ -27,7 +27,7 @@ Sistema de asistencia tributaria local que responde preguntas sobre normativa de
 | Extracción DOCX | **python-docx** | Párrafos concatenados |
 | Cómputo | **PyTorch** | CPU (macOS Intel) — CLIP en float32 |
 | Audio | **sounddevice + scipy** | Grabación a 48kHz, resample a 16kHz para Whisper |
-| Decisión agéntica | **Ollama tool-calling** | `PlannerAgent` — sí/no GraphRAG (ver ADR-0005) |
+| Decisión agéntica | **Ollama tool-calling** | `PlannerAgent` sí/no GraphRAG (ADR-0005) + `QueryRefinerAgent`/`QueryValidatorAgent` loop de refinamiento con memoria in-context (ADR-0006) |
 | Evaluación (RAGAS) | **ragas 0.2.15** + **sentence-transformers 2.7.0** | Juez local vía Ollama, embeddings `paraphrase-multilingual-MiniLM-L12-v2` — versiones fijadas por compatibilidad con `torch==2.2.2` |
 
 ---
@@ -43,6 +43,9 @@ SRI_IA_Multimodal/
 │   │                            #   (wiring compartido con el benchmark: un solo lugar
 │   │                            #   donde se construye RAG+Planner+Graph+Hybrid)
 │   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG vía tool-calling (ADR-0005)
+│   ├── query_refiner_agent.py  # Reescribe la pregunta con few-shot de RefinementMemory (ADR-0006)
+│   ├── query_validator_agent.py # Valida la pregunta refinada contra retrieval de prueba (ADR-0006)
+│   ├── refinement_memory.py    # Memoria in-context (JSON + similitud CLIP) de correcciones pasadas
 │   ├── rag_agent.py            # Recuperación vectorial con OpenCLIP + ChromaDB
 │   ├── response_agent.py       # Generación LLM + fuentes estructuradas (side-channel
 │   │                            #   last_answer/last_sources; model= override)
@@ -101,10 +104,18 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
                                       │
                               Consulta combinada
                                       │
+              [REFINADOR ⇄ VALIDADOR] (si USE_AGENTIC_PLANNER=True)
+              QueryRefinerAgent reescribe la pregunta (+ few-shot de
+              RefinementMemory) → QueryValidatorAgent la valida contra
+              un retrieval de prueba real. Si rechaza, vuelve al
+              Refinador con el motivo — hasta REFINEMENT_MAX_ITERATIONS
+              (default 2), luego se fuerza el paso. (ADR-0006)
+                                      │
                     [PLANNER] (si USE_AGENTIC_PLANNER=True)
                     PlannerAgent decide vía tool-calling de Ollama:
                     ¿esta consulta necesita GraphRAG? (ADR-0005)
-                    Único paso del pipeline con decisión real del LLM —
+                    Los 3 agentes (Refiner/Validator/Planner) son los
+                    únicos pasos del pipeline con decisión real del LLM —
                     el resto son pasos fijos, no negociación entre agentes.
                                       │
                         [RAG HÍBRIDO — HybridRetriever]
@@ -341,6 +352,45 @@ propia y `planner_graph_usage_rate` (% de preguntas donde decidió usar grafo
 — descriptivo, no una métrica de acierto, no hay ground truth de qué debería
 haber decidido cada pregunta).
 
+### 6e. Refinamiento agéntico de la consulta y memoria de aprendizaje in-context (opcional, ADR-0006)
+
+**Clases:** `QueryRefinerAgent.refine(query, rejection_reason="")`,
+`QueryValidatorAgent.validate(query) -> dict`, `RefinementMemory`.
+
+Corre justo antes del `PlannerAgent`, sobre la misma `rag_query` combinada
+(texto+STT+visual). Detrás del mismo flag `USE_AGENTIC_PLANNER`.
+
+1. **Refinador**: reescribe la pregunta con Ollama (generación libre, sin
+   tools). Si `RefinementMemory` tiene ejemplos parecidos guardados, los
+   inyecta como few-shot en el prompt.
+2. **Validador**: corre un retrieval de prueba real (`RAGAgent.retrieve`,
+   vector_only) sobre la pregunta refinada y decide vía tool-calling
+   (`rechazar_pregunta(motivo)`) si alcanza para responder — mismo patrón
+   de "presencia/ausencia del tool_call decide" que `PlannerAgent`.
+3. Si rechaza, el motivo vuelve al Refinador para la siguiente vuelta. Tope
+   `REFINEMENT_MAX_ITERATIONS` (default 2, configurable) — al llegar al
+   tope, se fuerza el paso con la última versión, nunca bloquea al usuario.
+4. Los chunks del último retrieval del Validador se **reusan** en `[RAG]`
+   final (`agents/coordinator.py`) — no se duplica la búsqueda vectorial.
+   Si el Planner decide `"hybrid"`, se completa aparte solo el
+   `graph_context` (`HybridRetriever.retrieve(mode="graph_only")`).
+
+**Memoria de aprendizaje in-context (no fine-tuning):** cuando el loop tuvo
+al menos 1 rechazo antes de converger, `RefinementMemory.record()` guarda
+`{rejected_query, motivo, approved_query, vector}` en
+`outputs/refinement_memory.json`. El vector es el embedding OpenCLIP de la
+pregunta rechazada (mismo modelo que `RAGAgent`, sin dependencia nueva). En
+cada `refine()` posterior, `RefinementMemory.similar()` busca por similitud
+coseno los `REFINEMENT_MEMORY_TOP_K` ejemplos más parecidos (umbral
+`REFINEMENT_MEMORY_MIN_SIMILARITY`) y se inyectan como few-shot — el
+sistema "aprende" del uso acumulado vía contexto del prompt, no
+reentrenando los pesos de qwen2.5:3b (ver "Arquitectura 100% local" más
+abajo: no hay pipeline de fine-tuning en este proyecto).
+
+**Fallback:** ante fallo de Ollama en Refiner o Validator, se degrada sin
+bloquear — el Refinador devuelve la pregunta sin cambios, el Validador
+aprueba por defecto (`approved=True`).
+
 ---
 
 ## 7. Generación de Respuesta
@@ -465,8 +515,13 @@ es formato de display puro para el bubble del chat.
 | `GRAPH_TOP_K_TRIPLES` | 10 | Máx. triples a incluir del grafo |
 | `GRAPH_HOP_DEPTH` | 2 | Saltos de exploración en el grafo |
 | `GRAPH_MIN_WEIGHT` | 0.4 | Peso mínimo de relación para incluir |
-| `USE_AGENTIC_PLANNER` | `False` | Activa el `PlannerAgent` (decisión agéntica sí/no grafo, ADR-0005) en el chat de producción |
+| `USE_AGENTIC_PLANNER` | `False` | Activa los 3 agentes agénticos (Refiner+Validator+Planner, ADR-0005/ADR-0006) en el chat de producción |
 | `PLANNER_TIMEOUT` | 30 s | Timeout de la decisión del planner (corto — no es una generación completa) |
+| `REFINEMENT_MAX_ITERATIONS` | 2 | Tope de vueltas Refinador⇄Validador antes de forzar el paso (configurable vía env) |
+| `REFINER_TIMEOUT` / `VALIDATOR_TIMEOUT` | 30 s | Timeout de cada llamada del Refinador/Validador |
+| `REFINEMENT_MEMORY_PATH` | `outputs/refinement_memory.json` | Persistencia de ejemplos aprendidos (ADR-0006) |
+| `REFINEMENT_MEMORY_TOP_K` | 3 | Ejemplos más similares inyectados como few-shot en el Refinador |
+| `REFINEMENT_MEMORY_MIN_SIMILARITY` | `RAG_MIN_SIMILARITY` (0.18) | Umbral mínimo de similitud coseno para considerar un ejemplo relevante |
 | `WHISPER_MODEL_SIZE` | `base` | Tamaño del modelo STT |
 | `LLM_TEMPERATURE` | 0.1 | Creatividad del LLM (baja = más determinista) |
 | `OLLAMA_TIMEOUT` | 180 s | Timeout máximo de respuesta del LLM |
@@ -548,6 +603,14 @@ cambiaba. Cuatro decisiones resultantes:
 
 El planner tiene una limitación conocida y medida: sesgo hacia "no usar grafo" incluso en preguntas donde ayudaría. Activar la decisión agéntica en el chat de producción sin antes medir su impacto real (tiempo, calidad de respuesta) sería reemplazar una regla fija conocida por una decisión de fiabilidad desconocida. El flag permite validar con `scripts/run_benchmark.py --modes agentic` antes de decidir si conviene por defecto — mismo patrón que `USE_MINERU_PDF`/`GRAPH_ENABLED`: agregar la capacidad, medirla, decidir con datos.
 
+### ¿Por qué el Refinador/Validador comparten el mismo flag que el Planner, en vez de uno propio?
+
+Los 3 agentes son el mismo tramo conceptual — "el LLM decide/mejora algo del pipeline en vez de seguir una regla fija programada" — y separar flags habría permitido combinaciones sin sentido (ej. Validator activo sin Planner). Un solo flag mantiene la garantía de que `USE_AGENTIC_PLANNER=False` reproduce exactamente el pipeline histórico, sin superficie nueva (ADR-0006).
+
+### ¿Por qué few-shot con memoria in-context y no fine-tuning del modelo?
+
+El proyecto es 100% de inferencia local (ver más abajo): no hay GPU de entrenamiento ni pipeline de fine-tuning, y agregar uno habría sido infraestructura completamente nueva, fuera del alcance de la tesis. `RefinementMemory` guarda las correcciones reales del Validador (`{rejected_query, motivo, approved_query}`) y las inyecta como ejemplos few-shot cuando aparece una pregunta similar — el sistema mejora con el uso sin reentrenar pesos. Es una forma honesta de "aprendizaje" acotada a lo que el hardware disponible permite (ADR-0006).
+
 ---
 
 ## 13. Flujo Resumido para la Presentación
@@ -561,9 +624,16 @@ Usuario hace pregunta (texto / voz / imagen)
   Imagen → Moondream → descripción
           │
           ▼
+  [Refinador ⇄ Validador] (opcional, USE_AGENTIC_PLANNER)
+  Refinador reescribe la pregunta (+ memoria in-context) →
+  Validador la valida contra un retrieval de prueba real
+  Rechazo → vuelve al Refinador con el motivo (máx. 2 vueltas, ADR-0006)
+          │
+          ▼
   [PlannerAgent] (opcional, USE_AGENTIC_PLANNER)
   Tool-calling de Ollama: ¿necesita GraphRAG? sí/no
-  Único paso con decisión real del LLM (ADR-0005)
+  Con Refinador/Validador, son los 3 pasos con decisión
+  real del LLM (ADR-0005 / ADR-0006)
           │
           ▼
   [HybridRetriever]
