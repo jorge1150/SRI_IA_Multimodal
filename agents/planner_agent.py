@@ -14,6 +14,7 @@ import requests
 
 from config import OLLAMA_URL, LLM_MODEL, PLANNER_TIMEOUT
 from .log_agent import LogAgent, Stage
+from .token_usage import extract_token_usage
 
 # Una sola herramienta: si el modelo la llama, la consulta necesita grafo.
 # Si no la llama, alcanza con RAG vectorial. La decisión es la presencia
@@ -52,6 +53,9 @@ class PlannerAgent:
 
     def __init__(self, log_agent: LogAgent):
         self.log = log_agent
+        # Side-channel de tokens de la última decisión — solo para
+        # benchmark/comparación de modelos (ADR-0009), no se usa en el chat.
+        self.last_token_usage: dict = {}
 
     def should_use_graph(self, query: str, model: str = None) -> bool:
         """
@@ -61,6 +65,7 @@ class PlannerAgent:
         ResponseAgent.generate(model=...).
         """
         model = model or LLM_MODEL
+        self.last_token_usage = {}
         try:
             resp = requests.post(
                 f"{OLLAMA_URL}/api/chat",
@@ -74,7 +79,9 @@ class PlannerAgent:
                 timeout=PLANNER_TIMEOUT,
             )
             resp.raise_for_status()
-            tool_calls = resp.json().get("message", {}).get("tool_calls") or []
+            resp_json = resp.json()
+            self.last_token_usage = extract_token_usage(resp_json)
+            tool_calls = resp_json.get("message", {}).get("tool_calls") or []
             decision = len(tool_calls) > 0
 
             self.log.log(

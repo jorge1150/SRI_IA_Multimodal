@@ -893,6 +893,7 @@ audio {
     align-items: flex-start;
     overflow-x: auto;
     padding-bottom: 6px;
+    position: relative;
 }
 
 .agent-flow-node-wrap {
@@ -1009,6 +1010,49 @@ audio {
 @keyframes agent-flow-dash {
     from { background-position: 0 0; }
     to   { background-position: 16px 0; }
+}
+
+/* Arco de retroceso Validador→Refinador — visible solo si hubo al menos 1
+   rechazo real (ver _count_validator_rejections en ui/interface.py). Se
+   posiciona debajo de la fila de nodos, entre los dos involucrados en el
+   loop (izquierda/ancho calculados en Python según su índice). */
+.agent-flow-backline {
+    position: absolute;
+    top: 66px;
+    height: 0;
+    border-bottom: 2px dashed var(--border-l);
+    opacity: 0.5;
+}
+
+.agent-flow-backline.flowing {
+    border-bottom-color: var(--c-gold);
+    opacity: 0.9;
+    animation: agent-backline-dash 0.6s linear infinite;
+}
+
+.agent-flow-backline.done {
+    border-bottom-color: var(--c-gold);
+    opacity: 0.7;
+}
+
+@keyframes agent-backline-dash {
+    0%, 100% { opacity: 0.9; }
+    50%      { opacity: 0.35; }
+}
+
+.agent-flow-backline-badge {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    transform: translate(-50%, 0);
+    background: var(--c-gold);
+    color: #1a1206;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 999px;
+    white-space: nowrap;
 }
 
 /* Pipeline steps en trazabilidad de consulta */

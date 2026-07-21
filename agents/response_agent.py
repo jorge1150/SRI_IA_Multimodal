@@ -15,6 +15,7 @@ import requests
 
 from config import OLLAMA_URL, LLM_MODEL, LLM_TEMPERATURE, OLLAMA_TIMEOUT
 from .log_agent import LogAgent, Stage
+from .token_usage import extract_token_usage
 
 # Fuente ÚNICA del separador respuesta/fuentes en el texto del chat.
 # Los demás consumidores (coordinator para TTS, benchmark para RAGAS, UI
@@ -62,6 +63,9 @@ class ResponseAgent:
         # estructuradas quedan legibles sin re-parsear el texto del chat.
         self.last_answer: str = ""
         self.last_sources: list[dict] = []
+        # Side-channel de tokens de la última generación — solo para
+        # benchmark/comparación de modelos (ADR-0009), no se usa en el chat.
+        self.last_token_usage: dict = {}
 
     # ── API pública ──────────────────────────────────────────────────────────
 
@@ -81,6 +85,7 @@ class ResponseAgent:
         model = model or LLM_MODEL
         self.last_answer = ""
         self.last_sources = []
+        self.last_token_usage = {}
         self.log.log(Stage.GENERANDO, f"Enviando consulta a {model}...")
 
         try:
@@ -113,8 +118,10 @@ class ResponseAgent:
                 timeout=OLLAMA_TIMEOUT,
             )
             resp.raise_for_status()
+            resp_json = resp.json()
+            self.last_token_usage = extract_token_usage(resp_json)
 
-            raw = resp.json().get("message", {}).get("content", "").strip()
+            raw = resp_json.get("message", {}).get("content", "").strip()
             # Quitar el "Respuesta:" del seed si el modelo lo repite al inicio
             raw = re.sub(r'^Respuesta:\s*', '', raw, flags=re.IGNORECASE).strip()
             answer = self._clean_response(raw)

@@ -5,7 +5,7 @@
 
 ## 1. Descripción General
 
-Sistema de asistencia tributaria local que responde preguntas sobre normativa del **Servicio de Rentas Internas (SRI) Ecuador** sin depender de servicios en la nube ni APIs externas. Toda la inferencia y recuperación de información ocurre en la máquina del usuario.
+Sistema de asistencia tributaria que responde preguntas sobre normativa del **Servicio de Rentas Internas (SRI) Ecuador**. RAG vectorial, GraphRAG, STT y TTS corren siempre en la máquina del usuario; el LLM de generación (y las decisiones agénticas que también son generación de texto: Planner/Refiner/Validator) es **configurable entre local o Ollama Cloud** — una decisión de privacidad/costo vs. calidad/velocidad, no una restricción dura (ver ADR-0008).
 
 **Principio central:** toda respuesta se basa primero en documentos normativos recuperados por el sistema RAG; el LLM no inventa normativa.
 
@@ -16,7 +16,7 @@ Sistema de asistencia tributaria local que responde preguntas sobre normativa de
 | Capa | Tecnología | Versión / Detalle |
 |------|-----------|-------------------|
 | Interfaz de usuario | **Gradio** | v6.x — dark theme, CSS injection via `gr.HTML` |
-| Modelo de lenguaje | **Qwen2.5** via **Ollama** | 3B params, `qwen2.5:3b-instruct-q4_K_M`, temperature 0.1 (ver ADR-0003) |
+| Modelo de lenguaje | **Qwen2.5 (local)** u **Ollama Cloud** | `qwen2.5:3b-instruct-q4_K_M` por defecto, temperature 0.1 (ADR-0003); `config.LLM_MODEL` acepta también modelos `-cloud` (ADR-0008) |
 | Visión computacional | **Moondream** via **Ollama** | `moondream` — formularios y pantallas SRI |
 | Embeddings | **OpenCLIP ViT-B-32** | `hf-hub:timm/vit_base_patch32_clip_224.openai`, dim=512 |
 | Base vectorial | **ChromaDB** | Persistente en `vector_db/chroma_sri/`, colección `normativa_tributaria` |
@@ -27,7 +27,7 @@ Sistema de asistencia tributaria local que responde preguntas sobre normativa de
 | Extracción DOCX | **python-docx** | Párrafos concatenados |
 | Cómputo | **PyTorch** | CPU (macOS Intel) — CLIP en float32 |
 | Audio | **sounddevice + scipy** | Grabación a 48kHz, resample a 16kHz para Whisper |
-| Decisión agéntica | **Ollama tool-calling** | `PlannerAgent` sí/no GraphRAG (ADR-0005) + `QueryRefinerAgent`/`QueryValidatorAgent` loop de refinamiento con memoria in-context (ADR-0006) |
+| Decisión agéntica | **Ollama tool-calling** | `PlannerAgent` sí/no GraphRAG (ADR-0005) + `QueryRefinerAgent`/`QueryValidatorAgent` loop de refinamiento con memoria in-context y guardrail de dominio (ADR-0006, ADR-0007) |
 | Evaluación (RAGAS) | **ragas 0.2.15** + **sentence-transformers 2.7.0** | Juez local vía Ollama, embeddings `paraphrase-multilingual-MiniLM-L12-v2` — versiones fijadas por compatibilidad con `torch==2.2.2` |
 
 ---
@@ -44,8 +44,11 @@ SRI_IA_Multimodal/
 │   │                            #   donde se construye RAG+Planner+Graph+Hybrid)
 │   ├── planner_agent.py        # Decisión agéntica sí/no GraphRAG vía tool-calling (ADR-0005)
 │   ├── query_refiner_agent.py  # Reescribe la pregunta con few-shot de RefinementMemory (ADR-0006)
-│   ├── query_validator_agent.py # Valida la pregunta refinada contra retrieval de prueba (ADR-0006)
-│   ├── refinement_memory.py    # Memoria in-context (JSON + similitud CLIP) de correcciones pasadas
+│   ├── query_validator_agent.py # Valida la pregunta + guardrail de dominio (ADR-0006, ADR-0007)
+│   ├── similarity_memory.py    # Base compartida JSON+similitud CLIP (Refinement/OffTopic memory)
+│   ├── refinement_memory.py    # Memoria in-context de correcciones pasadas (ADR-0006)
+│   ├── off_topic_memory.py     # Memoria de preguntas fuera de dominio ya vistas (ADR-0007)
+│   ├── token_usage.py          # Extracción/suma de tokens de respuestas Ollama (ADR-0009)
 │   ├── rag_agent.py            # Recuperación vectorial con OpenCLIP + ChromaDB
 │   ├── response_agent.py       # Generación LLM + fuentes estructuradas (side-channel
 │   │                            #   last_answer/last_sources; model= override)
@@ -104,12 +107,25 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
                                       │
                               Consulta combinada
                                       │
+              [CONTEXTO CONVERSACIONAL] (último intercambio, si existe)
+              Sin USE_AGENTIC_PLANNER: concatena solo la pregunta anterior
+              antes del RAG (sin LLM). Con el flag: se pasa al Refinador
+              (pregunta + respuesta anteriores) en la primera vuelta.
+              Resuelve follow-ups ambiguos ("dime los pasos") (ADR-0010).
+                                      │
               [REFINADOR ⇄ VALIDADOR] (si USE_AGENTIC_PLANNER=True)
               QueryRefinerAgent reescribe la pregunta (+ few-shot de
-              RefinementMemory) → QueryValidatorAgent la valida contra
-              un retrieval de prueba real. Si rechaza, vuelve al
-              Refinador con el motivo — hasta REFINEMENT_MAX_ITERATIONS
-              (default 2), luego se fuerza el paso. (ADR-0006)
+              RefinementMemory + contexto conversacional en la 1ra vuelta)
+              → QueryValidatorAgent la valida contra un retrieval de
+              prueba real. Si rechaza, vuelve al Refinador con el motivo
+              — hasta REFINEMENT_MAX_ITERATIONS (default 2), luego se
+              fuerza el paso. (ADR-0006)
+              Si la pregunta es fuera de dominio (ej. "qué clima hace"),
+              el Validador corta todo el pipeline con un mensaje fijo —
+              el Refinador NUNCA la reformula para que suene tributaria
+              (guardrail de dominio, ADR-0007) — el chequeo también ve el
+              contexto conversacional para no confundir un follow-up
+              genérico con una pregunta fuera de tema (ADR-0010).
                                       │
                     [PLANNER] (si USE_AGENTIC_PLANNER=True)
                     PlannerAgent decide vía tool-calling de Ollama:
@@ -352,44 +368,107 @@ propia y `planner_graph_usage_rate` (% de preguntas donde decidió usar grafo
 — descriptivo, no una métrica de acierto, no hay ground truth de qué debería
 haber decidido cada pregunta).
 
-### 6e. Refinamiento agéntico de la consulta y memoria de aprendizaje in-context (opcional, ADR-0006)
+### 6e. Refinamiento agéntico de la consulta, guardrail de dominio y memoria de aprendizaje in-context (opcional, ADR-0006/ADR-0007/ADR-0010)
 
-**Clases:** `QueryRefinerAgent.refine(query, rejection_reason="")`,
-`QueryValidatorAgent.validate(query) -> dict`, `RefinementMemory`.
+**Clases:** `QueryRefinerAgent.refine(query, rejection_reason="", previous_query=None, previous_answer=None)`,
+`QueryValidatorAgent.check_off_topic(query, previous_query=None, previous_answer=None) -> dict` / `.validate(query) -> dict`,
+`RefinementMemory` (sobre `SimilarityMemory`, embeddings), `OffTopicMemory`
+(texto normalizado, sin embeddings — ver más abajo).
 
 Corre justo antes del `PlannerAgent`, sobre la misma `rag_query` combinada
 (texto+STT+visual). Detrás del mismo flag `USE_AGENTIC_PLANNER`.
 
+0. **Guardrail de dominio previo**: ANTES de la primera vuelta,
+   `run_refinement_loop` llama `validator_agent.check_off_topic(query, previous_query=..., previous_answer=...)`
+   sobre la pregunta ORIGINAL, sin retrieval — si es fuera de dominio, corta ahí
+   mismo, `refiner_agent.refine()` nunca se invoca (ver "Guardrail de
+   dominio" abajo; corrige un bug real donde el Refinador llegaba a
+   reformular preguntas ajenas al SRI porque el chequeo corría después). El
+   contexto conversacional evita que un follow-up genérico se marque fuera
+   de dominio por no tener palabras clave propias (ADR-0010).
 1. **Refinador**: reescribe la pregunta con Ollama (generación libre, sin
    tools). Si `RefinementMemory` tiene ejemplos parecidos guardados, los
-   inyecta como few-shot en el prompt.
+   inyecta como few-shot en el prompt. En la primera vuelta (`i == 0`)
+   recibe también `previous_query`/`previous_answer` — condensa un
+   follow-up ambiguo ("dime los pasos") en una pregunta autocontenida
+   usando el tema real de la conversación (ADR-0010).
 2. **Validador**: corre un retrieval de prueba real (`RAGAgent.retrieve`,
-   vector_only) sobre la pregunta refinada y decide vía tool-calling
-   (`rechazar_pregunta(motivo)`) si alcanza para responder — mismo patrón
-   de "presencia/ausencia del tool_call decide" que `PlannerAgent`.
-3. Si rechaza, el motivo vuelve al Refinador para la siguiente vuelta. Tope
-   `REFINEMENT_MAX_ITERATIONS` (default 2, configurable) — al llegar al
-   tope, se fuerza el paso con la última versión, nunca bloquea al usuario.
-4. Los chunks del último retrieval del Validador se **reusan** en `[RAG]`
-   final (`agents/coordinator.py`) — no se duplica la búsqueda vectorial.
-   Si el Planner decide `"hybrid"`, se completa aparte solo el
-   `graph_context` (`HybridRetriever.retrieve(mode="graph_only")`).
+   vector_only) sobre la pregunta refinada y decide vía tool-calling entre
+   DOS tools — `rechazar_pregunta(motivo)` (SÍ tributaria, mal formulada) o
+   `pregunta_fuera_de_dominio()` (red de seguridad, poco frecuente ya que el
+   guardrail previo cubre el caso principal) — mismo patrón de
+   "presencia/ausencia del tool_call decide" que `PlannerAgent`.
+3. Si rechaza (`rechazar_pregunta`), el motivo vuelve al Refinador para la
+   siguiente vuelta. Tope `REFINEMENT_MAX_ITERATIONS` (default 2,
+   configurable) — al llegar al tope, se fuerza el paso con la última
+   versión, nunca bloquea al usuario.
+4. Si es fuera de dominio en cualquier punto (previo o dentro del loop), se
+   corta de inmediato y `CoordinatorAgent.process()` salta Planner/RAG/
+   Generación por completo, respondiendo con un mensaje fijo.
+5. Los chunks del último retrieval del Validador se **reusan** en `[RAG]`
+   final (`agents/coordinator.py`) cuando la pregunta fue aprobada — no se
+   duplica la búsqueda vectorial. Si el Planner decide `"hybrid"`, se
+   completa aparte solo el `graph_context`
+   (`HybridRetriever.retrieve(mode="graph_only")`).
+
+**Guardrail de dominio (ADR-0007):** `OffTopicMemory.similar()` compara la
+pregunta contra otras ya marcadas fuera de dominio por **texto normalizado**
+(sin tildes, minúsculas, sin puntuación) con `difflib.SequenceMatcher` y un
+umbral alto — detecta la MISMA pregunta repetida con variaciones triviales,
+NO parafraseos. **No usa embeddings/CLIP**: medido en producción, la
+similitud coseno de OpenCLIP entre preguntas cortas en español cae siempre
+en un rango angosto (~0.83–0.90) sin importar el tema, lo que con un umbral
+bajo bloqueaba cualquier pregunta tributaria real tras la primera detección
+(incidente real, ver ADR-0007). Si hay match, corta directo sin llamar a
+Ollama (fast-path). Cuando el Validador detecta fuera de dominio por
+primera vez, `OffTopicMemory.record()` la guarda en
+`outputs/off_topic_memory.json` para reconocer repetidos más rápido.
 
 **Memoria de aprendizaje in-context (no fine-tuning):** cuando el loop tuvo
-al menos 1 rechazo antes de converger, `RefinementMemory.record()` guarda
-`{rejected_query, motivo, approved_query, vector}` en
-`outputs/refinement_memory.json`. El vector es el embedding OpenCLIP de la
-pregunta rechazada (mismo modelo que `RAGAgent`, sin dependencia nueva). En
-cada `refine()` posterior, `RefinementMemory.similar()` busca por similitud
-coseno los `REFINEMENT_MEMORY_TOP_K` ejemplos más parecidos (umbral
+al menos 1 rechazo (no fuera de dominio) antes de converger,
+`RefinementMemory.record()` guarda `{rejected_query, motivo,
+approved_query, vector}` en `outputs/refinement_memory.json`. El vector es
+el embedding OpenCLIP de la pregunta rechazada (mismo modelo que
+`RAGAgent`, sin dependencia nueva). En cada `refine()` posterior,
+`RefinementMemory.similar()` busca por similitud coseno los
+`REFINEMENT_MEMORY_TOP_K` ejemplos más parecidos (umbral
 `REFINEMENT_MEMORY_MIN_SIMILARITY`) y se inyectan como few-shot — el
 sistema "aprende" del uso acumulado vía contexto del prompt, no
-reentrenando los pesos de qwen2.5:3b (ver "Arquitectura 100% local" más
-abajo: no hay pipeline de fine-tuning en este proyecto).
+reentrenando pesos (no hay pipeline de fine-tuning en este proyecto). A
+diferencia de `OffTopicMemory`, acá un few-shot "no tan preciso" es
+inofensivo (en el peor caso, un ejemplo poco relevante) — por eso sigue
+usando similitud CLIP vía `agents/similarity_memory.py::SimilarityMemory`,
+mientras que `OffTopicMemory` dejó de usarla tras el incidente.
 
 **Fallback:** ante fallo de Ollama en Refiner o Validator, se degrada sin
 bloquear — el Refinador devuelve la pregunta sin cambios, el Validador
-aprueba por defecto (`approved=True`).
+aprueba por defecto (`approved=True`, `off_topic=False`).
+
+### 6f. Contexto conversacional — follow-ups sin restatement (ADR-0010)
+
+Resuelve un caso real: "¿Cómo obtengo el RUC como persona natural?" seguido
+de "Dime los pasos que debo seguir" — sin contexto, el Refinador (o el RAG
+directo) no tiene forma de saber a qué se refiere "los pasos".
+
+- **Plumbing:** `ui/interface.py::_extract_previous_exchange(history)`
+  (función de módulo, sin closure — testeable) extrae el último
+  intercambio de `gr.Chatbot` como 2 strings planos (`previous_query`,
+  `previous_answer`), filtrando partes multimedia con `_text_only()`.
+  `CoordinatorAgent.process()` gana estos dos parámetros opcionales
+  (default `None`); `scripts/run_benchmark.py` nunca los pasa (preguntas
+  sueltas, sin concepto de conversación).
+- **Con `USE_AGENTIC_PLANNER=True`:** el contexto se pasa a
+  `check_off_topic()` (siempre) y a `refine()` (solo en la primera vuelta)
+  — ver sección 6e.
+- **Con `USE_AGENTIC_PLANNER=False`** (default de producción): no hay
+  Refinador. Mecanismo liviano sin LLM en `CoordinatorAgent.process()`:
+  `rag_query = f"{previous_query} {rag_query}"` — solo la pregunta
+  anterior, no la respuesta (la respuesta puede traer normativa larga que
+  diluye la señal del embedding CLIP, ya frágil para texto largo/disperso
+  — ver ADR-0007).
+- **Profundidad:** solo el último intercambio (1 pregunta + 1 respuesta) —
+  no todo el historial acumulado. Limitación aceptada: si el usuario
+  cambia de tema y vuelve más tarde, el sistema no reconecta ese hilo.
 
 ---
 
@@ -503,7 +582,7 @@ es formato de display puro para el bubble del chat.
 
 | Parámetro | Valor | Descripción |
 |-----------|-------|-------------|
-| `LLM_MODEL` | `qwen2.5:3b-instruct-q4_K_M` | Modelo Ollama para generación (ADR-0003) |
+| `LLM_MODEL` | `qwen2.5:3b-instruct-q4_K_M` | Modelo Ollama para generación (ADR-0003); acepta modelos `-cloud` de Ollama Cloud sin cambios de código (ADR-0008) |
 | `VISION_MODEL` | `moondream` | Modelo Ollama para visión |
 | `USE_MINERU_PDF` | `True` | Backend de parseo PDF por defecto (ADR-0001); fallback automático a PyMuPDF |
 | `CLIP_MODEL` | `hf-hub:timm/vit_base_patch32_clip_224.openai` | Modelo de embeddings |
@@ -522,6 +601,7 @@ es formato de display puro para el bubble del chat.
 | `REFINEMENT_MEMORY_PATH` | `outputs/refinement_memory.json` | Persistencia de ejemplos aprendidos (ADR-0006) |
 | `REFINEMENT_MEMORY_TOP_K` | 3 | Ejemplos más similares inyectados como few-shot en el Refinador |
 | `REFINEMENT_MEMORY_MIN_SIMILARITY` | `RAG_MIN_SIMILARITY` (0.18) | Umbral mínimo de similitud coseno para considerar un ejemplo relevante |
+| `OFF_TOPIC_MEMORY_PATH` | `outputs/off_topic_memory.json` | Preguntas fuera de dominio ya detectadas — match por texto normalizado, no embeddings (ADR-0007) |
 | `WHISPER_MODEL_SIZE` | `base` | Tamaño del modelo STT |
 | `LLM_TEMPERATURE` | 0.1 | Creatividad del LLM (baja = más determinista) |
 | `OLLAMA_TIMEOUT` | 180 s | Timeout máximo de respuesta del LLM |
@@ -566,9 +646,11 @@ El RAG vectorial recupera **fragmentos de texto** — excelente para respuestas 
 
 El dominio tributario ecuatoriano tiene terminología fija y bien delimitada. Una taxonomía de 37 entidades con regex sobre texto normalizado (sin tildes) cubre el vocabulario controlado de la LORTI y resoluciones SRI con precisión predecible y sin dependencias externas (spaCy, transformers, etc.). La extracción de relaciones por patrones léxico-verbales es interpretable y auditable — relevante para un sistema que debe ser explicable ante el SRI.
 
-### Arquitectura 100% local
+### RAG/GraphRAG/STT/TTS 100% locales — el LLM de generación es configurable (ADR-0008)
 
-Ningún componente requiere internet en tiempo de ejecución: Ollama corre los LLMs localmente, ChromaDB es una BD embebida, Piper TTS funciona con modelos ONNX en disco, faster-whisper descarga el modelo una vez. Esto garantiza privacidad de la consulta y funcionamiento sin conectividad. El benchmark/RAGAS respeta el mismo principio: juez local vía Ollama, embeddings `sentence-transformers` locales, nunca OpenAI (ver ADR-0005 y `scripts/ragas_local.py`).
+ChromaDB es una BD embebida, Piper TTS funciona con modelos ONNX en disco, faster-whisper descarga el modelo una vez, y GraphRAG corre en NetworkX en memoria — ninguno de estos requiere internet en tiempo de ejecución, y eso no cambia. Lo que sí cambió: `LLM_MODEL` (el paso de generación y las decisiones agénticas que también son generación de texto — Planner/Refiner/Validator) ya no está restringido a modelos locales. Probando el sistema con `gemma3:27b-cloud` (Ollama Cloud) las respuestas fueron notablemente más coherentes que con qwen2.5:3b local, con latencia aún razonable (~15s) — mantener "100% local" como restricción dura habría significado descartar una mejora medible de calidad solo por una afirmación de arquitectura. Los modelos "-cloud" se sirven vía el mismo daemon local (`ollama serve`, tras `ollama signin`) — no hace falta tocar `OLLAMA_URL` ni ningún call site HTTP.
+
+El benchmark/RAGAS mantiene su propio principio, sin cambios: juez local vía Ollama, embeddings `sentence-transformers` locales, nunca OpenAI (ver ADR-0005 y `scripts/ragas_local.py`) — el juez evalúa la respuesta, sea del modelo que sea, y eso sigue siendo 100% local.
 
 ### ¿Por qué agregar un PlannerAgent y no dejar la arquitectura multiagente clásica?
 
@@ -609,7 +691,23 @@ Los 3 agentes son el mismo tramo conceptual — "el LLM decide/mejora algo del p
 
 ### ¿Por qué few-shot con memoria in-context y no fine-tuning del modelo?
 
-El proyecto es 100% de inferencia local (ver más abajo): no hay GPU de entrenamiento ni pipeline de fine-tuning, y agregar uno habría sido infraestructura completamente nueva, fuera del alcance de la tesis. `RefinementMemory` guarda las correcciones reales del Validador (`{rejected_query, motivo, approved_query}`) y las inyecta como ejemplos few-shot cuando aparece una pregunta similar — el sistema mejora con el uso sin reentrenar pesos. Es una forma honesta de "aprendizaje" acotada a lo que el hardware disponible permite (ADR-0006).
+No hay GPU de entrenamiento ni pipeline de fine-tuning en este proyecto, y agregar uno habría sido infraestructura completamente nueva, fuera del alcance de la tesis. `RefinementMemory` guarda las correcciones reales del Validador (`{rejected_query, motivo, approved_query}`) y las inyecta como ejemplos few-shot cuando aparece una pregunta similar — el sistema mejora con el uso sin reentrenar pesos. Es una forma honesta de "aprendizaje" acotada a lo que el hardware disponible permite (ADR-0006).
+
+### ¿Por qué una tool separada (`pregunta_fuera_de_dominio`) y no ampliar `rechazar_pregunta`?
+
+Pruebas reales mostraron que una pregunta ajena al SRI ("¿qué clima hace hoy?") terminaba siendo reescrita por el Refinador hasta sonar tributaria, porque `rechazar_pregunta` no distingue "es tributaria pero está mal formulada" de "no tiene nada que ver con tributación". Una segunda tool explícita resuelve la ambigüedad en el punto donde se genera (el Validador decide), y le da al `run_refinement_loop` una señal clara para cortar sin volver a refinar — en vez de intentar "arreglar" con un prompt más estricto una distinción que el modelo no puede comunicar con una sola tool (ADR-0007).
+
+### ¿Por qué dejar de exigir "100% local" solo para el LLM de generación?
+
+Probar el sistema con `gemma3:27b-cloud` (Ollama Cloud) dio respuestas notablemente más coherentes que con qwen2.5:3b local, con latencia aún razonable. Mantener la restricción dura habría significado descartar una mejora de calidad medible por una afirmación de arquitectura. Se acotó el alcance del cambio a lo que realmente lo necesitaba: RAG/GraphRAG/STT/TTS son deterministas y rápidos, sin beneficio de correr en la nube — solo el LLM de texto (y las decisiones agénticas que también son generación de texto) se abre a modelos cloud (ADR-0008).
+
+### ¿Por qué un ranking con pesos fijos y no una métrica aprendida?
+
+`compute_model_ranking` (ADR-0009) usa pesos declarados (50% calidad / 30% velocidad / 20% costo) en vez de aprender una ponderación óptima — no hay suficientes corridas de benchmark para entrenar nada, y una fórmula "aprendida" con pocos datos sería sobreajuste disfrazado de objetividad. Mismo criterio que ya rige `planner_graph_usage_rate`: es una heurística declarada para ayudar a decidir, no una medición validada — y se documenta como tal en vez de presentarla como más rigurosa de lo que es.
+
+### ¿Por qué el contexto conversacional solo en el Refinador, y no en la Generación?
+
+Se descartó pasar el historial también a `ResponseAgent.generate()` (para que la respuesta pudiera referenciar el turno anterior explícitamente). El patrón "condensar antes de recuperar" es el estándar en RAG conversacional y mantiene la generación desacoplada del historial — menos riesgo de que un modelo de 3B mezcle contexto viejo con normativa nueva al redactar la respuesta. Solo se lleva 1 turno de profundidad (no todo el historial) por el mismo motivo: cubrir el caso real (follow-up inmediato) sin inflar el prompt de un modelo chico ni arrastrar temas lejanos que podrían confundir la condensación (ADR-0010).
 
 ---
 
@@ -624,16 +722,22 @@ Usuario hace pregunta (texto / voz / imagen)
   Imagen → Moondream → descripción
           │
           ▼
+  [Contexto conversacional] (último intercambio, si existe — ADR-0010)
+  Sin flag: concatena solo la pregunta anterior antes del RAG.
+  Con flag: se pasa al Refinador (pregunta+respuesta) en la 1ra vuelta.
+          │
+          ▼
   [Refinador ⇄ Validador] (opcional, USE_AGENTIC_PLANNER)
-  Refinador reescribe la pregunta (+ memoria in-context) →
+  Refinador reescribe la pregunta (+ memoria in-context + contexto conv.) →
   Validador la valida contra un retrieval de prueba real
   Rechazo → vuelve al Refinador con el motivo (máx. 2 vueltas, ADR-0006)
+  Fuera de dominio → corta todo con mensaje fijo, nunca reformula (ADR-0007)
           │
           ▼
   [PlannerAgent] (opcional, USE_AGENTIC_PLANNER)
   Tool-calling de Ollama: ¿necesita GraphRAG? sí/no
   Con Refinador/Validador, son los 3 pasos con decisión
-  real del LLM (ADR-0005 / ADR-0006)
+  real del LLM (ADR-0005 / ADR-0006) — LLM local o cloud (ADR-0008)
           │
           ▼
   [HybridRetriever]

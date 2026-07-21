@@ -8,7 +8,7 @@ import re
 import gradio as gr
 from vision.capture import capture_screenshot
 from ui.styles import CSS
-from config import GRADIO_PORT, GRADIO_SERVER, GRADIO_TITLE
+from config import GRADIO_PORT, GRADIO_SERVER, GRADIO_TITLE, LLM_MODEL, is_cloud_model
 
 GRADIO_THEME = gr.themes.Base(
     primary_hue=gr.themes.colors.blue,
@@ -130,9 +130,21 @@ def _last_message_by_stage(events: list) -> dict:
     return messages
 
 
+def _count_validator_rejections(events: list) -> int:
+    """Cuántas veces el Validador rechazó (✗ Rechazada / ✗ Fuera de dominio)
+    en esta consulta — a diferencia de _last_message_by_stage, que solo ve
+    el ÚLTIMO mensaje por etapa (y tras un rechazo+aprobación posterior,
+    ocultaría que hubo una vuelta atrás real). Ver ADR-0006/ADR-0007."""
+    return sum(
+        1 for ev in (events or [])
+        if ev["stage"] == _Stage.VALIDADOR and ev["message"].startswith("✗")
+    )
+
+
 def _render_agent_flow_html(events: list) -> str:
     messages = _last_message_by_stage(events)
     finished = _Stage.FIN in messages or _Stage.ERROR in messages
+    n_rejections = _count_validator_rejections(events)
 
     reached = [any(tag in messages for tag in node["tags"]) for node in _AGENT_FLOW_NODES]
     active_index = max((i for i, r in enumerate(reached) if r), default=-1)
@@ -174,7 +186,56 @@ def _render_agent_flow_html(events: list) -> str:
                 line_status = "pending"
             nodes_html.append(f'<div class="agent-flow-line-wrap"><div class="agent-flow-line {line_status}"></div></div>')
 
-    return f'<div class="agent-flow-track">{"".join(nodes_html)}</div>'
+    backline_html = ""
+    if n_rejections > 0:
+        # Arco de retroceso Validador→Refinador — visible solo si hubo al
+        # menos 1 rechazo real (si el Validador aprobó a la primera, no hay
+        # loop que mostrar). "flowing" mientras la consulta sigue en curso,
+        # "done" fijo con el badge ×N al terminar (ver ADR-0006/ADR-0007).
+        n_total = len(_AGENT_FLOW_NODES)
+        refinador_i = next(i for i, n in enumerate(_AGENT_FLOW_NODES) if _Stage.REFINADOR in n["tags"])
+        validador_i = next(i for i, n in enumerate(_AGENT_FLOW_NODES) if _Stage.VALIDADOR in n["tags"])
+        left_pct = (refinador_i + 0.5) / n_total * 100
+        width_pct = (validador_i - refinador_i) / n_total * 100
+        back_status = "done" if finished else "flowing"
+        backline_html = (
+            f'<div class="agent-flow-backline {back_status}" '
+            f'style="left:{left_pct:.2f}%;width:{width_pct:.2f}%">'
+            f'<span class="agent-flow-backline-badge">×{n_rejections}</span>'
+            f'</div>'
+        )
+
+    return f'<div class="agent-flow-track">{"".join(nodes_html)}{backline_html}</div>'
+
+
+# ── Contexto conversacional (ADR-0010) ──────────────────────────────────────────
+# Funciones puras (sin closure sobre `coordinator`) — viven a nivel de módulo
+# para poder testearlas directo, mismo criterio que _render_agent_flow_html.
+
+def _text_only(content) -> str:
+    """Extrae solo las partes de texto de un content de gr.Chatbot (puede
+    ser str, o lista mixta de str/dict con imágenes adjuntas)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(p for p in content if isinstance(p, str))
+    return ""
+
+
+def _extract_previous_exchange(history: list) -> tuple:
+    """
+    Último intercambio (pregunta+respuesta) del historial, como texto
+    plano — (None, None) si no hay turno previo o si el turno era solo
+    multimedia sin texto. Se llama sobre `history` ANTES de appendear el
+    turno nuevo — ver ADR-0010 (contexto conversacional).
+    """
+    if not history:
+        return None, None
+    last_user = next((h for h in reversed(history) if h["role"] == "user"), None)
+    last_assistant = next((h for h in reversed(history) if h["role"] == "assistant"), None)
+    prev_q = _text_only(last_user["content"]).strip() if last_user else ""
+    prev_a = _text_only(last_assistant["content"]).strip() if last_assistant else ""
+    return (prev_q or None), (prev_a or None)
 
 
 # ── Main interface ────────────────────────────────────────────────────────────
@@ -275,6 +336,10 @@ def build_interface(coordinator) -> gr.Blocks:
         image = media_data if media_type == "image" else None
         video = media_data if media_type == "video" else None
 
+        # Contexto conversacional: extraído ANTES de appendear los bubbles
+        # nuevos, para no capturar el turno actual como "anterior" (ADR-0010).
+        previous_query, previous_answer = _extract_previous_exchange(history)
+
         history = list(history or [])
         history.append({
             "role": "user",
@@ -294,6 +359,8 @@ def build_interface(coordinator) -> gr.Blocks:
             audio_input=audio,
             text_input=text,
             video_input=video,
+            previous_query=previous_query,
+            previous_answer=previous_answer,
         ):
             # Respuesta limpia y fuentes estructuradas directo del agente —
             # sin re-parsear el texto del chat (candidata B del review).
@@ -337,12 +404,18 @@ def build_interface(coordinator) -> gr.Blocks:
         gr.HTML(f"<style>{CSS}</style>")
 
         # ── Ecuador topbar + header ───────────────────────────────────────
-        gr.HTML("""
+        # Badge dinámico: RAG/GraphRAG/STT/Visión/TTS siguen 100% locales
+        # siempre — solo el LLM de texto puede ser local o cloud (ADR-0008).
+        _llm_badge = (
+            f"🌐 LLM Cloud ({html.escape(LLM_MODEL)})" if is_cloud_model(LLM_MODEL)
+            else "💻 100% Local"
+        )
+        gr.HTML(f"""
         <div class="sri-topbar" role="presentation"></div>
         <header class="sri-header">
             <div class="sri-header-badge" role="status">
                 <span class="dot" aria-hidden="true"></span>
-                Sistema Activo &middot; 100% Local
+                Sistema Activo &middot; {_llm_badge}
             </div>
             <h1>⚖️ SRI IA Multimodal</h1>
             <p class="subtitle">
@@ -553,6 +626,13 @@ def build_interface(coordinator) -> gr.Blocks:
             # ═══════════════════════════════════════════════════════════════
             with gr.Tab("📊  Benchmark RAGAS") as tab_benchmark:
                 benchmark_html = gr.HTML(value=_benchmark_tab_html())
+                _initial_models = _benchmark_model_names()
+                model_dropdown = gr.Dropdown(
+                    label="Ver detalle de un modelo",
+                    choices=_initial_models,
+                    value=(_initial_models[0] if _initial_models else None),
+                )
+                model_detail_html = gr.HTML(value=_model_detail_html(_initial_models[0]) if _initial_models else "")
 
             # ═══════════════════════════════════════════════════════════════
             # TAB 3 — Estado del Sistema (se refresca al entrar)
@@ -567,10 +647,13 @@ def build_interface(coordinator) -> gr.Blocks:
                 _build_guide_tab()
 
         # ── Footer ────────────────────────────────────────────────────────
+        # RAG/GraphRAG/STT/Visión/TTS son 100% locales en cualquier caso —
+        # solo el LLM de generación puede ser cloud (ADR-0008), así que ya
+        # no se puede prometer "sin conexión a internet" a secas.
         gr.HTML("""
         <footer class="sri-footer">
             SRI IA Multimodal &nbsp;&middot;&nbsp;
-            Sistema 100% Local &middot; Sin conexión a internet en tiempo de ejecución
+            RAG + GraphRAG 100% local &middot; LLM configurable (local o Ollama Cloud)
             &nbsp;&middot;&nbsp; Ollama &middot; ChromaDB &middot; Whisper &middot;
             Piper TTS &middot; Moondream &nbsp;&middot;&nbsp; Maestría IA Aplicada &middot; UIsrael
         </footer>
@@ -601,6 +684,9 @@ def build_interface(coordinator) -> gr.Blocks:
         # congelados al arranque de la app (candidata C del review).
         tab_knowledge.select(fn=_knowledge_tab_html, outputs=[knowledge_html])
         tab_benchmark.select(fn=_benchmark_tab_html, outputs=[benchmark_html])
+        tab_benchmark.select(fn=_benchmark_model_choices, outputs=[model_dropdown])
+        tab_benchmark.select(fn=_benchmark_first_model_detail_html, outputs=[model_detail_html])
+        model_dropdown.change(fn=_model_detail_html, inputs=[model_dropdown], outputs=[model_detail_html])
         tab_system.select(fn=_system_tab_html, outputs=[system_html])
 
     return demo
@@ -867,6 +953,97 @@ def _knowledge_tab_html() -> str:
     """)
 
 
+def _load_latest_summary() -> tuple[dict | None, str | None]:
+    """
+    Localiza y carga el JSON de resumen más reciente de
+    scripts/run_benchmark.py. Retorna (summary, path) — (None, None) si no
+    hay ninguno todavía. Compartido entre la tab de benchmark, el combo de
+    modelos y la tarjeta de detalle — un solo lugar donde cambia cómo se
+    localiza/carga el archivo.
+    """
+    import config, glob, json, os
+
+    bench_dir = os.path.join(config.BASE_DIR, "outputs", "benchmarks")
+    summaries = sorted(glob.glob(os.path.join(bench_dir, "*_summary.json")))
+    if not summaries:
+        return None, None
+
+    latest_path = summaries[-1]
+    try:
+        with open(latest_path, encoding="utf-8") as f:
+            return json.load(f), latest_path
+    except Exception:
+        return None, latest_path
+
+
+def _benchmark_model_names() -> list[str]:
+    """Nombres de modelo del último benchmark, ordenados — usado tanto para
+    construir el combo inicial como para refrescarlo en tab_benchmark.select."""
+    summary, _ = _load_latest_summary()
+    return sorted((summary or {}).get("by_model", {}).keys())
+
+
+def _benchmark_model_choices():
+    """Actualización del combo de modelos (Gradio gr.update) — se refresca
+    junto con benchmark_html en tab_benchmark.select."""
+    models = _benchmark_model_names()
+    return gr.update(choices=models, value=(models[0] if models else None))
+
+
+def _benchmark_first_model_detail_html() -> str:
+    """Detalle del primer modelo del último benchmark (o vacío si no hay
+    ninguno) — usado para refrescar la tarjeta al re-entrar a la tab."""
+    models = _benchmark_model_names()
+    return _model_detail_html(models[0]) if models else ""
+
+
+def _model_detail_html(model: str) -> str:
+    """
+    Tarjeta de detalle de un modelo específico del último benchmark — solo
+    lectura, no dispara ninguna corrida nueva (mismo principio que el resto
+    de la tab: correr el benchmark sigue siendo por terminal).
+    """
+    if not model:
+        return ""
+
+    from services.benchmark_format import (
+        fmt_number, fmt_planning_seconds, fmt_refinement, fmt_ragas_parts,
+        fmt_rate_pct, fmt_tokens, is_cloud_model, EMPTY,
+    )
+
+    summary, _ = _load_latest_summary()
+    v = (summary or {}).get("by_model", {}).get(model)
+    if v is None:
+        return "<div class='info-card'>Sin datos para este modelo en el último benchmark.</div>"
+
+    def _ragas_cell(val, n_eval, n_total):
+        base, note = fmt_ragas_parts(val, n_eval, n_total)
+        if base is None:
+            return EMPTY
+        return f"{base} <span style='color:#64748b;font-size:0.72em'>({note})</span>" if note else base
+
+    badge = "🌐 Cloud" if is_cloud_model(model) else "💻 Local"
+    return f"""
+    <div class="info-card" style="margin-top:12px">
+      <strong style="color:#c4b5fd;font-size:0.95rem">{html.escape(model)}</strong>
+      <span style="margin-left:8px;font-size:0.78rem;color:#93c5fd">{badge}</span><br>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:10px" role="table">
+        <tbody>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Preguntas evaluadas</td><td style="padding:5px 8px">{v.get('n', 0)}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Refinamiento</td><td style="padding:5px 8px">{fmt_refinement(v.get('avg_refinement_seconds'), v.get('avg_refinement_iterations'))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Planning</td><td style="padding:5px 8px">{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Retrieval</td><td style="padding:5px 8px">{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Generación</td><td style="padding:5px 8px">{fmt_number(v.get('avg_generation_seconds'), 's')}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Total</td><td style="padding:5px 8px;font-weight:700;color:#fbbf24">{fmt_number(v.get('avg_total_seconds'), 's')}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Tokens promedio</td><td style="padding:5px 8px">{fmt_tokens(v.get('avg_total_tokens'))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Faithfulness</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Answer Relevancy</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    """
+
+
 def _benchmark_tab_html() -> str:
     """
     Solo lectura: resumen del último benchmark corrido con
@@ -875,12 +1052,9 @@ def _benchmark_tab_html() -> str:
     esta tab no lanza procesos, solo lee el JSON más reciente al momento
     de entrar a la tab.
     """
-    import config, glob, json, os
+    summary, latest_path = _load_latest_summary()
 
-    bench_dir = os.path.join(config.BASE_DIR, "outputs", "benchmarks")
-    summaries = sorted(glob.glob(os.path.join(bench_dir, "*_summary.json")))
-
-    if not summaries:
+    if summary is None and latest_path is None:
         return """
         <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
           <div class="info-card gold">
@@ -892,23 +1066,20 @@ def _benchmark_tab_html() -> str:
             &nbsp;&middot;&nbsp; corrida completa (puede tardar horas en CPU)<br><br>
             Compara RAG vectorial, GraphRAG y modo híbrido — tiempo de
             respuesta y calidad (RAGAS: faithfulness, answer relevancy) —
-            y permite comparar distintos modelos Ollama entre sí.
+            y permite comparar distintos modelos Ollama entre sí (local o
+            cloud, ver ADR-0008).
           </div>
         </div>
         """
-
-    latest_path = summaries[-1]
-    try:
-        with open(latest_path, encoding="utf-8") as f:
-            summary = json.load(f)
-    except Exception as exc:
-        return f"<div style='padding:20px'>Error leyendo {latest_path}: {exc}</div>"
+    if summary is None:
+        return f"<div style='padding:20px'>Error leyendo {latest_path}</div>"
 
     # Convenciones de formato compartidas con scripts/run_benchmark.py —
     # la semántica ("—" vacío, "(N/total)" evaluación parcial) vive en
     # services/benchmark_format.py; acá solo se aplica el estilo visual.
     from services.benchmark_format import (
         EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct,
+        fmt_tokens, is_cloud_model, compute_model_ranking,
     )
 
     def _fmt_ragas_styled(v, n_evaluated, n_total):
@@ -942,6 +1113,56 @@ def _benchmark_tab_html() -> str:
         "<th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th>"
         "</tr></thead>"
     )
+
+    def _model_rows(agg: dict) -> str:
+        return "".join(
+            f"<tr><td style='text-align:left'>{'🌐' if is_cloud_model(k) else '💻'} {k}</td>"
+            f"<td style='text-align:center'>{v.get('n', 0)}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_generation_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
+            f"<td style='text-align:center;color:#fcd34d'>{fmt_tokens(v.get('avg_total_tokens'))}</td>"
+            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
+            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+            f"</tr>"
+            for k, v in sorted(agg.items())
+        )
+
+    model_thead = (
+        "<thead><tr>"
+        "<th style='text-align:left'>Modelo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
+        "<th>Generación</th><th>Total</th><th>Tokens</th><th>Faithfulness</th>"
+        "<th>Answer Relevancy</th>"
+        "</tr></thead>"
+    )
+
+    ranking = compute_model_ranking(summary.get('by_model', {}))
+    ranking_html = ""
+    if ranking:
+        ranking_rows = "".join(
+            f"<tr><td style='text-align:center'>#{i+1}</td>"
+            f"<td style='text-align:left'>{'🌐' if r['is_cloud'] else '💻'} {r['model']}</td>"
+            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{r['score']:.2f}</td></tr>"
+            for i, r in enumerate(ranking)
+        )
+        ranking_html = f"""
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        🏆 Ranking Recomendado
+      </h3>
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
+        <thead><tr><th style='text-align:center'>#</th><th style='text-align:left'>Modelo</th><th>Score</th></tr></thead>
+        <tbody>{ranking_rows}</tbody>
+      </table>
+      <p style="font-size:0.75rem;color:#64748b;margin-top:8px">
+        Heurística de comparación (ver ADR-0009), no una medición absoluta &mdash;
+        score = 50% calidad (Faithfulness+Answer Relevancy) + 30% velocidad + 20%
+        costo (tokens totales), normalizado entre los modelos de esta corrida.
+        Modelos sin RAGAS evaluado quedan fuera del ranking.
+      </p>
+    """
 
     ragas_enabled = summary.get('ragas_enabled', True)
     ragas_warning = "" if ragas_enabled else """
@@ -1023,9 +1244,11 @@ def _benchmark_tab_html() -> str:
         Por Modelo LLM
       </h3>
       <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
-        {thead}
-        <tbody>{_rows(summary.get('by_model', {}))}</tbody>
+        {model_thead}
+        <tbody>{_model_rows(summary.get('by_model', {}))}</tbody>
       </table>
+
+      {ranking_html}
 
       <div class="info-card gold" style="margin-top:16px">
         <strong style="color:#e8edf5">Reporte completo (HTML) y datos crudos (CSV):</strong><br>

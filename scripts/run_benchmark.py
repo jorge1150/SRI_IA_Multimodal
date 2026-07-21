@@ -44,6 +44,7 @@ if _ROOT not in sys.path:
 
 from services.benchmark_format import (
     EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct, fmt_refinement,
+    fmt_tokens, is_cloud_model, compute_model_ranking,
 )
 
 DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "preguntas.docx")
@@ -98,6 +99,8 @@ def _build_pipeline():
 
 def _run_single(hybrid, response_agent, planner_agent, refiner_agent, validator_agent,
                  log_agent, question: str, mode: str, model: str) -> dict:
+    from agents.token_usage import add_token_usage
+
     planning_seconds = 0.0
     planner_used_graph = None
     refinement_seconds = 0.0
@@ -105,65 +108,96 @@ def _run_single(hybrid, response_agent, planner_agent, refiner_agent, validator_
     retrieve_mode = mode
     rag_query = question
     validated_chunks = None
+    token_usage = {}
+    planning_tokens = {}
+    off_topic = False
+    off_topic_answer = ""
 
     if mode == "agentic":
         # Mismo loop Refinador⇄Validador que CoordinatorAgent.process() (ver
         # agents/coordinator.py::run_refinement_loop) — el benchmark de
         # tesis mide el pipeline agentic completo, no solo el Planner.
-        # También alimenta outputs/refinement_memory.json con lecciones
-        # reales de estas corridas.
+        # También alimenta outputs/refinement_memory.json (y
+        # off_topic_memory.json) con lecciones reales de estas corridas.
         from agents.coordinator import consume_refinement_loop
 
         t_ref = time.time()
-        rag_query, validated_chunks, refinement_iterations = consume_refinement_loop(
+        loop_result = consume_refinement_loop(
             refiner_agent, validator_agent, question, log_agent,
         )
         refinement_seconds = time.time() - t_ref
+        rag_query = loop_result["final_query"]
+        validated_chunks = loop_result["chunks"]
+        refinement_iterations = loop_result["n_iterations"]
+        token_usage = loop_result["token_usage"]
+        off_topic = loop_result["off_topic"]
 
-        t_plan = time.time()
-        planner_used_graph = planner_agent.should_use_graph(rag_query, model=model)
-        planning_seconds = time.time() - t_plan
-        retrieve_mode = "hybrid" if planner_used_graph else "vector_only"
-
-    t0 = time.time()
-    if validated_chunks is not None:
-        if retrieve_mode == "hybrid":
-            graph_only = hybrid.retrieve(rag_query, mode="graph_only")
-            combined_mode = "hybrid" if graph_only.get("graph_context") else "vector_only"
-            retrieval = {**graph_only, "vector_chunks": validated_chunks, "mode": combined_mode}
+        if off_topic:
+            # Fuera de dominio (ADR-0007): se mide el corte, no se gasta
+            # Planner/retrieval/generación en algo sin normativa que buscar.
+            off_topic_answer = loop_result["reason"]
         else:
-            retrieval = {
-                "vector_chunks": validated_chunks, "graph_context": "",
-                "graph_triples": [], "graph_entities": [], "mode": "vector_only",
-            }
+            t_plan = time.time()
+            planner_used_graph = planner_agent.should_use_graph(rag_query, model=model)
+            planning_seconds = time.time() - t_plan
+            planning_tokens = planner_agent.last_token_usage
+            retrieve_mode = "hybrid" if planner_used_graph else "vector_only"
+
+    if off_topic:
+        retrieval = {"vector_chunks": [], "graph_context": "", "graph_triples": [], "mode": "vector_only"}
+        retrieval_seconds = 0.0
+        generation_seconds = 0.0
+        generation_tokens = {}
+        answer = off_topic_answer
     else:
-        retrieval = hybrid.retrieve(rag_query, mode=retrieve_mode)
-    retrieval_seconds = time.time() - t0
+        t0 = time.time()
+        if validated_chunks is not None:
+            if retrieve_mode == "hybrid":
+                graph_only = hybrid.retrieve(rag_query, mode="graph_only")
+                combined_mode = "hybrid" if graph_only.get("graph_context") else "vector_only"
+                retrieval = {**graph_only, "vector_chunks": validated_chunks, "mode": combined_mode}
+            else:
+                retrieval = {
+                    "vector_chunks": validated_chunks, "graph_context": "",
+                    "graph_triples": [], "graph_entities": [], "mode": "vector_only",
+                }
+        else:
+            retrieval = hybrid.retrieve(rag_query, mode=retrieve_mode)
+        retrieval_seconds = time.time() - t0
 
-    t1 = time.time()
-    response_agent.generate(
-        query=rag_query,
-        rag_context=retrieval["vector_chunks"],
-        graph_context=retrieval["graph_context"],
-        model=model,
-    )
-    generation_seconds = time.time() - t1
+        t1 = time.time()
+        response_agent.generate(
+            query=rag_query,
+            rag_context=retrieval["vector_chunks"],
+            graph_context=retrieval["graph_context"],
+            model=model,
+        )
+        generation_seconds = time.time() - t1
+        generation_tokens = response_agent.last_token_usage
 
-    # Respuesta limpia (sin bloque de fuentes) directo del side-channel del
-    # agente — antes se cortaba el texto por el separador de display.
-    answer = response_agent.last_answer
+        # Respuesta limpia (sin bloque de fuentes) directo del side-channel del
+        # agente — antes se cortaba el texto por el separador de display.
+        answer = response_agent.last_answer
+
     retrieved_texts = [c["text"] for c in retrieval["vector_chunks"]]
     if retrieval["graph_context"]:
         retrieved_texts.append(retrieval["graph_context"])
 
+    total_tokens = add_token_usage(add_token_usage(token_usage, planning_tokens), generation_tokens)
+
     return {
         "mode_result": retrieval["mode"],
+        "off_topic": off_topic,
         "refinement_seconds": refinement_seconds,
         "refinement_iterations": refinement_iterations,
+        "refinement_tokens": token_usage.get("total_tokens", 0),
         "planning_seconds": planning_seconds,
+        "planning_tokens": planning_tokens.get("total_tokens", 0),
         "planner_used_graph": planner_used_graph,
         "retrieval_seconds": retrieval_seconds,
         "generation_seconds": generation_seconds,
+        "generation_tokens": generation_tokens.get("total_tokens", 0),
+        "total_tokens": total_tokens.get("total_tokens", 0),
         "answer": answer,
         "retrieved_texts": retrieved_texts,
         "vector_chunks": retrieval["vector_chunks"],
@@ -225,9 +259,11 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
 def _write_csv(rows: list, path: str) -> None:
     fields = [
         "category", "source_doc", "question", "model", "mode_requested", "mode_result",
-        "refinement_seconds", "refinement_iterations",
-        "planning_seconds", "planner_used_graph",
-        "retrieval_seconds", "generation_seconds", "total_seconds",
+        "off_topic",
+        "refinement_seconds", "refinement_iterations", "refinement_tokens",
+        "planning_seconds", "planning_tokens", "planner_used_graph",
+        "retrieval_seconds", "generation_seconds", "generation_tokens", "total_seconds",
+        "total_tokens",
         "n_vector_chunks", "n_graph_triples", "source_matched",
         "faithfulness", "answer_relevancy", "answer",
     ]
@@ -268,6 +304,7 @@ def _aggregate(rows: list, key: str) -> dict:
             "avg_retrieval_seconds": sum(i["retrieval_seconds"] for i in items) / n,
             "avg_generation_seconds": sum(i["generation_seconds"] for i in items) / n,
             "avg_total_seconds": sum(i["total_seconds"] for i in items) / n,
+            "avg_total_tokens": sum(i.get("total_tokens", 0) for i in items) / n,
             "avg_faithfulness": (sum(faith) / len(faith)) if faith else None,
             "avg_answer_relevancy": (sum(rel) / len(rel)) if rel else None,
             "source_match_rate": (sum(matched) / len(matched)) if matched else None,
@@ -321,18 +358,40 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
         for mode, v in sorted(by_mode.items())
     )
     model_rows = "".join(
-        f"<tr><td>{html.escape(model)}</td>"
+        f"<tr><td>{'🌐' if is_cloud_model(model) else '💻'} {html.escape(model)}</td>"
         f"<td>{v['n']}</td>"
         f"<td>{fmt_refinement(v.get('avg_refinement_seconds'), v.get('avg_refinement_iterations'))}</td>"
         f"<td>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
         f"<td>{fmt_number(v['avg_retrieval_seconds'], 's')}</td>"
         f"<td>{fmt_number(v['avg_generation_seconds'], 's')}</td>"
         f"<td>{fmt_number(v['avg_total_seconds'], 's')}<br>{_bar(v['avg_total_seconds'], max_total, '#a78bfa')}</td>"
+        f"<td>{fmt_tokens(v.get('avg_total_tokens'))}</td>"
         f"<td>{_fmt_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
         f"<td>{_fmt_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
         f"</tr>"
         for model, v in sorted(by_model.items())
     )
+
+    ranking = compute_model_ranking(by_model)
+    ranking_html = ""
+    if ranking:
+        ranking_rows = "".join(
+            f"<tr><td>#{i+1}</td>"
+            f"<td>{'🌐' if r['is_cloud'] else '💻'} {html.escape(r['model'])}</td>"
+            f"<td>{r['score']:.2f}</td></tr>"
+            for i, r in enumerate(ranking)
+        )
+        ranking_html = f"""
+  <h2>🏆 Ranking recomendado</h2>
+  <table>
+    <thead><tr><th>#</th><th>Modelo</th><th>Score</th></tr></thead>
+    <tbody>{ranking_rows}</tbody>
+  </table>
+  <p class="meta">Heurística de comparación (ver ADR-0009), no una medición absoluta:
+     score = 50% calidad (Faithfulness+Answer Relevancy) + 30% velocidad + 20% costo
+     (tokens totales), normalizado entre los modelos de esta corrida. Modelos sin
+     RAGAS evaluado quedan fuera del ranking.</p>
+"""
 
     doc = f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
@@ -363,11 +422,11 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
   <h2>Comparación por modelo LLM</h2>
   <table>
     <thead><tr><th>Modelo</th><th>N</th><th>Refinamiento</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
-    <th>Faithfulness</th><th>Answer Relevancy</th></tr></thead>
+    <th>Tokens</th><th>Faithfulness</th><th>Answer Relevancy</th></tr></thead>
     <tbody>{model_rows}</tbody>
   </table>
-
-  {"" if ragas_enabled else '<p class="meta" style="color:#f59e0b">⚠ Esta corrida usó --no-ragas: Faithfulness y Answer Relevancy quedan vacíos a propósito (no es un error) — solo se midió tiempo.</p>'}
+  {ranking_html}
+  {"" if ragas_enabled else '<p class="meta" style="color:#f59e0b">⚠ Esta corrida usó --no-ragas: Faithfulness y Answer Relevancy quedan vacíos a propósito (no es un error) — solo se midió tiempo. El ranking recomendado tampoco está disponible sin RAGAS.</p>'}
   <p class="meta" style="margin-top:24px">
     Faithfulness/Answer Relevancy calculados con RAGAS, juez local vía Ollama
     (<code>{meta.get('judge_model', '')}</code>) y embeddings
@@ -469,16 +528,21 @@ def main():
                     "model": model,
                     "mode_requested": mode,
                     "mode_result": result["mode_result"],
+                    "off_topic": result["off_topic"],
                     "refinement_seconds": round(result["refinement_seconds"], 3),
                     "refinement_iterations": result["refinement_iterations"],
+                    "refinement_tokens": result["refinement_tokens"],
                     "planning_seconds": round(result["planning_seconds"], 3),
+                    "planning_tokens": result["planning_tokens"],
                     "planner_used_graph": result["planner_used_graph"],
                     "retrieval_seconds": round(result["retrieval_seconds"], 3),
                     "generation_seconds": round(result["generation_seconds"], 3),
+                    "generation_tokens": result["generation_tokens"],
                     "total_seconds": round(
                         result["refinement_seconds"] + result["planning_seconds"]
                         + result["retrieval_seconds"] + result["generation_seconds"], 3
                     ),
+                    "total_tokens": result["total_tokens"],
                     "n_vector_chunks": result["n_vector_chunks"],
                     "n_graph_triples": result["n_graph_triples"],
                     "source_matched": _source_matched(q["source_doc"], result["vector_chunks"]),

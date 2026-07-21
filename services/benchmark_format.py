@@ -67,3 +67,72 @@ def fmt_rate_pct(rate) -> str:
     if _is_missing(rate):
         return EMPTY
     return f"{rate * 100:.0f}%"
+
+
+def fmt_tokens(avg_total_tokens) -> str:
+    """Tokens promedio por consulta (prompt+completion, todas las llamadas
+    Ollama de la corrida), 0/None → EMPTY. Ver ADR-0009."""
+    t = avg_total_tokens or 0
+    return f"{t:,.0f}".replace(",", " ") if t > 0 else EMPTY
+
+
+def is_cloud_model(model: str) -> bool:
+    """Reexporta config.is_cloud_model para que este módulo no dependa de
+    importar `config` en cada consumidor — heurística por convención de
+    nombre de Ollama Cloud (sufijo '-cloud', ver ADR-0008)."""
+    return model.endswith("-cloud")
+
+
+def compute_model_ranking(by_model: dict) -> list[dict]:
+    """
+    Heurística de comparación entre modelos — NO un score validado, ver
+    ADR-0009: pesos fijos declarados, no aprendidos, mismo criterio
+    "descriptivo, no ground truth" que ya aplica a planner_graph_usage_rate.
+
+    score = 0.5×calidad_norm + 0.3×velocidad_norm + 0.2×costo_norm, con
+    min-max normalizado dentro de los modelos presentes en `by_model`
+    (velocidad y costo invertidos: más rápido/barato = mejor).
+
+    Modelos sin ninguna métrica RAGAS evaluada quedan fuera del ranking
+    (no se inventa una calidad de 0) — se listan aparte con nota.
+
+    Retorna lista ordenada de {"model": str, "score": float, "is_cloud": bool},
+    o [] si menos de 2 modelos tienen calidad evaluable (no hay nada que
+    comparar).
+    """
+    def _quality(v: dict) -> float | None:
+        parts = [x for x in (v.get("avg_faithfulness"), v.get("avg_answer_relevancy")) if not _is_missing(x)]
+        return sum(parts) / len(parts) if parts else None
+
+    ranked_candidates = {
+        model: v for model, v in by_model.items() if _quality(v) is not None
+    }
+    if len(ranked_candidates) < 2:
+        return []
+
+    def _minmax_norm(values: dict, invert: bool = False) -> dict:
+        lo, hi = min(values.values()), max(values.values())
+        if hi == lo:
+            return {k: 1.0 for k in values}
+        return {
+            k: (hi - v) / (hi - lo) if invert else (v - lo) / (hi - lo)
+            for k, v in values.items()
+        }
+
+    quality = {m: _quality(v) for m, v in ranked_candidates.items()}
+    speed = {m: v.get("avg_total_seconds", 0.0) for m, v in ranked_candidates.items()}
+    cost = {m: v.get("avg_total_tokens", 0.0) for m, v in ranked_candidates.items()}
+
+    quality_n = _minmax_norm(quality)
+    speed_n = _minmax_norm(speed, invert=True)
+    cost_n = _minmax_norm(cost, invert=True)
+
+    scored = [
+        {
+            "model": m,
+            "score": round(0.5 * quality_n[m] + 0.3 * speed_n[m] + 0.2 * cost_n[m], 4),
+            "is_cloud": is_cloud_model(m),
+        }
+        for m in ranked_candidates
+    ]
+    return sorted(scored, key=lambda x: x["score"], reverse=True)

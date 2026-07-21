@@ -148,5 +148,84 @@ class TestBenchmarkFormat(unittest.TestCase):
         self.assertEqual(fmt_rate_pct(0.0), "0%")   # tasa cero es un dato real
         self.assertEqual(fmt_rate_pct(None), EMPTY)  # no aplica (ej. graph_only)
 
+    def test_fmt_tokens(self):
+        from services.benchmark_format import fmt_tokens, EMPTY
+        self.assertEqual(fmt_tokens(1234), "1 234")
+        self.assertEqual(fmt_tokens(0), EMPTY)
+        self.assertEqual(fmt_tokens(None), EMPTY)
+
+    def test_is_cloud_model(self):
+        from services.benchmark_format import is_cloud_model
+        self.assertTrue(is_cloud_model("gemma3:27b-cloud"))
+        self.assertFalse(is_cloud_model("qwen2.5:3b-instruct-q4_K_M"))
+
+
+class TestComputeModelRanking(unittest.TestCase):
+    """Heurística de comparación entre modelos (ADR-0009) — no un score
+    validado: pesos fijos declarados (50% calidad / 30% velocidad / 20%
+    costo), normalizados dentro de los modelos presentes en la corrida."""
+
+    def test_ranks_by_weighted_score(self):
+        from services.benchmark_format import compute_model_ranking
+        # Costo igual en los 3 (cost_n empata en 1.0 para todos — cubre la
+        # rama hi==lo de la normalización) — el orden queda determinado por
+        # calidad (50%) y velocidad (30%), sin ambigüedad de a quién favorece.
+        by_model = {
+            "modelo_a_mejor": {
+                "avg_faithfulness": 0.9, "avg_answer_relevancy": 0.9,
+                "avg_total_seconds": 2.0, "avg_total_tokens": 100,
+            },
+            "modelo_b_intermedio": {
+                "avg_faithfulness": 0.5, "avg_answer_relevancy": 0.7,
+                "avg_total_seconds": 4.0, "avg_total_tokens": 100,
+            },
+            "modelo_c_peor": {
+                "avg_faithfulness": 0.3, "avg_answer_relevancy": 0.3,
+                "avg_total_seconds": 8.0, "avg_total_tokens": 100,
+            },
+        }
+        ranking = compute_model_ranking(by_model)
+        self.assertEqual([r["model"] for r in ranking],
+                          ["modelo_a_mejor", "modelo_b_intermedio", "modelo_c_peor"])
+        self.assertAlmostEqual(ranking[0]["score"], 1.0, places=4)
+        self.assertAlmostEqual(ranking[2]["score"], 0.2, places=4)
+
+    def test_excludes_models_without_ragas(self):
+        from services.benchmark_format import compute_model_ranking
+        by_model = {
+            "con_ragas_a": {"avg_faithfulness": 0.7, "avg_answer_relevancy": 0.7,
+                             "avg_total_seconds": 2.0, "avg_total_tokens": 200},
+            "con_ragas_b": {"avg_faithfulness": 0.5, "avg_answer_relevancy": 0.5,
+                             "avg_total_seconds": 3.0, "avg_total_tokens": 300},
+            "sin_ragas": {"avg_faithfulness": None, "avg_answer_relevancy": None,
+                          "avg_total_seconds": 1.0, "avg_total_tokens": 50},
+        }
+        ranking = compute_model_ranking(by_model)
+        models_ranked = {r["model"] for r in ranking}
+        self.assertNotIn("sin_ragas", models_ranked)
+        self.assertEqual(models_ranked, {"con_ragas_a", "con_ragas_b"})
+
+    def test_empty_when_fewer_than_two_models_have_quality_data(self):
+        from services.benchmark_format import compute_model_ranking
+        by_model = {
+            "unico": {"avg_faithfulness": 0.8, "avg_answer_relevancy": 0.8,
+                      "avg_total_seconds": 1.0, "avg_total_tokens": 100},
+        }
+        self.assertEqual(compute_model_ranking(by_model), [])
+
+    def test_marks_cloud_models(self):
+        from services.benchmark_format import compute_model_ranking
+        by_model = {
+            "gemma3:27b-cloud": {"avg_faithfulness": 0.8, "avg_answer_relevancy": 0.8,
+                                  "avg_total_seconds": 15.0, "avg_total_tokens": 500},
+            "qwen2.5:3b-instruct-q4_K_M": {"avg_faithfulness": 0.6, "avg_answer_relevancy": 0.6,
+                                            "avg_total_seconds": 5.0, "avg_total_tokens": 300},
+        }
+        ranking = compute_model_ranking(by_model)
+        by_name = {r["model"]: r for r in ranking}
+        self.assertTrue(by_name["gemma3:27b-cloud"]["is_cloud"])
+        self.assertFalse(by_name["qwen2.5:3b-instruct-q4_K_M"]["is_cloud"])
+
+
 if __name__ == "__main__":
     unittest.main()

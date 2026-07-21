@@ -203,6 +203,28 @@ REFINEMENT_MEMORY_TOP_K: int = 3
 REFINEMENT_MEMORY_MIN_SIMILARITY: float = RAG_MIN_SIMILARITY
 
 # ─────────────────────────────────────────────
+# GUARDRAIL DE DOMINIO — preguntas fuera de normativa tributaria (ver ADR-0007)
+# ─────────────────────────────────────────────
+# Memoria de preguntas ya detectadas como fuera de dominio — permite cortar
+# preguntas repetidas sin gastar una llamada a Ollama. Match por texto
+# normalizado (near-exact), NO por similitud de embeddings: medido en
+# producción, OpenCLIP no discrimina preguntas cortas en español (mismo
+# rango ~0.83-0.90 entre parafraseos y entre temas totalmente distintos),
+# lo que con un umbral bajo bloqueaba CUALQUIER pregunta tras la primera
+# detección. Umbral de near-match vive en agents/off_topic_memory.py.
+OFF_TOPIC_MEMORY_PATH: str = os.path.join(OUTPUTS_DIR, "off_topic_memory.json")
+
+# ─────────────────────────────────────────────
+# MODELOS CLOUD DE OLLAMA (ver ADR-0008)
+# ─────────────────────────────────────────────
+# Los modelos "-cloud" de Ollama Cloud se sirven vía el mismo daemon local
+# (OLLAMA_URL no cambia) tras `ollama signin` — no hay lista propia que
+# mantener, la convención de nombre ya lo identifica.
+def is_cloud_model(model: str) -> bool:
+    return model.endswith("-cloud")
+
+
+# ─────────────────────────────────────────────
 # CREAR DIRECTORIOS NECESARIOS EN IMPORTACIÓN
 # ─────────────────────────────────────────────
 for _d in [
