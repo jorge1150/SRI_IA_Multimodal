@@ -132,7 +132,57 @@ def compute_model_ranking(by_model: dict) -> list[dict]:
             "model": m,
             "score": round(0.5 * quality_n[m] + 0.3 * speed_n[m] + 0.2 * cost_n[m], 4),
             "is_cloud": is_cloud_model(m),
+            # Crudos y normalizados expuestos para que la UI pueda mostrar
+            # "por qué" quedó en ese puesto (ver explain_ranking_winner),
+            # en vez de solo el score final sin contexto.
+            "quality_raw": round(quality[m], 4),
+            "speed_raw": round(speed[m], 4),
+            "cost_raw": round(cost[m], 4),
+            "quality_n": round(quality_n[m], 4),
+            "speed_n": round(speed_n[m], 4),
+            "cost_n": round(cost_n[m], 4),
         }
         for m in ranked_candidates
     ]
     return sorted(scored, key=lambda x: x["score"], reverse=True)
+
+
+def explain_ranking_winner(ranking: list) -> str:
+    """
+    Frase en español señalando cuál de los 3 factores del score (50% calidad,
+    30% velocidad, 20% costo) marcó la diferencia entre el #1 y el #2 del
+    ranking de compute_model_ranking() — el score solo ("0.85") no dice por
+    qué ese modelo ganó. "" si hay menos de 2 modelos rankeados.
+    """
+    if len(ranking) < 2:
+        return ""
+    top, second = ranking[0], ranking[1]
+    contribs = {
+        "calidad RAGAS (Faithfulness + Answer Relevancy)": 0.5 * (top["quality_n"] - second["quality_n"]),
+        "velocidad de respuesta": 0.3 * (top["speed_n"] - second["speed_n"]),
+        "costo en tokens": 0.2 * (top["cost_n"] - second["cost_n"]),
+    }
+    factor, delta = max(contribs.items(), key=lambda kv: kv[1])
+    if delta <= 0.02:
+        return (f"\"{top['model']}\" y \"{second['model']}\" quedaron muy parejos "
+                f"(score {top['score']:.2f} vs {second['score']:.2f}) — la diferencia no es "
+                f"suficiente para preferir uno sobre otro con confianza.")
+    return (f"\"{top['model']}\" le gana a \"{second['model']}\" principalmente por "
+            f"{factor} (score {top['score']:.2f} vs {second['score']:.2f}).")
+
+
+def ragas_coverage_warning(n_evaluated: int, n_total: int, threshold: float = 0.5) -> "str | None":
+    """
+    Aviso si el juez RAGAS evaluó menos de `threshold` (default 50%) de las
+    filas de un grupo — un score de "1/10" es fácil de leer como "score muy
+    malo" cuando en realidad significa "el juez solo pudo evaluar 1 fila"
+    (limitación del juez local, ver ADR-0003). None si no aplica (sin filas,
+    o cobertura suficiente).
+    """
+    if not n_total or n_evaluated >= n_total * threshold:
+        return None
+    pct = round(100 * n_evaluated / n_total)
+    return (f"Solo se pudo evaluar {n_evaluated}/{n_total} filas ({pct}%) — "
+            f"el promedio mostrado es poco confiable con tan pocos datos. "
+            f"Un juez más grande (ver --judge-model) o más preguntas (sin --limit) "
+            f"suelen mejorar la cobertura.")

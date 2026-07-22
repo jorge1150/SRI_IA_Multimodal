@@ -625,8 +625,15 @@ def build_interface(coordinator) -> gr.Blocks:
             # TAB 2b — Benchmark RAGAS (tesis; se refresca al entrar)
             # ═══════════════════════════════════════════════════════════════
             with gr.Tab("📊  Benchmark RAGAS") as tab_benchmark:
-                benchmark_html = gr.HTML(value=_benchmark_tab_html())
+                benchmark_top_html = gr.HTML(value=_benchmark_tab_top_html())
                 _initial_models = _benchmark_model_names()
+                mode_filter_dropdown = gr.Dropdown(
+                    label="Filtrar 'Por Modo de Recuperación' por modelo",
+                    choices=_benchmark_mode_filter_choices(),
+                    value="__all__",
+                )
+                mode_section_html = gr.HTML(value=_mode_section_html("__all__"))
+                benchmark_bottom_html = gr.HTML(value=_benchmark_tab_bottom_html())
                 model_dropdown = gr.Dropdown(
                     label="Ver detalle de un modelo",
                     choices=_initial_models,
@@ -683,9 +690,13 @@ def build_interface(coordinator) -> gr.Blocks:
         # benchmarks en disco) se recalculan en ese momento, no quedan
         # congelados al arranque de la app (candidata C del review).
         tab_knowledge.select(fn=_knowledge_tab_html, outputs=[knowledge_html])
-        tab_benchmark.select(fn=_benchmark_tab_html, outputs=[benchmark_html])
+        tab_benchmark.select(fn=_benchmark_tab_top_html, outputs=[benchmark_top_html])
+        tab_benchmark.select(fn=_benchmark_mode_filter_update, outputs=[mode_filter_dropdown])
+        tab_benchmark.select(fn=lambda: _mode_section_html("__all__"), outputs=[mode_section_html])
+        tab_benchmark.select(fn=_benchmark_tab_bottom_html, outputs=[benchmark_bottom_html])
         tab_benchmark.select(fn=_benchmark_model_choices, outputs=[model_dropdown])
         tab_benchmark.select(fn=_benchmark_first_model_detail_html, outputs=[model_detail_html])
+        mode_filter_dropdown.change(fn=_mode_section_html, inputs=[mode_filter_dropdown], outputs=[mode_section_html])
         model_dropdown.change(fn=_model_detail_html, inputs=[model_dropdown], outputs=[model_detail_html])
         tab_system.select(fn=_system_tab_html, outputs=[system_html])
 
@@ -1044,13 +1055,176 @@ def _model_detail_html(model: str) -> str:
     """
 
 
-def _benchmark_tab_html() -> str:
+_MODE_THEAD = (
+    "<thead><tr>"
+    "<th style='text-align:left'>Grupo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
+    "<th>Generación</th><th>Total</th><th>Faithfulness</th>"
+    "<th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th>"
+    "</tr></thead>"
+)
+
+_MODEL_THEAD = (
+    "<thead><tr>"
+    "<th style='text-align:left'>Modelo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
+    "<th>Generación</th><th>Total</th><th>Tokens</th><th>Faithfulness</th>"
+    "<th>Answer Relevancy</th>"
+    "</tr></thead>"
+)
+
+
+def _ragas_styled_cell(v, n_evaluated, n_total) -> str:
+    """Valor RAGAS + '(N/total)' cuando el juez evaluó solo parte del grupo —
+    compartido entre la tabla Por Modo, Por Modelo y el detalle de un modelo."""
+    from services.benchmark_format import fmt_ragas_parts, EMPTY
+    base, note = fmt_ragas_parts(v, n_evaluated, n_total)
+    if base is None:
+        return EMPTY
+    if note:
+        return f"{base} <span style='color:#64748b;font-size:0.72em'>({note})</span>"
+    return base
+
+
+def _coverage_warning_block(agg: dict) -> str:
+    """Aviso por fila del grupo (modo o modelo) cuando el juez RAGAS evaluó
+    menos de la mitad de las filas — un "1/10" es fácil de leer como "score
+    muy malo" cuando en realidad es "casi no se pudo evaluar" (ver
+    ragas_coverage_warning en services/benchmark_format.py, ADR-0003)."""
+    from services.benchmark_format import ragas_coverage_warning
+    items = []
+    for k, v in sorted(agg.items()):
+        n = v.get("n", 0)
+        msgs = []
+        fw = ragas_coverage_warning(v.get("n_faithfulness_evaluated", 0), n)
+        if fw:
+            msgs.append(f"<strong>Faithfulness</strong> — {html.escape(fw)}")
+        rw = ragas_coverage_warning(v.get("n_answer_relevancy_evaluated", 0), n)
+        if rw:
+            msgs.append(f"<strong>Answer Relevancy</strong> — {html.escape(rw)}")
+        if msgs:
+            items.append(
+                f"<div class='info-card gold' style='margin-bottom:8px;border-left-color:#f59e0b;font-size:0.78rem'>"
+                f"<strong style='color:#fbbf24'>⚠ {html.escape(str(k))}</strong><br>{'<br>'.join(msgs)}</div>"
+            )
+    return "".join(items)
+
+
+def _mode_rows_html(agg: dict) -> str:
+    from services.benchmark_format import fmt_number, fmt_planning_seconds, fmt_rate_pct
+    return "".join(
+        f"<tr><td>{k}</td>"
+        f"<td style='text-align:center'>{v.get('n', 0)}</td>"
+        f"<td style='text-align:center;color:#93c5fd'>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
+        f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td>"
+        f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_generation_seconds'), 's')}</td>"
+        f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('source_match_rate'))}</td>"
+        f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('planner_graph_usage_rate'))}</td>"
+        f"</tr>"
+        for k, v in sorted(agg.items())
+    )
+
+
+def _model_rows_html(agg: dict) -> str:
+    from services.benchmark_format import fmt_number, fmt_planning_seconds, fmt_tokens, is_cloud_model
+    return "".join(
+        f"<tr><td style='text-align:left'>{'🌐' if is_cloud_model(k) else '💻'} {k}</td>"
+        f"<td style='text-align:center'>{v.get('n', 0)}</td>"
+        f"<td style='text-align:center;color:#93c5fd'>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
+        f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td>"
+        f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_generation_seconds'), 's')}</td>"
+        f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
+        f"<td style='text-align:center;color:#fcd34d'>{fmt_tokens(v.get('avg_total_tokens'))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+        f"</tr>"
+        for k, v in sorted(agg.items())
+    )
+
+
+def _benchmark_mode_filter_choices() -> list:
+    """[(label, value)] del combo que filtra 'Por Modo de Recuperación' por
+    modelo — 'Todos' (el agregado mezclado, comportamiento de siempre) + una
+    opción por modelo con badge 🌐/💻 para no confundir local con cloud."""
+    from services.benchmark_format import is_cloud_model
+    models = _benchmark_model_names()
+    choices = [("Todos los modelos (mezclados)", "__all__")]
+    choices += [(f"{'🌐' if is_cloud_model(m) else '💻'} {m}", m) for m in models]
+    return choices
+
+
+def _benchmark_mode_filter_update():
+    """Refresco del combo de filtro al re-entrar a la tab — mismo patrón que
+    _benchmark_model_choices, resetea a 'Todos' para no dejar seleccionado
+    un modelo que ya no existe en el benchmark más reciente."""
+    return gr.update(choices=_benchmark_mode_filter_choices(), value="__all__")
+
+
+def _mode_section_html(model_filter: str = "__all__") -> str:
     """
-    Solo lectura: resumen del último benchmark corrido con
-    scripts/run_benchmark.py (RAG vs GraphRAG vs Híbrido vs Agéntico,
-    validado con RAGAS). Correr el benchmark sigue siendo por terminal —
-    esta tab no lanza procesos, solo lee el JSON más reciente al momento
-    de entrar a la tab.
+    Tabla 'Por Modo de Recuperación' — agregada entre todos los modelos
+    (model_filter="__all__", igual que antes) o filtrada a un solo modelo
+    usando by_mode_per_model (ver scripts/run_benchmark.py) para poder
+    distinguir si un modo tardó/rindió así por el modelo local o el cloud.
+    """
+    summary, _ = _load_latest_summary()
+    if not summary:
+        return ""
+
+    from services.benchmark_format import is_cloud_model
+
+    note = ""
+    if model_filter and model_filter != "__all__":
+        by_mode_per_model = summary.get("by_mode_per_model", {})
+        agg = {
+            mode: models[model_filter]
+            for mode, models in by_mode_per_model.items()
+            if model_filter in models
+        }
+        badge = "🌐 Cloud" if is_cloud_model(model_filter) else "💻 Local"
+        note = (
+            f"<p style='font-size:0.78rem;color:#93c5fd;margin:0 0 10px'>"
+            f"Mostrando solo corridas con <strong>{html.escape(model_filter)}</strong> ({badge})."
+            f"</p>"
+        )
+    else:
+        agg = summary.get("by_mode", {})
+
+    if not agg:
+        return (
+            f"""
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:0 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        Por Modo de Recuperación
+      </h3>
+      {note}
+      <div class="info-card">Sin datos para este modelo en el último benchmark.</div>
+    """
+        )
+
+    return f"""
+      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
+                 letter-spacing:0.08em;margin:0 0 10px;border-bottom:1px solid #1e3a5f;
+                 padding-bottom:8px">
+        Por Modo de Recuperación
+      </h3>
+      {note}
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
+        {_MODE_THEAD}
+        <tbody>{_mode_rows_html(agg)}</tbody>
+      </table>
+      {_coverage_warning_block(agg)}
+    """
+
+
+def _benchmark_tab_top_html() -> str:
+    """
+    Solo lectura: intro + aviso --no-ragas + glosario del último benchmark
+    corrido con scripts/run_benchmark.py. Correr el benchmark sigue siendo
+    por terminal — esta tab no lanza procesos, solo lee el JSON más
+    reciente al momento de entrar a la tab.
     """
     summary, latest_path = _load_latest_summary()
 
@@ -1067,102 +1241,14 @@ def _benchmark_tab_html() -> str:
             Compara RAG vectorial, GraphRAG y modo híbrido — tiempo de
             respuesta y calidad (RAGAS: faithfulness, answer relevancy) —
             y permite comparar distintos modelos Ollama entre sí (local o
-            cloud, ver ADR-0008).
+            cloud, ver ADR-0008). El juez RAGAS por defecto es el primer
+            modelo cloud de --models, si hay alguno (ver ADR-0011) —
+            más confiable que un juez local chico para evaluar Faithfulness.
           </div>
         </div>
         """
     if summary is None:
         return f"<div style='padding:20px'>Error leyendo {latest_path}</div>"
-
-    # Convenciones de formato compartidas con scripts/run_benchmark.py —
-    # la semántica ("—" vacío, "(N/total)" evaluación parcial) vive en
-    # services/benchmark_format.py; acá solo se aplica el estilo visual.
-    from services.benchmark_format import (
-        EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct,
-        fmt_tokens, is_cloud_model, compute_model_ranking,
-    )
-
-    def _fmt_ragas_styled(v, n_evaluated, n_total):
-        base, note = fmt_ragas_parts(v, n_evaluated, n_total)
-        if base is None:
-            return EMPTY
-        if note:
-            return f"{base} <span style='color:#64748b;font-size:0.72em'>({note})</span>"
-        return base
-
-    def _rows(agg: dict) -> str:
-        return "".join(
-            f"<tr><td>{k}</td>"
-            f"<td style='text-align:center'>{v.get('n', 0)}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_generation_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
-            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
-            f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('source_match_rate'))}</td>"
-            f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('planner_graph_usage_rate'))}</td>"
-            f"</tr>"
-            for k, v in sorted(agg.items())
-        )
-
-    thead = (
-        "<thead><tr>"
-        "<th style='text-align:left'>Grupo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
-        "<th>Generación</th><th>Total</th><th>Faithfulness</th>"
-        "<th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th>"
-        "</tr></thead>"
-    )
-
-    def _model_rows(agg: dict) -> str:
-        return "".join(
-            f"<tr><td style='text-align:left'>{'🌐' if is_cloud_model(k) else '💻'} {k}</td>"
-            f"<td style='text-align:center'>{v.get('n', 0)}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{fmt_planning_seconds(v.get('avg_planning_seconds'))}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_retrieval_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#93c5fd'>{fmt_number(v.get('avg_generation_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
-            f"<td style='text-align:center;color:#fcd34d'>{fmt_tokens(v.get('avg_total_tokens'))}</td>"
-            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
-            f"<td style='text-align:center;color:#a78bfa'>{_fmt_ragas_styled(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
-            f"</tr>"
-            for k, v in sorted(agg.items())
-        )
-
-    model_thead = (
-        "<thead><tr>"
-        "<th style='text-align:left'>Modelo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
-        "<th>Generación</th><th>Total</th><th>Tokens</th><th>Faithfulness</th>"
-        "<th>Answer Relevancy</th>"
-        "</tr></thead>"
-    )
-
-    ranking = compute_model_ranking(summary.get('by_model', {}))
-    ranking_html = ""
-    if ranking:
-        ranking_rows = "".join(
-            f"<tr><td style='text-align:center'>#{i+1}</td>"
-            f"<td style='text-align:left'>{'🌐' if r['is_cloud'] else '💻'} {r['model']}</td>"
-            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{r['score']:.2f}</td></tr>"
-            for i, r in enumerate(ranking)
-        )
-        ranking_html = f"""
-      <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
-                 letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
-                 padding-bottom:8px">
-        🏆 Ranking Recomendado
-      </h3>
-      <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
-        <thead><tr><th style='text-align:center'>#</th><th style='text-align:left'>Modelo</th><th>Score</th></tr></thead>
-        <tbody>{ranking_rows}</tbody>
-      </table>
-      <p style="font-size:0.75rem;color:#64748b;margin-top:8px">
-        Heurística de comparación (ver ADR-0009), no una medición absoluta &mdash;
-        score = 50% calidad (Faithfulness+Answer Relevancy) + 30% velocidad + 20%
-        costo (tokens totales), normalizado entre los modelos de esta corrida.
-        Modelos sin RAGAS evaluado quedan fuera del ranking.
-      </p>
-    """
 
     ragas_enabled = summary.get('ragas_enabled', True)
     ragas_warning = "" if ragas_enabled else """
@@ -1190,7 +1276,7 @@ def _benchmark_tab_html() -> str:
             <tr><td style="color:#c4b5fd;padding:6px 10px">Total</td>
                 <td style="padding:6px 10px">Planning + Retrieval + Generación.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Faithfulness</td>
-                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta está <em>basada</em> en el contexto recuperado, o el LLM inventó algo no sustentado ahí. Vacío (&mdash;) si se corrió con <code>--no-ragas</code>. Si ves "(2/3)" junto al número, el juez local no logró evaluar todas las preguntas del grupo (limitación de usar un modelo chico como juez, ver ADR-0003) — el promedio es solo de las que sí evaluó.</td></tr>
+                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta está <em>basada</em> en el contexto recuperado, o el LLM inventó algo no sustentado ahí. Vacío (&mdash;) si se corrió con <code>--no-ragas</code>. Si ves "(2/3)" junto al número, el juez no logró evaluar todas las preguntas del grupo (limitación de usar un modelo chico como juez, ver ADR-0003/ADR-0011) — el promedio es solo de las que sí evaluó, y si son muy pocas aparece un aviso explícito abajo de la tabla.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Answer Relevancy</td>
                 <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta contesta la pregunta hecha, sin divagar. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">% Doc. correcto</td>
@@ -1208,8 +1294,8 @@ def _benchmark_tab_html() -> str:
       </details>
     """
 
-    return (f"""
-    <div style="padding: 20px 8px; animation: slideInUp 0.4s ease;">
+    return f"""
+    <div style="padding: 20px 8px 0; animation: slideInUp 0.4s ease;">
 
       {ragas_warning}
 
@@ -1227,26 +1313,94 @@ def _benchmark_tab_html() -> str:
       </div>
 
       {glossary}
+    </div>
+    """
 
+
+def _benchmark_tab_bottom_html() -> str:
+    """
+    Tabla 'Por Modelo LLM' + Ranking Recomendado (con explicación y
+    subscores) + tarjeta de reporte HTML/CSV — la parte de la tab que no
+    depende del combo de filtro de 'Por Modo de Recuperación'.
+    """
+    summary, latest_path = _load_latest_summary()
+    if not summary or not latest_path:
+        return ""
+
+    from services.benchmark_format import compute_model_ranking, explain_ranking_winner
+
+    by_model = summary.get('by_model', {})
+    ranking = compute_model_ranking(by_model)
+    ranking_html = ""
+    if ranking:
+        ranking_rows = "".join(
+            f"<tr><td style='text-align:center'>#{i+1}</td>"
+            f"<td style='text-align:left'>{'🌐' if r['is_cloud'] else '💻'} {r['model']}</td>"
+            f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{r['score']:.2f}</td></tr>"
+            for i, r in enumerate(ranking)
+        )
+        subscore_rows = "".join(
+            f"<tr><td style='text-align:left'>{'🌐' if r['is_cloud'] else '💻'} {r['model']}</td>"
+            f"<td style='text-align:center'>{r['quality_raw']:.2f} <span style='color:#64748b;font-size:0.72em'>({r['quality_n']:.2f} norm.)</span></td>"
+            f"<td style='text-align:center'>{r['speed_raw']:.2f}s <span style='color:#64748b;font-size:0.72em'>({r['speed_n']:.2f} norm.)</span></td>"
+            f"<td style='text-align:center'>{r['cost_raw']:.0f} tok <span style='color:#64748b;font-size:0.72em'>({r['cost_n']:.2f} norm.)</span></td>"
+            f"</tr>"
+            for r in ranking
+        )
+        winner_explanation = explain_ranking_winner(ranking)
+        explanation_html = (
+            f"""<div class="info-card" style="margin-top:8px;border-left-color:#a78bfa">
+              <strong style="color:#c4b5fd">¿Por qué este orden?</strong><br>
+              {html.escape(winner_explanation)}
+            </div>"""
+            if winner_explanation else ""
+        )
+        ranking_html = f"""
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
-                 letter-spacing:0.08em;margin:0 0 10px;border-bottom:1px solid #1e3a5f;
+                 letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
                  padding-bottom:8px">
-        Por Modo de Recuperación
+        🏆 Ranking Recomendado
       </h3>
       <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
-        {thead}
-        <tbody>{_rows(summary.get('by_mode', {}))}</tbody>
+        <thead><tr><th style='text-align:center'>#</th><th style='text-align:left'>Modelo</th><th>Score</th></tr></thead>
+        <tbody>{ranking_rows}</tbody>
       </table>
+      {explanation_html}
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:#93c5fd;font-size:0.8rem;font-weight:600">
+          Ver desglose del cálculo (calidad / velocidad / costo)
+        </summary>
+        <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:8px" role="table">
+          <thead><tr>
+            <th style='text-align:left'>Modelo</th>
+            <th>Calidad <span style='font-weight:400;color:#64748b'>(50%)</span></th>
+            <th>Velocidad <span style='font-weight:400;color:#64748b'>(30%)</span></th>
+            <th>Costo <span style='font-weight:400;color:#64748b'>(20%)</span></th>
+          </tr></thead>
+          <tbody>{subscore_rows}</tbody>
+        </table>
+      </details>
+      <p style="font-size:0.75rem;color:#64748b;margin-top:8px">
+        Heurística de comparación (ver ADR-0009), no una medición absoluta &mdash;
+        score = 50% calidad (Faithfulness+Answer Relevancy) + 30% velocidad + 20%
+        costo (tokens totales), normalizado ("norm.") entre los modelos de esta
+        corrida &mdash; el valor crudo junto a cada normalizado es el promedio real
+        (segundos, tokens). Modelos sin RAGAS evaluado quedan fuera del ranking.
+      </p>
+    """
 
+    return f"""
+    <div style="padding: 0 8px 20px">
       <h3 style="color:#f59e0b;font-size:0.85rem;font-weight:700;text-transform:uppercase;
                  letter-spacing:0.08em;margin:20px 0 10px;border-bottom:1px solid #1e3a5f;
                  padding-bottom:8px">
         Por Modelo LLM
       </h3>
       <table style="width:100%;border-collapse:collapse;font-size:0.83rem" role="table">
-        {model_thead}
-        <tbody>{_model_rows(summary.get('by_model', {}))}</tbody>
+        {_MODEL_THEAD}
+        <tbody>{_model_rows_html(by_model)}</tbody>
       </table>
+      {_coverage_warning_block(by_model)}
 
       {ranking_html}
 
@@ -1256,7 +1410,7 @@ def _benchmark_tab_html() -> str:
         <code style="color:#fbbf24">{latest_path.replace('_summary.json', '.csv')}</code>
       </div>
     </div>
-    """)
+    """
 
 
 def _system_tab_html() -> str:

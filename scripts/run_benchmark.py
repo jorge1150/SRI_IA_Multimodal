@@ -10,8 +10,13 @@ Uso:
 Mide, por cada combinación (modelo × modo × pregunta):
   - Tiempo de retrieval (HybridRetriever.retrieve, mode forzado)
   - Tiempo de generación (ResponseAgent.generate, modelo forzado)
-  - faithfulness / answer_relevancy (RAGAS, juez local vía Ollama,
-    embeddings sentence-transformers — ver scripts/ragas_local.py)
+  - faithfulness / answer_relevancy (RAGAS, juez vía Ollama, embeddings
+    sentence-transformers — ver scripts/ragas_local.py). El juez por
+    defecto es el primer modelo cloud presente en --models (si hay alguno):
+    Faithfulness le exige al juez extraer afirmaciones atómicas y
+    verificarlas una por una contra el contexto, tarea en la que un juez
+    local chico (3B) falla mucho más seguido que uno grande — se puede
+    forzar cualquier otro con --judge-model.
   - Si el retrieval trajo chunks del documento fuente esperado (según
     preguntas.docx), cuando el modo incluye recuperación vectorial.
 
@@ -44,7 +49,7 @@ if _ROOT not in sys.path:
 
 from services.benchmark_format import (
     EMPTY, fmt_number, fmt_planning_seconds, fmt_ragas_parts, fmt_rate_pct, fmt_refinement,
-    fmt_tokens, is_cloud_model, compute_model_ranking,
+    fmt_tokens, is_cloud_model, compute_model_ranking, explain_ranking_winner,
 )
 
 DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "preguntas.docx")
@@ -313,6 +318,19 @@ def _aggregate(rows: list, key: str) -> dict:
     return out
 
 
+def _aggregate_by_mode_and_model(rows: list) -> dict:
+    """Mismo agregado que _aggregate(rows, 'mode_requested'), pero partido
+    también por modelo — {modo: {modelo: {...}}}. "by_mode" mezcla todos los
+    modelos de la corrida en un solo promedio por modo, lo que no deja ver
+    si el resultado vino del modelo local o del cloud; esto alimenta el
+    combo de filtro por modelo de la tab "Por Modo de Recuperación" en la UI
+    (ver ADR-0011)."""
+    out = {}
+    for mode in sorted({r["mode_requested"] for r in rows}):
+        out[mode] = _aggregate([r for r in rows if r["mode_requested"] == mode], "model")
+    return out
+
+
 def _write_summary_json(rows: list, path: str, meta: dict) -> None:
     summary = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -320,6 +338,7 @@ def _write_summary_json(rows: list, path: str, meta: dict) -> None:
         **meta,
         "by_mode": _aggregate(rows, "mode_requested"),
         "by_model": _aggregate(rows, "model"),
+        "by_mode_per_model": _aggregate_by_mode_and_model(rows),
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
@@ -381,12 +400,14 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
             f"<td>{r['score']:.2f}</td></tr>"
             for i, r in enumerate(ranking)
         )
+        winner_explanation = explain_ranking_winner(ranking)
         ranking_html = f"""
   <h2>🏆 Ranking recomendado</h2>
   <table>
     <thead><tr><th>#</th><th>Modelo</th><th>Score</th></tr></thead>
     <tbody>{ranking_rows}</tbody>
   </table>
+  {f'<p class="meta"><strong>{html.escape(winner_explanation)}</strong></p>' if winner_explanation else ''}
   <p class="meta">Heurística de comparación (ver ADR-0009), no una medición absoluta:
      score = 50% calidad (Faithfulness+Answer Relevancy) + 30% velocidad + 20% costo
      (tokens totales), normalizado entre los modelos de esta corrida. Modelos sin
@@ -482,7 +503,14 @@ def main():
         if m not in ALL_MODES:
             parser.error(f"Modo inválido: {m!r} — usar alguno de {ALL_MODES}")
 
-    judge_model = args.judge_model or models[0] or DEFAULT_JUDGE_MODEL
+    # Juez por defecto: si hay algún modelo cloud entre --models, se prefiere
+    # como juez sobre uno local. RAGAS exige que el juez devuelva salida
+    # estructurada parseable (sobre todo faithfulness, que implica extraer
+    # afirmaciones atómicas y verificarlas una por una) — un juez de pocos
+    # parámetros falla ese parseo mucho más seguido (ver ADR-0003/ADR-0011).
+    # Se puede forzar cualquier otro con --judge-model.
+    _default_judge = next((m for m in models if is_cloud_model(m)), models[0])
+    judge_model = args.judge_model or _default_judge or DEFAULT_JUDGE_MODEL
     embedding_model = args.embedding_model or DEFAULT_EMBEDDING_MODEL
 
     if not os.path.isfile(args.questions):

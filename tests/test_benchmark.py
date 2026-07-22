@@ -12,7 +12,9 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)
 
 import math
-from scripts.run_benchmark import _normalize, _source_matched, _aggregate, _none_if_nan
+from scripts.run_benchmark import (
+    _normalize, _source_matched, _aggregate, _none_if_nan, _aggregate_by_mode_and_model,
+)
 
 
 class TestNormalize(unittest.TestCase):
@@ -100,6 +102,31 @@ class TestAggregate(unittest.TestCase):
         self.assertAlmostEqual(agg["vector_only"]["avg_answer_relevancy"], 0.9)
         self.assertEqual(agg["vector_only"]["n_faithfulness_evaluated"], 1)
         self.assertEqual(agg["vector_only"]["n_answer_relevancy_evaluated"], 1)
+
+
+class TestAggregateByModeAndModel(unittest.TestCase):
+    """by_mode_per_model (ADR-0011) — permite filtrar 'Por Modo de
+    Recuperación' por modelo en la UI en vez de mezclar local y cloud."""
+
+    def test_nested_by_mode_then_model(self):
+        rows = [
+            {"mode_requested": "vector_only", "model": "local", "retrieval_seconds": 1.0,
+             "generation_seconds": 1.0, "total_seconds": 2.0, "faithfulness": 0.5,
+             "answer_relevancy": 0.5, "source_matched": None},
+            {"mode_requested": "vector_only", "model": "cloud", "retrieval_seconds": 2.0,
+             "generation_seconds": 2.0, "total_seconds": 4.0, "faithfulness": 0.9,
+             "answer_relevancy": 0.9, "source_matched": None},
+            {"mode_requested": "hybrid", "model": "local", "retrieval_seconds": 3.0,
+             "generation_seconds": 3.0, "total_seconds": 6.0, "faithfulness": None,
+             "answer_relevancy": None, "source_matched": None},
+        ]
+        agg = _aggregate_by_mode_and_model(rows)
+
+        self.assertEqual(set(agg.keys()), {"vector_only", "hybrid"})
+        self.assertEqual(set(agg["vector_only"].keys()), {"local", "cloud"})
+        self.assertAlmostEqual(agg["vector_only"]["local"]["avg_total_seconds"], 2.0)
+        self.assertAlmostEqual(agg["vector_only"]["cloud"]["avg_total_seconds"], 4.0)
+        self.assertEqual(set(agg["hybrid"].keys()), {"local"})
 
 
 class TestNoneIfNan(unittest.TestCase):
@@ -225,6 +252,94 @@ class TestComputeModelRanking(unittest.TestCase):
         by_name = {r["model"]: r for r in ranking}
         self.assertTrue(by_name["gemma3:27b-cloud"]["is_cloud"])
         self.assertFalse(by_name["qwen2.5:3b-instruct-q4_K_M"]["is_cloud"])
+
+    def test_exposes_raw_and_normalized_subscores(self):
+        # ADR-0011 — la UI necesita estos valores para explicar el ranking,
+        # no solo el score final ya mezclado.
+        from services.benchmark_format import compute_model_ranking
+        by_model = {
+            "mejor": {"avg_faithfulness": 0.9, "avg_answer_relevancy": 0.9,
+                      "avg_total_seconds": 2.0, "avg_total_tokens": 100},
+            "peor": {"avg_faithfulness": 0.3, "avg_answer_relevancy": 0.3,
+                     "avg_total_seconds": 8.0, "avg_total_tokens": 400},
+        }
+        ranking = compute_model_ranking(by_model)
+        top = ranking[0]
+        self.assertEqual(top["model"], "mejor")
+        self.assertAlmostEqual(top["quality_raw"], 0.9)
+        self.assertAlmostEqual(top["speed_raw"], 2.0)
+        self.assertAlmostEqual(top["cost_raw"], 100)
+        self.assertAlmostEqual(top["quality_n"], 1.0)
+        self.assertAlmostEqual(top["speed_n"], 1.0)
+        self.assertAlmostEqual(top["cost_n"], 1.0)
+
+
+class TestExplainRankingWinner(unittest.TestCase):
+    """Frase que explica por qué el #1 le gana al #2 (ADR-0011) — no solo
+    mostrar el score, decir cuál de los 3 factores decidió."""
+
+    def test_empty_when_fewer_than_two(self):
+        from services.benchmark_format import explain_ranking_winner
+        self.assertEqual(explain_ranking_winner([]), "")
+        self.assertEqual(explain_ranking_winner([{"model": "unico", "score": 1.0}]), "")
+
+    def test_identifies_quality_as_deciding_factor(self):
+        from services.benchmark_format import explain_ranking_winner
+        ranking = [
+            {"model": "a", "score": 0.9, "quality_n": 1.0, "speed_n": 0.5, "cost_n": 0.5},
+            {"model": "b", "score": 0.5, "quality_n": 0.0, "speed_n": 0.5, "cost_n": 0.5},
+        ]
+        text = explain_ranking_winner(ranking)
+        self.assertIn("a", text)
+        self.assertIn("b", text)
+        self.assertIn("calidad", text.lower())
+
+    def test_identifies_speed_as_deciding_factor(self):
+        from services.benchmark_format import explain_ranking_winner
+        ranking = [
+            {"model": "rapido", "score": 0.7, "quality_n": 0.5, "speed_n": 1.0, "cost_n": 0.5},
+            {"model": "lento", "score": 0.4, "quality_n": 0.5, "speed_n": 0.0, "cost_n": 0.5},
+        ]
+        text = explain_ranking_winner(ranking)
+        self.assertIn("velocidad", text.lower())
+
+    def test_close_scores_say_so(self):
+        from services.benchmark_format import explain_ranking_winner
+        ranking = [
+            {"model": "a", "score": 0.51, "quality_n": 0.5, "speed_n": 0.5, "cost_n": 0.5},
+            {"model": "b", "score": 0.50, "quality_n": 0.5, "speed_n": 0.5, "cost_n": 0.5},
+        ]
+        text = explain_ranking_winner(ranking)
+        self.assertIn("parejos", text.lower())
+
+
+class TestRagasCoverageWarning(unittest.TestCase):
+    """Aviso de baja cobertura RAGAS (ADR-0011) — un '1/10' es fácil de leer
+    como 'score malo' cuando en realidad es 'casi no se pudo evaluar'."""
+
+    def test_no_warning_when_fully_evaluated(self):
+        from services.benchmark_format import ragas_coverage_warning
+        self.assertIsNone(ragas_coverage_warning(10, 10))
+
+    def test_no_warning_at_or_above_threshold(self):
+        from services.benchmark_format import ragas_coverage_warning
+        self.assertIsNone(ragas_coverage_warning(5, 10))  # exactamente 50%
+
+    def test_warning_below_threshold(self):
+        from services.benchmark_format import ragas_coverage_warning
+        msg = ragas_coverage_warning(1, 10)
+        self.assertIsNotNone(msg)
+        self.assertIn("1/10", msg)
+
+    def test_no_warning_for_empty_group(self):
+        from services.benchmark_format import ragas_coverage_warning
+        self.assertIsNone(ragas_coverage_warning(0, 0))
+
+    def test_custom_threshold(self):
+        from services.benchmark_format import ragas_coverage_warning
+        # 3/10 = 30%, por debajo del 50% default pero por encima de un 20% custom
+        self.assertIsNotNone(ragas_coverage_warning(3, 10))
+        self.assertIsNone(ragas_coverage_warning(3, 10, threshold=0.2))
 
 
 if __name__ == "__main__":
