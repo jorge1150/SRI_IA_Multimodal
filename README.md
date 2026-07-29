@@ -533,3 +533,5 @@ python -m pytest tests/test_benchmark.py tests/test_benchmark_dataset.py -v
 | Carpetas datos | `manuals/` (fija) | Subcarpetas dinámicas de `data/` |
 | Puerto Gradio | 7864 | 7865 |
 | Colección ChromaDB | `manual_tecnico` | `normativa_tributaria` |
+
+python scripts/run_benchmark.py --models qwen2.5:3b-instruct-q4_K_M,gemma4:31b-cloud

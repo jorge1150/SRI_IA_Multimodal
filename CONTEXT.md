@@ -38,7 +38,15 @@ Estrategia que usa `HybridRetriever.retrieve(mode=...)` para una consulta: `vect
 _Avoid_: "modo automático" a secas para referirse a "agentic" — son modos distintos; "auto" es la regla fija del desarrollador, "agentic" es la decisión del LLM.
 
 **Benchmark de tesis**:
-`scripts/run_benchmark.py` — corre las preguntas de `preguntas.docx` contra los modos de recuperación y modelos LLM configurados (locales o cloud, ver ADR-0008), mide tiempo (retrieval/generación/planning/refinamiento), tokens consumidos y calidad (RAGAS: faithfulness, answer relevancy, juez local vía Ollama). Resultado en `outputs/benchmarks/` (CSV + HTML + JSON de resumen), visible también en la tab "Benchmark RAGAS" de la UI, que incluye un selector de modelo y un ranking recomendado (`compute_model_ranking`, ver ADR-0009).
+`scripts/run_benchmark.py` — corre las preguntas de `preguntas.docx` contra los modos de recuperación y modelos LLM configurados (locales o cloud, ver ADR-0008), mide tiempo (retrieval/generación/planning/refinamiento), tokens consumidos y calidad (RAGAS: faithfulness, answer relevancy — ver "Juez RAGAS" y "Cobertura RAGAS"). Resultado en `outputs/benchmarks/` (CSV + HTML + JSON de resumen), visible también en la tab "Benchmark RAGAS" de la UI, que incluye un selector de modelo, un combo para filtrar "Por Modo de Recuperación" por modelo (para no mezclar resultados locales y cloud sin darse cuenta), y un ranking recomendado con explicación de qué factor decidió el primer puesto (`compute_model_ranking`/`explain_ranking_winner`, ver ADR-0009/ADR-0011).
+
+**Juez RAGAS**:
+El modelo LLM que evalúa faithfulness/answer_relevancy sobre las respuestas generadas por otro modelo (el "modelo evaluado") — pueden ser el mismo o distintos. Por defecto es el primer modelo cloud presente en `--models`, si hay alguno (antes: siempre el primero de la lista, casi siempre el local chico) — un juez chico falla mucho más seguido en producir la salida estructurada que RAGAS exige, sobre todo para faithfulness. Se puede forzar con `--judge-model`. Ver ADR-0011.
+_Avoid_: "el modelo" a secas cuando hay riesgo de confundir juez con modelo evaluado — son roles distintos aunque a veces coincidan.
+
+**Cobertura RAGAS**:
+Proporción de filas de un grupo (modo, modelo, o ambos) donde el Juez RAGAS logró producir una evaluación parseable para una métrica — ej. "5/10" es 50% de cobertura. Es un concepto distinto de la calidad del score: baja cobertura significa "hay poco dato para confiar en el promedio", no "el modelo respondió mal". Se muestra como "(N/total)" junto al score, con un aviso explícito por debajo del 50% (`ragas_coverage_warning`). Ver ADR-0003/ADR-0011.
+_Avoid_: leer un score con cobertura baja (ej. "0.31 (1/10)") como si fuera un score de calidad confiable — con 1 sola fila evaluada no lo es.
 
 **Side-channel**:
 Patrón usado para que la UI lea datos estructurados de los agentes sin re-parsear texto de display: `LogAgent.get_events()` (eventos por etapa, alimenta el diagrama de flujo) y `ResponseAgent.last_answer`/`last_sources` (respuesta limpia + fuentes estructuradas, alimentan el bubble del chat, el panel de fragmentos, el corte para TTS y el benchmark). Los agentes publican el estado tras cada llamada; los consumidores lo leen en el mismo hilo después de cada yield del pipeline.
