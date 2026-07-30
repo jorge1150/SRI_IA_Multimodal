@@ -115,8 +115,10 @@ class VisionAgent:
         return None
 
     def _to_base64(self, img: Image.Image) -> str:
-        # Moondream performs best at small resolutions; resize if too large
-        max_side = 512
+        # Moondream performs best at small resolutions; resize if too large.
+        # 768 (up from 512) — small percentages/labels inside tables and
+        # infographics were getting lost at 512px.
+        max_side = 768
         w, h = img.size
         if max(w, h) > max_side:
             ratio = max_side / max(w, h)

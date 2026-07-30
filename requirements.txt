@@ -46,6 +46,11 @@ scipy>=1.11.0
 Pillow>=10.0.0
 opencv-python==4.8.1.78
 
+# ── OCR de respaldo (badges/infografías sin caption, ADR-0004) ──
+# Requiere el binario tesseract instalado por separado:
+#   brew install tesseract tesseract-lang
+pytesseract>=0.3.10
+
 # ── TTS — Piper en español ────────────────────────────────────
 piper-tts>=1.4.0
 

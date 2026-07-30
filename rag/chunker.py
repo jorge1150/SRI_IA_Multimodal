@@ -201,6 +201,50 @@ def chunk_pdf(filepath: str, chunk_size: int = 500, overlap: int = 60,
     return result
 
 
+def _ocr_image_block(image_path: str) -> str:
+    """
+    OCR de respaldo (Tesseract) para bloques "image" de MinerU sin
+    image_caption — MinerU solo corre su OCR interno sobre regiones que su
+    modelo de layout clasifica como "texto", nunca sobre las clasificadas
+    como "image" (ej. badges de porcentaje dentro de infografías, ver
+    ADR-0004). Debe llamarse ANTES de que se borre el directorio temporal de
+    MinerU (ver chunk_pdf_mineru) — el archivo tiene que existir todavía en
+    disco. Degrada a "" ante cualquier falla (Tesseract no instalado,
+    archivo inválido, etc.) — mismo patrón fail-open que VisionAgent.analyze.
+
+    Preprocesamiento afinado empíricamente contra badges circulares reales
+    (círculo con número/porcentaje adentro, ej. "21%"): recortar el 20% del
+    borde de cada lado antes de binarizar es lo que separa un OCR limpio de
+    basura — el anillo/borde del círculo confunde tanto a Tesseract crudo
+    como a Otsu global sin recortar (probado: con el borde puesto, todas las
+    variantes de psm/threshold fallan o devuelven ruido; recortado al 60%
+    central, "21%" se lee limpio en los 5 psm probados). El recorte no
+    introduce falsos positivos en crops puramente decorativos (banderas,
+    íconos) — siguen devolviendo vacío tras el recorte.
+    """
+    try:
+        import cv2
+        import pytesseract
+
+        img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return ""
+        h, w = img.shape
+        margin = 0.20
+        x0, y0 = int(w * margin), int(h * margin)
+        x1, y1 = int(w * (1 - margin)), int(h * (1 - margin))
+        crop = img[y0:y1, x0:x1]
+        if crop.size == 0:
+            return ""
+        crop = cv2.resize(crop, None, fx=5, fy=5, interpolation=cv2.INTER_CUBIC)
+        _, binarized = cv2.threshold(crop, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        text = pytesseract.image_to_string(binarized, lang="spa+eng", config="--psm 6")
+        return text.strip()
+    except Exception:
+        return ""
+
+
 def chunk_pdf_mineru(filepath: str, chunk_size: int = 500, overlap: int = 60,
                       tipo_normativa: str = "", doc_name_override: str = "") -> List[dict]:
     """
@@ -226,7 +270,10 @@ def chunk_pdf_mineru(filepath: str, chunk_size: int = 500, overlap: int = 60,
     import subprocess
     import tempfile
 
-    from config import MINERU_BACKEND, MINERU_BIN, MINERU_DEVICE, MINERU_TIMEOUT
+    from config import (
+        MINERU_BACKEND, MINERU_BIN, MINERU_DEVICE, MINERU_TIMEOUT,
+        MINERU_OCR_IMAGE_FALLBACK,
+    )
 
     if not os.path.isfile(MINERU_BIN):
         raise RuntimeError(
@@ -260,6 +307,21 @@ def chunk_pdf_mineru(filepath: str, chunk_size: int = 500, overlap: int = 60,
 
         with open(content_list_path, "r", encoding="utf-8") as f:
             blocks = json.load(f)
+
+        if MINERU_OCR_IMAGE_FALLBACK:
+            # img_path es relativo al directorio que contiene content_list.json,
+            # no a out_dir — hay que resolverlo ANTES de salir del `with`,
+            # que borra los crops al cerrar (ver docstring de _ocr_image_block).
+            images_root = os.path.dirname(content_list_path)
+            for block in blocks:
+                if block.get("type") != "image" or (block.get("image_caption") or []):
+                    continue
+                img_path = block.get("img_path", "")
+                if not img_path:
+                    continue
+                ocr_text = _ocr_image_block(os.path.join(images_root, img_path))
+                if ocr_text:
+                    block["image_caption"] = [f"[img: {ocr_text}]"]
 
     result = _chunks_from_mineru_blocks(
         blocks, name_no_ext=name_no_ext, filename=filename, doc_name=doc_name,

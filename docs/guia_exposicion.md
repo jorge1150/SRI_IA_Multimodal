@@ -265,6 +265,10 @@ Consulta del usuario
   jerarquía de encabezados (ningún fragmento cruza dos artículos distintos) y
   preserva tablas de tarifas intactas; PyMuPDF queda como fallback automático
   si MinerU falla en un documento puntual.
+- Badges/infografías numéricas (ej. tarifas por país en una imagen, no en una
+  tabla HTML) quedan fuera del OCR interno de MinerU — un OCR de respaldo con
+  Tesseract cubre esos bloques `image` sin caption antes de que se descarten
+  (ADR-0004).
 
 **Evaluación con RAGAS (juez y embeddings 100% locales) + comparación de modelos (ADR-0009):**
 - `scripts/run_benchmark.py` compara RAG vectorial, GraphRAG, Híbrido y

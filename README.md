@@ -78,6 +78,7 @@ Sistema multimodal que responde consultas sobre normativa tributaria del SRI Ecu
 | Recuperación híbrida | HybridRetriever (RAG + GraphRAG) |
 | TTS | Piper TTS es_ES-sharvard |
 | PDF | MinerU (layout/tablas/OCR), fallback a PyMuPDF (fitz) |
+| OCR de imágenes sin caption | Tesseract (`pytesseract`) — badges/infografías numéricas que MinerU no OCR-ea (ADR-0004) |
 | DOCX | python-docx |
 | Decisión agéntica | PlannerAgent — tool-calling nativo de Ollama (ADR-0005) |
 | Refinamiento agéntico + memoria | QueryRefinerAgent/QueryValidatorAgent — reescritura + tool-calling + memoria in-context vía similitud CLIP (ADR-0006) |
@@ -490,7 +491,8 @@ librerías arrastran dependencias incompatibles entre sí y con `torch==2.2.2`
 
 ## Tests
 
-Suite completa en verde (141 tests): chunker MinerU-aware, GraphRAG,
+Suite completa en verde (154 tests): chunker MinerU-aware (incluye OCR
+fallback Tesseract para imágenes sin caption, ADR-0004), GraphRAG,
 PlannerAgent + QueryRefinerAgent + QueryValidatorAgent + RefinementMemory +
 OffTopicMemory (con fallbacks mockeados), guardrail de dominio, contexto
 conversacional (extracción de historial + condensación de follow-ups,

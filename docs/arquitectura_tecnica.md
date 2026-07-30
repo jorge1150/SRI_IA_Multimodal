@@ -24,6 +24,7 @@ Sistema de asistencia tributaria que responde preguntas sobre normativa del **Se
 | STT (voz → texto) | **faster-whisper** | Modelo `base`, idioma `es`, beam_size=5 |
 | TTS (texto → voz) | **Piper TTS** | Modelo `es_ES-sharvard-medium.onnx`, 22050 Hz |
 | Extracción de texto PDF | **MinerU** (layout, tablas, OCR), fallback **PyMuPDF (fitz)** | MinerU por defecto (ver ADR-0001); PyMuPDF automático si MinerU falla o hace timeout |
+| OCR de imágenes sin caption | **Tesseract** (`pytesseract` + `opencv-python`) | Fallback para bloques `image` de MinerU con `image_caption` vacío — badges/infografías numéricas (ver ADR-0004, extensión) |
 | Extracción DOCX | **python-docx** | Párrafos concatenados |
 | Cómputo | **PyTorch** | CPU (macOS Intel) — CLIP en float32 |
 | Audio | **sounddevice + scipy** | Grabación a 48kHz, resample a 16kHz para Whisper |
@@ -173,7 +174,7 @@ Cada consulta ejecuta este pipeline secuencial. El `CoordinatorAgent` emite actu
 **Proceso de ingesta por documento:**
 
 1. **Extracción de texto:**
-   - PDF → MinerU (layout, tablas HTML, OCR) por defecto (ADR-0001); si falla o hace timeout, fallback automático a PyMuPDF (`fitz`) página por página. Conserva el número de página en ambos casos.
+   - PDF → MinerU (layout, tablas HTML, OCR) por defecto (ADR-0001); si falla o hace timeout, fallback automático a PyMuPDF (`fitz`) página por página. Conserva el número de página en ambos casos. El OCR interno de MinerU solo cubre regiones que su layout clasifica como "texto" — bloques `image` sin caption (badges/infografías numéricas) pasan por un OCR de respaldo con Tesseract antes de descartarse (ver ADR-0004, extensión; `MINERU_OCR_IMAGE_FALLBACK`).
    - DOCX → python-docx, concatenación de párrafos.
    - TXT / MD → lectura directa UTF-8.
 

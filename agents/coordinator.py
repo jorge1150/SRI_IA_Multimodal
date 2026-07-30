@@ -69,7 +69,8 @@ def build_retrieval_pipeline(log_agent):
 
 def run_refinement_loop(refiner_agent, validator_agent, query: str, log_agent,
                          max_iterations: int = None,
-                         previous_query: str = None, previous_answer: str = None):
+                         previous_query: str = None, previous_answer: str = None,
+                         off_topic_text: str = None):
     """
     Generador compartido entre CoordinatorAgent.process() (que necesita
     streaming de logs en tiempo real hacia la UI) y scripts/run_benchmark.py
@@ -109,6 +110,16 @@ def run_refinement_loop(refiner_agent, validator_agent, query: str, log_agent,
     pasos" no tiene palabras clave tributarias por sí solo) y al Refinador
     SOLO en la primera vuelta (una vez condensada la pregunta en una
     autocontenida, las vueltas siguientes ya no necesitan el historial).
+
+    off_topic_text: texto usado para el fast-path/registro en OffTopicMemory
+    (ver query_validator_agent.py::check_off_topic/validate), en vez de
+    `query` — que en CoordinatorAgent.process() trae la descripción visual
+    de Moondream pegada. Sin esta separación, dos preguntas distintas sobre
+    la misma imagen quedan casi idénticas en texto (la descripción larga
+    domina el string) y el match por similitud las confunde (ADR-0007,
+    corrección post-producción #3). Default `None` → cae a `query` dentro
+    de QueryValidatorAgent (retrocompatible con scripts/run_benchmark.py,
+    que nunca pasa imagen).
     """
     max_iterations = max_iterations or _cfg.REFINEMENT_MAX_ITERATIONS
     token_usage = {}
@@ -117,6 +128,7 @@ def run_refinement_loop(refiner_agent, validator_agent, query: str, log_agent,
     yield log_agent.get_all()
     pre_check = validator_agent.check_off_topic(
         query, previous_query=previous_query, previous_answer=previous_answer,
+        dedup_text=off_topic_text,
     )
     token_usage = add_token_usage(token_usage, validator_agent.last_token_usage)
     yield log_agent.get_all()
@@ -156,7 +168,7 @@ def run_refinement_loop(refiner_agent, validator_agent, query: str, log_agent,
         log_agent.log(Stage.VALIDADOR, "Validando pregunta refinada...")
         yield log_agent.get_all()
 
-        result = validator_agent.validate(final_query)
+        result = validator_agent.validate(final_query, dedup_text=off_topic_text)
         token_usage = add_token_usage(token_usage, validator_agent.last_token_usage)
         yield log_agent.get_all()
 
@@ -371,6 +383,7 @@ class CoordinatorAgent:
             refinement_gen = run_refinement_loop(
                 self.refiner_agent, self.validator_agent, rag_query, self.log_agent,
                 previous_query=previous_query, previous_answer=previous_answer,
+                off_topic_text=full_query,
             )
             try:
                 while True:

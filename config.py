@@ -92,11 +92,13 @@ VISION_TIMEOUT: int = 180
 # (respuesta vacía, eval_count=1, 100% reproducible con Ollama) — se limita
 # la longitud con num_predict (parámetro de la API) en vez de en el prompt.
 MOONDREAM_PROMPT: str = (
-    "Describe what is shown in this image. "
+    "Describe what is shown in this image, including any text, numbers, "
+    "percentages, labels, and country or entity names visible. "
     "It may be a tax form, web portal screenshot, electronic invoice, "
-    "tax declaration, or government system screen."
+    "tax declaration, government system screen, comparative table, "
+    "chart, or infographic."
 )
-MOONDREAM_NUM_PREDICT: int = 100
+MOONDREAM_NUM_PREDICT: int = 200
 
 # ─────────────────────────────────────────────
 # VIDEO
@@ -156,7 +158,17 @@ MINERU_BACKEND: str = "pipeline"
 # Este Mac es Intel x86_64: MPS (Metal) se detecta pero torchvision::nms y
 # bfloat16 no están implementados ahí para los modelos de MinerU → forzar CPU.
 MINERU_DEVICE: str = "cpu"
-MINERU_TIMEOUT: int = 600  # segundos, PDFs largos con tablas tardan
+# 1800 (era 600): un doc de 44 páginas normales tardó 420s en CPU, cerca del
+# límite viejo — margen amplio evita que un doc más largo/pesado del corpus
+# dispare TimeoutExpired y caiga silenciosamente a chunk_pdf (PyMuPDF puro,
+# sin tablas/imágenes/OCR).
+MINERU_TIMEOUT: int = 1800  # segundos, PDFs largos con tablas tardan
+# OCR de respaldo (Tesseract) sobre bloques "image" de MinerU sin caption —
+# ver rag/chunker.py::_ocr_image_block y ADR-0004. Requiere `brew install
+# tesseract tesseract-lang` + `pip install pytesseract`. Desactivar si
+# Tesseract no está disponible en la máquina (degrada al comportamiento
+# anterior: bloques image sin caption se descartan).
+MINERU_OCR_IMAGE_FALLBACK: bool = True
 
 # ─────────────────────────────────────────────
 # GRADIO

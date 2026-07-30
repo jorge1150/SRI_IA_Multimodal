@@ -1006,7 +1006,7 @@ def test_run_refinement_loop_converges_on_first_approval():
         def check_off_topic(self, query, **kwargs):
             return {"off_topic": False, "reason": ""}
 
-        def validate(self, query):
+        def validate(self, query, **kwargs):
             return {"approved": True, "off_topic": False, "reason": "", "chunks": [{"text": "x"}]}
 
     log = LogAgent()
@@ -1035,7 +1035,7 @@ def test_run_refinement_loop_forces_pass_at_max_iterations():
         def check_off_topic(self, query, **kwargs):
             return {"off_topic": False, "reason": ""}
 
-        def validate(self, query):
+        def validate(self, query, **kwargs):
             return {"approved": False, "off_topic": False, "reason": "nunca alcanza", "chunks": []}
 
     log = LogAgent()
@@ -1077,7 +1077,7 @@ def test_run_refinement_loop_records_memory_after_rejection_then_approval():
         def check_off_topic(self, query, **kwargs):
             return {"off_topic": False, "reason": ""}
 
-        def validate(self, query):
+        def validate(self, query, **kwargs):
             self.calls += 1
             if self.calls == 1:
                 return {"approved": False, "off_topic": False, "reason": "poco clara", "chunks": []}
@@ -1121,7 +1121,7 @@ def test_run_refinement_loop_short_circuits_on_off_topic_before_refining():
                 "reason": "Esta pregunta no tiene relación con la normativa tributaria del SRI Ecuador.",
             }
 
-        def validate(self, query):
+        def validate(self, query, **kwargs):
             raise AssertionError("validate() no debería llamarse — el gate previo ya cortó")
 
     refiner = Refiner()
@@ -1152,7 +1152,7 @@ def test_run_refinement_loop_proceeds_when_pre_check_passes():
         def check_off_topic(self, query, **kwargs):
             return {"off_topic": False, "reason": ""}
 
-        def validate(self, query):
+        def validate(self, query, **kwargs):
             return {"approved": True, "off_topic": False, "reason": "", "chunks": [{"text": "z"}]}
 
     log = LogAgent()
@@ -1193,11 +1193,11 @@ def test_run_refinement_loop_propagates_context_to_check_off_topic_always_and_re
         def __init__(self):
             self.calls = 0
 
-        def check_off_topic(self, query, previous_query=None, previous_answer=None):
+        def check_off_topic(self, query, previous_query=None, previous_answer=None, **kwargs):
             off_topic_calls.append((previous_query, previous_answer))
             return {"off_topic": False, "reason": ""}
 
-        def validate(self, query):
+        def validate(self, query, **kwargs):
             self.calls += 1
             if self.calls == 1:
                 return {"approved": False, "off_topic": False, "reason": "poco clara", "chunks": []}

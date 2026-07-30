@@ -11,7 +11,7 @@ import unittest
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)
 
-from rag.chunker import _chunks_from_mineru_blocks
+from rag.chunker import _chunks_from_mineru_blocks, _ocr_image_block
 
 
 def _run(blocks, **kwargs):
@@ -158,6 +158,44 @@ class TestImageCaption(unittest.TestCase):
         ]
         chunks = _run(blocks)
         self.assertEqual(len(chunks), 0)
+
+
+class TestOcrImageBlock(unittest.TestCase):
+    """
+    _ocr_image_block (fallback Tesseract para bloques image de MinerU sin
+    caption, ver ADR-0004) es aislable con una imagen sintética — no
+    requiere invocar el binario MinerU. Solo requiere que Tesseract esté
+    instalado (`brew install tesseract tesseract-lang`); si no lo está, la
+    función degrada a "" (fail-open) y el test se salta.
+    """
+
+    def _synthetic_badge(self, text: str, path: str) -> None:
+        from PIL import Image, ImageDraw, ImageFont
+
+        img = Image.new("L", (300, 300), color=255)
+        draw = ImageDraw.Draw(img)
+        font = ImageFont.load_default(size=80)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        x = (300 - tw) // 2 - bbox[0]
+        y = (300 - th) // 2 - bbox[1]
+        draw.text((x, y), text, fill=0, font=font)
+        img.save(path)
+
+    def test_reads_percentage_from_synthetic_badge(self):
+        import shutil
+        import tempfile
+
+        if shutil.which("tesseract") is None:
+            self.skipTest("tesseract no instalado")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "badge.png")
+            self._synthetic_badge("21%", path)
+            self.assertIn("21", _ocr_image_block(path))
+
+    def test_missing_file_degrades_to_empty_string(self):
+        self.assertEqual(_ocr_image_block("/no/existe/badge.png"), "")
 
 
 class TestSkipTypes(unittest.TestCase):

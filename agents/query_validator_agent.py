@@ -32,9 +32,10 @@ _REJECT_TOOL = {
     "function": {
         "name": "rechazar_pregunta",
         "description": (
-            "Llama a esta función SOLO si la pregunta ES sobre normativa "
-            "tributaria del SRI Ecuador pero es imposible de responder con "
-            "los fragmentos dados: está vacía o incoherente, o NINGUNO de "
+            "Llama a esta función SOLO si la pregunta ES sobre impuestos o "
+            "tributación (aunque no sea específicamente del SRI Ecuador — ej. "
+            "tarifas de IVA de otros países) pero es imposible de responder "
+            "con los fragmentos dados: está vacía o incoherente, o NINGUNO de "
             "los fragmentos recuperados es relevante al tema de la pregunta. "
             "NO la llames solo porque la pregunta es amplia o los fragmentos no "
             "cubren absolutamente todos los detalles posibles — una pregunta "
@@ -62,11 +63,15 @@ _OFF_TOPIC_TOOL = {
     "function": {
         "name": "pregunta_fuera_de_dominio",
         "description": (
-            "Llama a esta función si la pregunta NO tiene absolutamente nada "
-            "que ver con normativa tributaria del SRI Ecuador (ej. clima, "
-            "deportes, saludos, preguntas de otro dominio por completo). "
-            "NO la llames si la pregunta es sobre impuestos/normativa aunque "
-            "esté mal formulada — para eso está rechazar_pregunta."
+            "Llama a esta función si la pregunta NO tiene relación alguna con "
+            "impuestos, tributación o normativa fiscal, de cualquier país "
+            "(ej. clima, deportes, saludos, preguntas de otro dominio por "
+            "completo). NO la llames si la pregunta es sobre impuestos/"
+            "normativa aunque esté mal formulada o hable de otro país — para "
+            "eso está rechazar_pregunta. Preguntas sobre impuestos de otros "
+            "países (ej. comparaciones de tarifas de IVA regional) SÍ cuentan "
+            "como dominio tributario, aunque no sean específicamente del SRI "
+            "Ecuador."
         ),
         "parameters": {"type": "object", "properties": {}, "required": []},
     },
@@ -97,7 +102,8 @@ class QueryValidatorAgent:
         self.last_token_usage: dict = {}
 
     def check_off_topic(self, query: str, model: str = None,
-                         previous_query: str = None, previous_answer: str = None) -> dict:
+                         previous_query: str = None, previous_answer: str = None,
+                         dedup_text: str = None) -> dict:
         """
         Chequeo liviano de dominio — SIN retrieval, sin la tool
         `rechazar_pregunta` — pensado para correr sobre la pregunta
@@ -106,6 +112,14 @@ class QueryValidatorAgent:
         "arreglar" una pregunta fuera de tema para que suene tributaria
         (ADR-0007). Retorna {"off_topic": bool, "reason": str}.
 
+        dedup_text: texto usado para el fast-path/registro en OffTopicMemory
+        (default: `query`). Cuando `query` trae la descripción visual pegada
+        (ver coordinator.py), pasar acá SOLO el texto escrito/hablado del
+        usuario — si se compara/graba la cadena completa con la descripción
+        de imagen, dos preguntas distintas sobre la misma imagen quedan casi
+        idénticas en texto y el match por similitud las confunde (ver
+        ADR-0007, corrección post-producción #3).
+
         previous_query/previous_answer: último intercambio de la conversación
         (ver ADR-0010) — sin esto, un follow-up genérico ("dime los pasos")
         no tiene palabras clave tributarias por sí solo y podría marcarse
@@ -113,11 +127,12 @@ class QueryValidatorAgent:
         """
         model = model or LLM_MODEL
         self.last_token_usage = {}
+        dedup_text = dedup_text or query
 
         if self.off_topic_memory is not None:
-            match = self.off_topic_memory.similar(query, top_k=1)
+            match = self.off_topic_memory.similar(dedup_text, top_k=1)
             if match:
-                self.log.log(Stage.VALIDADOR, f"✗ Fuera de dominio (ya visto en memoria): «{query[:80]}»")
+                self.log.log(Stage.VALIDADOR, f"✗ Fuera de dominio (ya visto en memoria): «{dedup_text[:80]}»")
                 return {"off_topic": True, "reason": _OFF_TOPIC_MESSAGE}
 
         try:
@@ -141,7 +156,7 @@ class QueryValidatorAgent:
 
             if "pregunta_fuera_de_dominio" in names:
                 if self.off_topic_memory is not None:
-                    self.off_topic_memory.record(query)
+                    self.off_topic_memory.record(dedup_text)
                 self.log.log(Stage.VALIDADOR, f"✗ Fuera de dominio: «{query[:80]}»")
                 return {"off_topic": True, "reason": _OFF_TOPIC_MESSAGE}
 
@@ -157,23 +172,28 @@ class QueryValidatorAgent:
             self.log.log(Stage.VALIDADOR, f"⚠ Error verificando dominio: {exc} — se asume dentro del dominio.")
             return {"off_topic": False, "reason": ""}
 
-    def validate(self, query: str, model: str = None) -> dict:
+    def validate(self, query: str, model: str = None, dedup_text: str = None) -> dict:
         """
         Retorna {"approved": bool, "off_topic": bool, "reason": str,
         "chunks": list[dict]}. chunks es el retrieval de prueba (vector_only)
         — se reusa en [RAG] final si la pregunta es aprobada (coordinator.py).
         Si off_topic=True, el resto del pipeline (Planner/RAG/Generación) se
         salta por completo — ver coordinator.py::run_refinement_loop.
+
+        dedup_text: ver check_off_topic — texto usado para el fast-path/
+        registro en OffTopicMemory en vez de `query` (que puede traer la
+        descripción visual pegada).
         """
         model = model or LLM_MODEL
         self.last_token_usage = {}
+        dedup_text = dedup_text or query
 
         # Fast-path: pregunta ya vista y marcada fuera de dominio antes —
         # corta sin retrieval ni llamada a Ollama.
         if self.off_topic_memory is not None:
-            match = self.off_topic_memory.similar(query, top_k=1)
+            match = self.off_topic_memory.similar(dedup_text, top_k=1)
             if match:
-                self.log.log(Stage.VALIDADOR, f"✗ Fuera de dominio (ya visto en memoria): «{query[:80]}»")
+                self.log.log(Stage.VALIDADOR, f"✗ Fuera de dominio (ya visto en memoria): «{dedup_text[:80]}»")
                 return {"approved": False, "off_topic": True, "reason": _OFF_TOPIC_MESSAGE, "chunks": []}
 
         chunks = self.rag.retrieve(query)
@@ -199,7 +219,7 @@ class QueryValidatorAgent:
 
             if "pregunta_fuera_de_dominio" in names:
                 if self.off_topic_memory is not None:
-                    self.off_topic_memory.record(query)
+                    self.off_topic_memory.record(dedup_text)
                 self.log.log(Stage.VALIDADOR, f"✗ Fuera de dominio: «{query[:80]}»")
                 return {"approved": False, "off_topic": True, "reason": _OFF_TOPIC_MESSAGE, "chunks": chunks}
 
