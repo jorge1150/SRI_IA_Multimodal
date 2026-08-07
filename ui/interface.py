@@ -1049,6 +1049,9 @@ def _model_detail_html(model: str) -> str:
           <tr><td style="padding:5px 8px;color:#8b9ab5">Tokens promedio</td><td style="padding:5px 8px">{fmt_tokens(v.get('avg_total_tokens'))}</td></tr>
           <tr><td style="padding:5px 8px;color:#8b9ab5">Faithfulness</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td></tr>
           <tr><td style="padding:5px 8px;color:#8b9ab5">Answer Relevancy</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Answer Correctness</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_answer_correctness'), v.get('n_answer_correctness_evaluated', 0), v.get('n', 0))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Context Precision</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_context_precision'), v.get('n_context_precision_evaluated', 0), v.get('n', 0))}</td></tr>
+          <tr><td style="padding:5px 8px;color:#8b9ab5">Context Recall</td><td style="padding:5px 8px">{_ragas_cell(v.get('avg_context_recall'), v.get('n_context_recall_evaluated', 0), v.get('n', 0))}</td></tr>
         </tbody>
       </table>
     </div>
@@ -1059,7 +1062,8 @@ _MODE_THEAD = (
     "<thead><tr>"
     "<th style='text-align:left'>Grupo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
     "<th>Generación</th><th>Total</th><th>Faithfulness</th>"
-    "<th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th>"
+    "<th>Answer Relevancy</th><th>Answer Correctness</th><th>Context Precision</th><th>Context Recall</th>"
+    "<th>% Doc. correcto</th><th>Grafo usado (planner)</th>"
     "</tr></thead>"
 )
 
@@ -1067,7 +1071,7 @@ _MODEL_THEAD = (
     "<thead><tr>"
     "<th style='text-align:left'>Modelo</th><th>N</th><th>Planning</th><th>Retrieval</th>"
     "<th>Generación</th><th>Total</th><th>Tokens</th><th>Faithfulness</th>"
-    "<th>Answer Relevancy</th>"
+    "<th>Answer Relevancy</th><th>Answer Correctness</th><th>Context Precision</th><th>Context Recall</th>"
     "</tr></thead>"
 )
 
@@ -1100,6 +1104,15 @@ def _coverage_warning_block(agg: dict) -> str:
         rw = ragas_coverage_warning(v.get("n_answer_relevancy_evaluated", 0), n)
         if rw:
             msgs.append(f"<strong>Answer Relevancy</strong> — {html.escape(rw)}")
+        acw = ragas_coverage_warning(v.get("n_answer_correctness_evaluated", 0), n)
+        if acw:
+            msgs.append(f"<strong>Answer Correctness</strong> — {html.escape(acw)}")
+        cpw = ragas_coverage_warning(v.get("n_context_precision_evaluated", 0), n)
+        if cpw:
+            msgs.append(f"<strong>Context Precision</strong> — {html.escape(cpw)}")
+        crw = ragas_coverage_warning(v.get("n_context_recall_evaluated", 0), n)
+        if crw:
+            msgs.append(f"<strong>Context Recall</strong> — {html.escape(crw)}")
         if msgs:
             items.append(
                 f"<div class='info-card gold' style='margin-bottom:8px;border-left-color:#f59e0b;font-size:0.78rem'>"
@@ -1119,6 +1132,9 @@ def _mode_rows_html(agg: dict) -> str:
         f"<td style='text-align:center;color:#fbbf24;font-weight:700'>{fmt_number(v.get('avg_total_seconds'), 's')}</td>"
         f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
         f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_answer_correctness'), v.get('n_answer_correctness_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_context_precision'), v.get('n_context_precision_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_context_recall'), v.get('n_context_recall_evaluated', 0), v.get('n', 0))}</td>"
         f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('source_match_rate'))}</td>"
         f"<td style='text-align:center;color:#6ee7b7'>{fmt_rate_pct(v.get('planner_graph_usage_rate'))}</td>"
         f"</tr>"
@@ -1138,6 +1154,9 @@ def _model_rows_html(agg: dict) -> str:
         f"<td style='text-align:center;color:#fcd34d'>{fmt_tokens(v.get('avg_total_tokens'))}</td>"
         f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v.get('n', 0))}</td>"
         f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_answer_correctness'), v.get('n_answer_correctness_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_context_precision'), v.get('n_context_precision_evaluated', 0), v.get('n', 0))}</td>"
+        f"<td style='text-align:center;color:#a78bfa'>{_ragas_styled_cell(v.get('avg_context_recall'), v.get('n_context_recall_evaluated', 0), v.get('n', 0))}</td>"
         f"</tr>"
         for k, v in sorted(agg.items())
     )
@@ -1239,7 +1258,8 @@ def _benchmark_tab_top_html() -> str:
             <code style="color:#fbbf24">python scripts/run_benchmark.py</code>
             &nbsp;&middot;&nbsp; corrida completa (puede tardar horas en CPU)<br><br>
             Compara RAG vectorial, GraphRAG y modo híbrido — tiempo de
-            respuesta y calidad (RAGAS: faithfulness, answer relevancy) —
+            respuesta y calidad (RAGAS: faithfulness, answer relevancy,
+            answer correctness, context precision, context recall) —
             y permite comparar distintos modelos Ollama entre sí (local o
             cloud, ver ADR-0008). El juez RAGAS por defecto es el primer
             modelo cloud de --models, si hay alguno (ver ADR-0011) —
@@ -1280,7 +1300,7 @@ def _benchmark_tab_top_html() -> str:
             <tr><td style="color:#c4b5fd;padding:6px 10px">Answer Relevancy</td>
                 <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta contesta la pregunta hecha, sin divagar. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">% Doc. correcto</td>
-                <td style="padding:6px 10px">De las preguntas con retrieval vectorial, en cuántas se recuperó el documento fuente real esperado (según <code>preguntas.docx</code>). Vacío en <code>graph_only</code> a propósito &mdash; ese modo nunca consulta ChromaDB.</td></tr>
+                <td style="padding:6px 10px">De las preguntas con retrieval vectorial, en cuántas se recuperó el documento fuente real esperado (según el Banco de Preguntas SRI). Vacío en <code>graph_only</code> a propósito &mdash; ese modo nunca consulta ChromaDB.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Grafo usado (planner)</td>
                 <td style="padding:6px 10px">Solo en el modo <code>agentic</code> &mdash; % de preguntas donde el PlannerAgent decidió activar GraphRAG. Es descriptivo, no una métrica de acierto: no hay forma objetiva de saber si "debería" haber usado grafo en cada pregunta.</td></tr>
           </tbody>
@@ -1635,7 +1655,7 @@ def _build_guide_tab():
         <code style="color:#fbbf24">python scripts/run_benchmark.py --limit 5</code>
         &nbsp;&middot;&nbsp; prueba rápida (sin RAGAS: agregar <code>--no-ragas</code>)<br>
         <code style="color:#fbbf24">python scripts/run_benchmark.py</code>
-        &nbsp;&middot;&nbsp; corrida completa sobre <code>preguntas.docx</code>
+        &nbsp;&middot;&nbsp; corrida completa sobre el Banco de Preguntas SRI
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem" role="table">
         <thead>

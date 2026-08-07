@@ -77,11 +77,10 @@ SRI_IA_Multimodal/
 ├── scripts/
 │   ├── build_graph.py          # Script de construcción del grafo de conocimiento
 │   ├── run_benchmark.py        # Benchmark de tesis — modos × modelos × RAGAS
-│   ├── ragas_local.py          # Juez RAGAS local (Ollama) + embeddings locales
-│   └── benchmark_dataset.py    # Parser de preguntas.docx
+│   └── ragas_local.py          # Juez RAGAS local (Ollama) + embeddings locales
 ├── data/
 │   └── <categoría>/            # Subcarpetas dinámicas — el nombre es el tipo_normativa
-├── preguntas.docx               # Dataset de evaluación (42 preguntas, 22 documentos)
+├── banco_preguntas_v2/          # Dataset de evaluación (20 preguntas verificadas + ground truth, ver ADR-0012)
 ├── vector_db/chroma_sri/       # Base vectorial persistida (ChromaDB)
 ├── vector_db/build_metadata.json # Tiempo acumulado de construcción del vector store
 ├── graph_db/sri_graph.json     # Grafo de conocimiento (NetworkX serializado)

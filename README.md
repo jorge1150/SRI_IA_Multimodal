@@ -132,8 +132,7 @@ SRI_IA_Multimodal/
 ├── scripts/                    # Scripts CLI
 │   ├── build_graph.py          # Construir grafo: python scripts/build_graph.py
 │   ├── run_benchmark.py        # Benchmark de tesis: RAG vs GraphRAG vs Híbrido vs Agéntico + RAGAS
-│   ├── ragas_local.py          # Juez RAGAS local (Ollama) + embeddings (sentence-transformers)
-│   └── benchmark_dataset.py    # Parser de preguntas.docx
+│   └── ragas_local.py          # Juez RAGAS local (Ollama) + embeddings (sentence-transformers)
 │
 ├── ui/                         # Interfaz Gradio
 │   ├── interface.py            # Layout, panel RAG, eventos, diagrama de flujo de agentes
@@ -142,9 +141,9 @@ SRI_IA_Multimodal/
 ├── data/                       # Documentos normativos SRI — categorías DINÁMICAS
 │   └── <categoría>/            # Cada subcarpeta de data/ es una categoría; el nombre
 │                                # de la carpeta se usa como tipo_normativa (sin tabla
-│                                # de mapeo fija). Ej.: data/IVA (Impuesto al Valor Agregado)/
+│                                # de mapeo fija). Ej.: data/IVA/, data/Renta/, data/RIMPE/
 │
-├── preguntas.docx               # Dataset de preguntas para scripts/run_benchmark.py
+├── banco_preguntas_v2/          # Dataset de preguntas (JSON + ground truth) para scripts/run_benchmark.py
 ├── vector_db/chroma_sri/       # Base vectorial ChromaDB (generada)
 ├── vector_db/build_metadata.json # Tiempo acumulado de construcción del vector store
 ├── graph_db/sri_graph.json     # Grafo de conocimiento (generado, incl. build_seconds)
@@ -454,8 +453,8 @@ Compara, por cada combinación pregunta × modo × modelo:
 | `generation_seconds` / `generation_tokens` | Tiempo/tokens en que el LLM redacta la respuesta |
 | `total_tokens` | Suma de tokens (prompt+completion) de toda la consulta — ver ADR-0009 |
 | `off_topic` | Si el Validador cortó la consulta por fuera de dominio (ADR-0007) |
-| `faithfulness` / `answer_relevancy` | RAGAS — juez local vía Ollama, embeddings `sentence-transformers` (nunca OpenAI, aun evaluando un modelo cloud) |
-| `source_matched` | Si el retrieval trajo el documento fuente esperado (según `preguntas.docx`) |
+| `faithfulness` / `answer_relevancy` / `answer_correctness` / `context_precision` / `context_recall` | RAGAS — juez local vía Ollama, embeddings `sentence-transformers` (nunca OpenAI, aun evaluando un modelo cloud). Las últimas 3 usan `respuesta_esperada` de cada pregunta como ground truth |
+| `source_matched` | Si el retrieval trajo el documento fuente esperado (según `banco_preguntas_v2.json`) |
 
 Resultado en `outputs/benchmarks/` (CSV con datos crudos, HTML con reporte
 visual, JSON de resumen) — visible también en la tab **"📊 Benchmark RAGAS"**
@@ -513,7 +512,7 @@ python -m pytest tests/test_graph.py -v
 python -m pytest tests/test_agents.py tests/test_rag.py -v
 
 # Solo benchmark/RAGAS (incluye formateadores compartidos)
-python -m pytest tests/test_benchmark.py tests/test_benchmark_dataset.py -v
+python -m pytest tests/test_benchmark.py -v
 ```
 
 ## Diferencias con S3 IA Multimodal (Proyecto Base)

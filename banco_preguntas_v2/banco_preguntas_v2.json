@@ -1,0 +1,206 @@
+[
+  {
+    "id": "q01",
+    "categoria": "RIMPE",
+    "pregunta": "Tengo un cliente que es negocio popular dentro del RIMPE y me pregunta si puede seguir emitiendo notas de venta preimpresas o si ya está obligado a facturar electrónicamente. ¿Qué le respondo?",
+    "respuesta_esperada": "Depende de su categoría dentro del RIMPE: únicamente los contribuyentes catalogados como \"negocios populares\" están autorizados a emitir notas de venta preimpresas; los \"emprendedores\" del RIMPE sí están obligados al esquema electrónico. Texto del Art. 6 de la Resolución NAC-DGERCGC24-00000027: \"Los contribuyentes considerados como emprendedores dentro del RIMPE emitirán comprobantes de venta, retención y documentos complementarios, obligatoriamente en el esquema electrónico. Únicamente los contribuyentes considerados como negocios populares dentro del RIMPE están autorizados a emitir notas de venta preimpresas al amparo de la normativa vigente. Sin embargo, de ser su elección, podrán emitir comprobantes de venta, documentos complementarios y comprobantes de retención, en el esquema electrónico, de ser el caso.\" Además, el mismo artículo exige que los comprobantes autorizados y emitidos, tanto en esquema físico como electrónico, incluyan la leyenda \"Contribuyente RIMPE - Emprendedor\" o \"Contribuyente RIMPE Negocio Popular\", según corresponda.",
+    "fuente_documento": "RIMPE_normas_aplicacion_NAC-DGERCGC24-00000027.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=7c3fb8dc-31a6-4fe3-a6c0-abe1def2c78a&nombre=NAC-DGERCGC24-00000027.pdf",
+    "articulo_norma": "Art. 6 de la Resolución Nro. NAC-DGERCGC24-00000027",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q02",
+    "categoria": "RIMPE",
+    "pregunta": "Una sociedad cliente mía está catalogada como RIMPE Emprendedor y su RUC tiene noveno dígito 5. ¿Hasta qué fecha debe declarar y pagar su Impuesto a la Renta anual?",
+    "respuesta_esperada": "Hasta el 18 de abril. El Art. 8 de la Resolución NAC-DGERCGC24-00000027 fija una tabla diferenciada para \"RIMPE EMPRENDEDOR – SOCIEDAD\", donde \"Si el noveno dígito es 5, Fecha de vencimiento (hasta el día) 18 de abril\". Esta tabla es distinta de la aplicable a \"RIMPE EMPRENDEDOR – PERSONA NATURAL O NEGOCIO POPULAR\", cuyos vencimientos caen en mayo (p. ej., noveno dígito 5 vence el 18 de mayo). El propio artículo aclara: \"La declaración se efectuará de manera obligatoria, aunque no existieran valores a informar\", y que si el vencimiento coincide con un feriado se traslada al siguiente día hábil (salvo que eso implique pasar al mes siguiente, caso en el cual se adelanta al último día hábil del mes de vencimiento).",
+    "fuente_documento": "RIMPE_normas_aplicacion_NAC-DGERCGC24-00000027.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=7c3fb8dc-31a6-4fe3-a6c0-abe1def2c78a&nombre=NAC-DGERCGC24-00000027.pdf",
+    "articulo_norma": "Art. 8 de la Resolución Nro. NAC-DGERCGC24-00000027",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q03",
+    "categoria": "RIMPE",
+    "pregunta": "¿Existe un límite de tiempo para que un contribuyente \"emprendedor\" se mantenga dentro del RIMPE, o puede quedarse indefinidamente si le conviene tributariamente?",
+    "respuesta_esperada": "Sí existe un límite: como regla general, la permanencia no puede superar tres (3) períodos fiscales anuales consecutivos, contados desde el primer período en que el contribuyente registre en su declaración de impuesto a la renta ingresos operacionales atribuibles a las actividades acogidas al régimen. Texto del Art. 217 del Título IV \"Régimen Simplificado para Emprendedores y Negocios Populares - RIMPE\" del Reglamento para la Aplicación de la LRTI: \"Los contribuyentes sujetos al régimen permanecerán en este mientras cumplan las condiciones para ello, sin que en ningún caso su permanencia sea mayor a tres (3) períodos fiscales anuales consecutivos contados desde el primer período en que se registren en la declaración de impuesto a la renta, ingresos operacionales atribuibles a las actividades acogidas a este régimen...\" (Este límite máximo NO aplica a los contribuyentes categorizados como \"negocios populares\", quienes se mantienen en el RIMPE mientras cumplan las condiciones para ello, según el mismo artículo y el Art. 3 de la Resolución NAC-DGERCGC24-00000027.)",
+    "fuente_documento": "rimpe_reglamento_ley_desarrollo_covid_titulo_iv.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0a648dfb-e00d-4cb2-9259-550cd3ebe635/Reglamento%20LODE_%C3%BAltima%20reforma%2010%20de%20noviembre%20de%202022.pdf",
+    "articulo_norma": "Art. 217 del Reglamento para la Aplicación de la LRTI (Título IV RIMPE, incorporado por el Reglamento a la Ley Orgánica para el Desarrollo Económico y Sostenibilidad Fiscal tras la Pandemia COVID-19)",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q04",
+    "categoria": "RIMPE",
+    "pregunta": "Mi empresa (régimen general) le compró mercadería a un negocio popular del RIMPE, que me entregó una nota de venta. ¿Puedo usar el IVA de esa compra como crédito tributario directamente con esa nota de venta?",
+    "respuesta_esperada": "No directamente. Las notas de venta y documentos complementarios emitidos por negocios populares NO generan crédito tributario de IVA para quien los recibe. Para tener derecho a crédito tributario, el adquirente (que no sea consumidor final) debe emitir una liquidación de compras registrando el IVA sobre el valor del bien o servicio, y retener el 100% del IVA generado. Texto del Art. 224 del Título IV RIMPE del Reglamento para la Aplicación de la LRTI: \"Las notas de venta y documentos complementarios emitidas por los sujetos considerados como negocios populares acogidos a este régimen, no generarán crédito tributario de IVA a sus adquirientes; no obstante, los contribuyentes -que no sean consumidores finales- que mantengan transacciones con proveedores que tengan esta consideración, para tener derecho a crédito tributario de IVA, deberán emitir una liquidación de compras, en la cual se registre el impuesto al valor agregado considerando como base imponible el valor del bien transferido o servicio prestado y realizar la retención del 100% de IVA generado.\"",
+    "fuente_documento": "rimpe_reglamento_ley_desarrollo_covid_titulo_iv.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0a648dfb-e00d-4cb2-9259-550cd3ebe635/Reglamento%20LODE_%C3%BAltima%20reforma%2010%20de%20noviembre%20de%202022.pdf",
+    "articulo_norma": "Art. 224 del Reglamento para la Aplicación de la LRTI (Título IV RIMPE)",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q05",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Emito facturas electrónicas y hasta hace poco sabía que tenía hasta 4 días hábiles para transmitirlas al SRI. Un colega me dijo que eso cambió. ¿Cuál es el plazo vigente para transmitir mis comprobantes electrónicos?",
+    "respuesta_esperada": "Efectivamente cambió: desde el 1 de agosto de 2025 ya no existe el margen de 4 días hábiles. La Resolución NAC-DGERCGC25-00000014 reformó el artículo 7 de la Resolución NAC-DGERCGC18-00000233 y eliminó ese margen. Su Disposición Reformatoria Primera, numeral 2, dice textualmente: \"En el primer inciso del artículo 7, elimínase la siguiente frase: 'o hasta dentro de un máximo de cuatro días hábiles de haberse generado el mismo,'\". Con esta reforma, el artículo 7 vigente exige transmitir el comprobante \"en el momento mismo de realizarse la generación del comprobante electrónico... utilizando para ello los enlaces 'web services' dispuestos en la 'Ficha Técnica de Comprobantes Electrónicos'\". (Nota histórica: ese margen de 4 días había sido incorporado apenas el 30 de octubre de 2024 por la Resolución NAC-DGERCGC24-00000035, pero fue derogado por la NAC-DGERCGC25-00000014, aplicable desde el 01 de agosto de 2025, que sigue vigente.)",
+    "fuente_documento": "facturacion_electronica_NAC-DGERCGC25-00000014.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=137046a6-787c-47fb-a2d7-176595d292dc&nombre=NAC-DGERCGC25-00000014.pdf",
+    "articulo_norma": "Disposición Reformatoria Primera, numeral 2, de la Resolución NAC-DGERCGC25-00000014 (que reforma el Art. 7 de la Resolución NAC-DGERCGC18-00000233)",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q06",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Emití una factura electrónica en julio con un error y recién ahora en agosto me di cuenta. ¿Hasta qué fecha puedo anularla en línea sin tener que emitir una nota de crédito?",
+    "respuesta_esperada": "Hasta el día 7 (siete) del mes siguiente al de su emisión — en este caso, hasta el 7 de agosto (si esa fecha coincide con un día de descanso obligatorio o feriado, se traslada al siguiente día hábil). Superado ese plazo, el comprobante solo puede anularse mediante nota de crédito. Texto vigente del Art. 3 de la Resolución NAC-DGERCGC25-00000014 (reformado): \"Los comprobantes de venta, de retención y documentos complementarios, electrónicos, se podrán anular en línea hasta el día 7 (siete) del mes siguiente al de su emisión, cuando esa fecha coincida con días de descanso obligatorio o feriados nacionales o locales, se podrán anular hasta el siguiente día hábil. Superado este plazo, los comprobantes de venta electrónicos se podrán anular únicamente mediante el uso de notas de crédito...\". Las facturas emitidas con la leyenda \"consumidor final\" no se pueden anular ni sustituir por nota de crédito una vez transmitidas al SRI.",
+    "fuente_documento": "NAC-DGERCGC25-00000017.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=e98fc8a6-299e-4ea9-8de7-2f6c70dbb4f5&nombre=NAC-DGERCGC25-00000017.pdf",
+    "articulo_norma": "Art. 3 de la Resolución NAC-DGERCGC25-00000014, reformado por el Art. 1 literal a) numeral 1 de la Resolución NAC-DGERCGC25-00000017 (vigente desde el 01 de agosto de 2025)",
+    "fecha_consulta": "2026-08-06",
+    "nota_verificacion": "El plazo original de la Resolución NAC-DGERCGC25-00000014 era el día 10, modificado a 7 por la Resolución NAC-DGERCGC25-00000017 (Art. 1, literal a, numeral 1: \"En el primer inciso, sustitúyese la frase: 'el día 10', por: 'el día 7 (siete)'\"), aplicable a comprobantes emitidos a partir del 01 de agosto de 2025 (Disposición Transitoria Primera). Corregido el 2026-08-06 tras detectar que la respuesta original (generada 2026-08-04) citaba el plazo derogado."
+  },
+  {
+    "id": "q07",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Le envié a mi proveedor una solicitud de anulación de un comprobante de retención electrónico y no me ha respondido. ¿Cuánto tiempo tiene para aceptar o rechazar antes de que la solicitud quede sin efecto?",
+    "respuesta_esperada": "Tiene 5 días hábiles contados desde la fecha de la solicitud de anulación. Si no responde dentro de ese plazo, la solicitud queda sin efecto y el comprobante mantiene su validez. Texto del Art. 4 de la Resolución NAC-DGERCGC25-00000014: \"Los comprobantes de retención, notas de crédito y notas de débito requieren de la aceptación del receptor para proceder con su anulación; para lo cual el receptor dispondrá de un plazo de 5 días hábiles a partir de la fecha de la solicitud de anulación, para aceptarla o rechazarla. En caso de no recibir respuesta dentro de dicho plazo, la solicitud quedará sin efecto y se mantendrá la validez del comprobante electrónico.\"",
+    "fuente_documento": "facturacion_electronica_NAC-DGERCGC25-00000014.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=137046a6-787c-47fb-a2d7-176595d292dc&nombre=NAC-DGERCGC25-00000014.pdf",
+    "articulo_norma": "Art. 4 de la Resolución NAC-DGERCGC25-00000014",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q08",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Un cliente nuevo me comenta que no ha presentado declaraciones de impuestos en los últimos 6 meses. ¿Eso le puede afectar la autorización para emitir sus comprobantes de venta y cuánto dura normalmente esa autorización?",
+    "respuesta_esperada": "Sí lo afecta. La autorización para emitir comprobantes de venta, documentos complementarios y comprobantes de retención dura, en condiciones normales, un año; pero si el contribuyente no ha presentado y pagado alguna declaración durante el último semestre, el SRI le autoriza los comprobantes solo por un plazo improrrogable de tres meses. Texto del Art. 6 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios: \"El período de vigencia de los comprobantes de venta, documentos complementarios y comprobantes de retención, será de un año para los sujetos pasivos, cuando cumplan las condiciones siguientes: 1. Haber presentado sus declaraciones tributarias y sus anexos cuando corresponda, y realizado el pago de las obligaciones declaradas...\" y más adelante: \"El Servicio de Rentas Internas, cuando el sujeto pasivo no hubiere presentado y pagado cuando corresponda, durante el último semestre alguna declaración, autorizará la impresión de los documentos con un plazo de vigencia improrrogable de tres meses, tiempo dentro del cual el contribuyente deberá cumplir con todas sus obligaciones pendientes. En ningún caso esta autorización podrá otorgarse de forma consecutiva.\"",
+    "fuente_documento": "reglamento_comprobantes_venta_retencion.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/142f0d6e-b156-4ac6-b804-0bd4938bc7b8/Reglamento+de+Comprobantes+de+Venta,+Retenci%C3%B3n+y+Documentos+Complementarios.pdf",
+    "articulo_norma": "Art. 6 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q09",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Voy a pagar honorarios a un abogado independiente (persona natural) por asesoría legal. ¿Qué porcentaje de retención en la fuente de Impuesto a la Renta debo aplicarle?",
+    "respuesta_esperada": "10%. La tabla de porcentajes vigente clasifica ese pago dentro de la retención del 10%. Texto del Art. 2, numeral 7, literal a) de la Resolución NAC-DGERCGC26-00000009: \"Honorarios, comisiones y demás pagos realizados a personas naturales residentes en el país que presten servicios en los que prevalezca el intelecto sobre la mano de obra, indistintamente de que el prestador del servicio posea o no título profesional o la relación del título con la actividad realizada.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 7, literal a) de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q10",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "La empresa donde trabajo arrienda una oficina a una persona natural. ¿Qué porcentaje de retención de Impuesto a la Renta debemos aplicar sobre el canon mensual de arrendamiento?",
+    "respuesta_esperada": "10%. El arrendamiento de bienes inmuebles está expresamente ubicado en el tramo del 10% de la tabla de retenciones. Texto del Art. 2, numeral 7, literal g) de la Resolución NAC-DGERCGC26-00000009: \"Arrendamiento de bienes inmuebles, cualquiera que fuese su denominación o modalidad contractual, en los cuales una parte se obliga a conceder el uso o goce del bien y otra a pagar, por este uso o goce, un determinado precio en dinero, especies o servicios.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 7, literal g) de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q11",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Contratamos a una compañía consultora (sociedad) para que nos preste servicios profesionales de auditoría. ¿A qué porcentaje de retención de Impuesto a la Renta está sujeto ese pago?",
+    "respuesta_esperada": "5%, distinto del 10% que aplica cuando el prestador es una persona natural. Texto del Art. 2, numeral 6, literal a) de la Resolución NAC-DGERCGC26-00000009: \"Servicios profesionales prestados por sociedades residentes en el Ecuador y establecimientos permanentes en el país, entendiéndose como tales servicios a aquellos que, para ser provistos, requieren el involucramiento de profesionales acreditados con un título.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 6, literal a) de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q12",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Voy a pagar por un concepto que no logro ubicar en ninguno de los porcentajes específicos de la tabla de retenciones de Impuesto a la Renta. ¿Qué porcentaje aplico por defecto?",
+    "respuesta_esperada": "3%. Texto del Art. 3 de la Resolución NAC-DGERCGC26-00000009: \"Retención en pagos sin un porcentaje específico.- Todos los pagos o créditos en cuenta no contemplados en los porcentajes específicos de retención señalados en esta Resolución, están sujetos a la retención del 3%.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 3 de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q13",
+    "categoria": "IVA",
+    "pregunta": "Mi negocio se dedica exclusivamente a la venta de productos agrícolas en estado natural, gravados con tarifa 0% de IVA. ¿Debo declarar el IVA todos los meses o puedo hacerlo semestralmente?",
+    "respuesta_esperada": "Puede declarar semestralmente, salvo que además actúe como agente de retención de IVA, caso en el cual la declaración pasa a ser obligatoriamente mensual. Texto del Art. 158 del Reglamento para la Aplicación de la LRTI: \"Quienes transfieran bienes o presten servicios gravados únicamente con tarifa 0%, así como aquellos que estén sujetos a la retención total del IVA causado y los contribuyentes que establezca el SRI mediante resolución de carácter general, presentarán declaraciones semestrales; sin embargo, si tales sujetos pasivos deben actuar también como agentes de retención del IVA, obligatoriamente sus declaraciones serán mensuales.\"",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 158 del Reglamento para la Aplicación de la LRTI (Capítulo III: Declaración, liquidación y pago del IVA)",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q14",
+    "categoria": "IVA",
+    "pregunta": "Tengo una farmacia y vendo medicamentos de uso humano. ¿Esas ventas están gravadas con la tarifa general de IVA o con tarifa 0%?",
+    "respuesta_esperada": "Con tarifa 0%. Texto del Art. 55, numeral 6, de la LRTI (transferencias e importaciones con tarifa cero): \"Medicamentos y drogas de uso humano, de acuerdo con las listas que mediante Decreto establecerá anualmente el Presidente de la República, así como la materia prima e insumos importados o adquiridos en el mercado interno para producirlas.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 55, numeral 6, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q15",
+    "categoria": "IVA",
+    "pregunta": "Un cliente mío, persona natural, arrienda su departamento exclusivamente para vivienda. ¿Debe facturar ese arriendo con IVA?",
+    "respuesta_esperada": "No. El arrendamiento de inmuebles destinado exclusivamente a vivienda está gravado con tarifa 0% de IVA. Texto del Art. 56 de la LRTI, dentro del listado de servicios con tarifa cero, numeral 3: \"Los de alquiler o arrendamiento de inmuebles destinados, exclusivamente, para vivienda, en las condiciones que se establezca en el reglamento.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 56, numeral 3, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q16",
+    "categoria": "IVA",
+    "pregunta": "Una empresa exportadora de cacao pagó IVA en la compra local de materia prima e insumos para el producto que exporta. ¿Tiene derecho a recuperar ese IVA y cómo lo solicita?",
+    "respuesta_esperada": "Sí. Tiene derecho a crédito tributario por el IVA pagado en la adquisición de bienes, materias primas, insumos y servicios utilizados en los productos que exporta, y debe solicitar la devolución al SRI adjuntando copia de los documentos de exportación una vez realizada esta. Texto del Art. 57 de la LRTI: \"Las personas naturales y sociedades exportadoras que hayan pagado y retenido el IVA en la adquisición de bienes que exporten, tienen derecho a crédito tributario por dichos pagos. Igual derecho tendrán por el impuesto pagado en la adquisición de materias primas, insumos y servicios utilizados en los productos elaborados y exportados por el fabricante. Una vez realizada la exportación, el contribuyente solicitará al Servicio de Rentas Internas la devolución correspondiente acompañando copia de los respectivos documentos de exportación.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 57 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q17",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Para la declaración del Impuesto a la Renta del ejercicio fiscal 2026, ¿hasta qué monto de ingresos una persona natural no paga impuesto (fracción básica exenta)?",
+    "respuesta_esperada": "Hasta USD 12.208, monto sobre el cual la tarifa aplicable es 0%. Según la tabla oficial \"IMPUESTO A LA RENTA PERSONAS NATURALES\" publicada por el SRI para el \"AÑO 2026\", el primer tramo es: Fracción Básica 0, Exceso hasta 12.208, Impuesto Fracción Básica 0, % Impuesto Fracción Excedente 0%. Esta tabla del año 2026 se sustenta en la Resolución Nro. NAC-DGERCGC25-00000043, publicada en el Segundo Suplemento del Registro Oficial No. 194, de 30 de diciembre de 2025.",
+    "fuente_documento": "tabla_impuesto_renta_personas_naturales_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/58a7f4f6-ab51-48b6-b9ff-a8e97e1a28ef/Tablas%20de%20c%C3%A1lculo%20de%20Impuesto%20a%20la%20Renta.pdf",
+    "articulo_norma": "Tabla de Impuesto a la Renta Personas Naturales, Año 2026, conforme la Resolución Nro. NAC-DGERCGC25-00000043",
+    "fecha_consulta": "2026-08-04"
+  },
+  {
+    "id": "q18",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Una sociedad cliente me pregunta si está obligada a pagar un anticipo de Impuesto a la Renta durante el año. ¿Es obligatorio o voluntario, y cómo se calcula si decide hacerlo?",
+    "respuesta_esperada": "El pago del anticipo es voluntario, no obligatorio. Si el contribuyente decide anticipar, el valor equivale al 50% del Impuesto a la Renta causado en el ejercicio fiscal anterior, menos las retenciones en la fuente que le fueron efectuadas en ese mismo ejercicio; ese valor anticipado constituye crédito tributario para el pago del Impuesto a la Renta del ejercicio corriente. Texto del Art. 41 de la LRTI (Pago del impuesto): \"El pago del impuesto podrá anticiparse de forma voluntaria, y será equivalente al cincuenta por ciento (50%) del impuesto a la renta causado del ejercicio fiscal anterior, menos las retenciones en la fuente efectuadas en dicho ejercicio fiscal. El valor anticipado constituirá crédito tributario para el pago del impuesto a la renta. Las condiciones y requisitos para el pago del anticipo voluntario se establecerán en el reglamento.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 41 de la Ley de Régimen Tributario Interno (Pago del impuesto)",
+    "fecha_consulta": "2026-08-04",
+    "nota_verificacion": "Nombre de archivo corregido post-generación: este PDF y lrti_texto_vigente_sri_tarifa0_exportadores.pdf (fuente de q14/q15/q16) son el mismo documento (MD5 idéntico, la LRTI completa de 128 páginas) descargado dos veces con nombres distintos durante la investigación original. Se eliminó el duplicado del corpus (dominaba el ranking de retrieval por su tamaño — 1007 fragmentos — tapando documentos más chicos y específicos como retenciones_fuente_ir_2026.pdf) y se corrigió esta referencia al nombre del archivo que sobrevive. El contenido/artículo citado no cambia."
+  },
+  {
+    "id": "q19",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Una sociedad cuyo RUC tiene noveno dígito 7, del régimen general (no RIMPE), ¿hasta qué fecha debe presentar y pagar su declaración anual de Impuesto a la Renta?",
+    "respuesta_esperada": "Hasta el 22 de abril. El Art. 72, numeral 1, del Reglamento para la Aplicación de la LRTI establece la tabla de plazos para sociedades según el noveno dígito del RUC: \"Para las sociedades, el plazo se inicia el 1 de febrero del año siguiente al que corresponda la declaración y vence en las siguientes fechas, según el noveno dígito del número del Registro Único de Contribuyentes (RUC) de la sociedad\", y en la tabla correspondiente: \"Si el noveno dígito es 7, Fecha de vencimiento (hasta el día) 22 de abril\".",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 72, numeral 1, del Reglamento para la Aplicación de la LRTI",
+    "fecha_consulta": "2026-08-04",
+    "nota_verificacion": "Nombre de archivo corregido post-generación: este PDF y reglamento_lrti_2023_declaracion_iva_art158.pdf (fuente de q13) son el mismo documento (MD5 idéntico) — \"Reglamento para la Aplicación de la LRTI\" descargado dos veces con nombres distintos durante la investigación original. Se eliminó el duplicado del corpus (dominaba el ranking de retrieval y tapaba documentos más específicos) y se corrigió esta referencia al nombre del archivo que sobrevive. El contenido/artículo citado no cambia."
+  },
+  {
+    "id": "q20",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Un comisionista (persona natural) inició el ejercicio fiscal con activos menos pasivos relacionados con su actividad por USD 190.000. ¿Está obligado a llevar contabilidad?",
+    "respuesta_esperada": "Sí, porque supera el umbral de capital propio de USD 180.000 que la norma fija para este tipo de contribuyentes. Texto del Art. 37 del Reglamento para la Aplicación de la LRTI (Contribuyentes obligados a llevar contabilidad): \"...están obligadas a llevar contabilidad las personas naturales y las sucesiones indivisas que obtengan rentas objeto de este impuesto incluidas las actividades agrícolas, pecuarias, forestales o similares, así como los profesionales, comisionistas, artesanos, agentes, representantes, otros trabajadores autónomos, y demás personas que obtengan rentas de capital distintas de las mencionadas en el siguiente inciso, y que operen con un capital propio que al inicio de sus actividades económicas o al 1o. de enero de cada ejercicio impositivo hayan sido superiores a ciento ochenta mil (USD 180.000) dólares de los Estados Unidos de América o cuyos ingresos anuales del ejercicio fiscal inmediato anterior, hayan sido superiores a trescientos mil (USD 300.000) dólares de los Estados Unidos de América o cuyos costos y gastos anuales, imputables a la actividad económica, del ejercicio fiscal inmediato anterior hayan sido superiores a doscientos cuarenta mil (USD 240.000) dólares de los Estados Unidos de América.\"",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 37 del Reglamento para la Aplicación de la LRTI (Capítulo V: De la contabilidad)",
+    "fecha_consulta": "2026-08-04",
+    "nota_verificacion": "Nombre de archivo corregido post-generación: este PDF y reglamento_lrti_2023_declaracion_iva_art158.pdf (fuente de q13) son el mismo documento (MD5 idéntico) — \"Reglamento para la Aplicación de la LRTI\" descargado dos veces con nombres distintos durante la investigación original. Se eliminó el duplicado del corpus (dominaba el ranking de retrieval y tapaba documentos más específicos) y se corrigió esta referencia al nombre del archivo que sobrevive. El contenido/artículo citado no cambia."
+  }
+]

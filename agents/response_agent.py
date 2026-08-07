@@ -26,7 +26,14 @@ SOURCES_SEPARATOR = "─" * 37
 _SYSTEM_PROMPT = (
     "Eres un asistente tributario del SRI Ecuador. "
     "Responde en español. "
-    "Usa solo el contexto dado."
+    "Usa solo el contexto dado. "
+    "Si hay varias versiones de un dato (una resolución que reforma a otra, "
+    "tablas de distintos años), usa la vigente o más reciente, no la derogada. "
+    "Extrae el dato numérico exacto que pide la pregunta (fecha, porcentaje, "
+    "monto o artículo) si aparece en cualquiera de los fragmentos numerados; "
+    "no digas que falta información si el dato está ahí. "
+    "Cita solo documentos y artículos que aparezcan literalmente en el "
+    "contexto, nunca inventes uno."
 )
 
 # Patrones de texto que modelos pequeños pueden filtrar/echar desde el prompt
@@ -47,6 +54,9 @@ _LEAK_PATTERNS = [
     r'sri\.gober\.ec',
     r'(?i)^asesor\s+tributari',
     r'(?i)^no\s+constituye.*asesor',
+    r'(?i)^si\s+hay\s+varias\s+versiones',
+    r'(?i)^extrae\s+el\s+dato',
+    r'(?i)^cita\s+solo\s+documentos',
     # Etiquetas de documentos del prompt que el modelo echa en output
     r'(?i)^---\s+(documento|doc)\s+\d+',
     r'(?i)^\[fuente\s*\d+\]',
@@ -169,8 +179,15 @@ class ResponseAgent:
     ) -> str:
         parts = []
 
-        # Deduplicar por doc_name para no repetir el mismo documento al LLM
-        deduped = self._dedup_by_doc(rag_context, max_per_doc=1, max_total=3)
+        # Deduplicar por doc_name para no repetir el mismo documento al LLM.
+        # max_per_doc=1 (valor original) descartaba la fila específica de
+        # tablas normativas (ej. tabla de % de retención por categoría en
+        # retenciones_fuente_ir_2026.pdf, 33 chunks): si el chunk mejor
+        # rankeado de ese doc era la cláusula genérica ("no podrá superar el
+        # 10%"), la fila con el % específico de la pregunta (ej. 3%/5%) nunca
+        # llegaba al LLM aunque estuviera en el top-k recuperado — ver
+        # banco_preguntas_v2/validacion_manual.md (q11/q12) y docs/adr/0013.
+        deduped = self._dedup_by_doc(rag_context, max_per_doc=6, max_total=10)
 
         if deduped:
             parts.append("CONTEXTO NORMATIVO SRI:")

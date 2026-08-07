@@ -2,8 +2,9 @@
 similarity_memory.py — Base de memoria por similitud (JSON + embedding CLIP)
 Lógica compartida entre RefinementMemory (correcciones pasadas del
 QueryRefinerAgent) y OffTopicMemory (preguntas fuera de dominio ya vistas):
-persistencia simple en JSON, embedding con el mismo OpenCLIP que ya usa
-RAGAgent, y búsqueda de los ejemplos más parecidos por similitud coseno.
+persistencia simple en JSON, embedding con el mismo embedder de texto que ya
+usa RAGAgent (sentence-transformers, ver config.TEXT_EMBEDDING_MODEL), y
+búsqueda de los ejemplos más parecidos por similitud coseno.
 
 Nunca lanza: cualquier fallo de I/O o de embedding degrada a memoria vacía
 — el llamador simplemente no recibe matches ese turno. Ver ADR-0006/ADR-0007.
@@ -22,7 +23,7 @@ class SimilarityMemory:
     """
     Persistencia simple en JSON (mismo espíritu que graph_db/sri_graph.json)
     de entradas {**payload, vector, timestamp}, para búsqueda de ejemplos
-    similares vía similitud coseno sobre `vector` (embedding CLIP).
+    similares vía similitud coseno sobre `vector` (embedding de texto).
     """
 
     def __init__(
@@ -112,10 +113,6 @@ class SimilarityMemory:
 
     def _embed(self, text: str) -> list[float] | None:
         try:
-            # OpenCLIP se carga lazy en RAGAgent — solo retrieve()/embed_image()
-            # lo disparaban antes; sin esto, _embed_text() ve _tokenizer=None
-            # en la primera consulta ("'NoneType' object is not callable").
-            self.rag._load_clip()
             return self.rag._embed_text(text)
         except Exception as exc:
             self.log.log(self.stage, f"⚠ Error vectorizando para memoria: {exc}")

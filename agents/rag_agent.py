@@ -1,17 +1,20 @@
 """
 rag_agent.py — Agente RAG para Normativa Tributaria SRI Ecuador
-Vectoriza la consulta con OpenCLIP y recupera fragmentos normativos
-relevantes desde ChromaDB, incluyendo metadatos de fuente completos.
+Vectoriza la consulta con sentence-transformers (texto) y recupera
+fragmentos normativos relevantes desde ChromaDB, incluyendo metadatos de
+fuente completos. OpenCLIP se conserva solo para embed_image() — su encoder
+de texto no discrimina bien entre textos en español (ver config.py).
 """
 
 import re
 import torch
 import open_clip
 import chromadb
+from sentence_transformers import SentenceTransformer
 from typing import List
 
 from config import (
-    DEVICE, CLIP_MODEL, CLIP_PRETRAINED, CLIP_MAX_TOKENS,
+    DEVICE, CLIP_MODEL, CLIP_PRETRAINED, TEXT_EMBEDDING_MODEL,
     CHROMA_DB_PATH, CHROMA_COLLECTION,
     RAG_TOP_K, RAG_MIN_SIMILARITY,
 )
@@ -34,6 +37,12 @@ _STOPWORDS_SRI = {
     # cientos de páginas) por encima del documento chico y específicamente
     # relevante que CLIP sí había rankeado primero en similitud cruda.
     'reglamento', 'reglamentos', 'ley', 'leyes',
+    # "Texto Vigente" es prefijo de título compartido por varios documentos
+    # LRTI (ej. "Lrti Texto Vigente Sri Anticipo Renta Art41" y "...Tarifa0
+    # Exportadores") — una pregunta que use "vigente" (muy común: "tarifa
+    # vigente", "plazo vigente") les daba meta_hits sin relación real con el
+    # tema preguntado.
+    'texto', 'vigente',
 }
 
 
@@ -51,12 +60,15 @@ class RAGAgent:
         self._clip_model = None
         self._tokenizer = None
         self._preprocessor = None
+        self._text_model = None
         self._collection = None
         self._clip_device = "cpu"
 
     # ── Carga lazy ───────────────────────────────────────────────────────────
 
     def _load_clip(self):
+        """Solo para embed_image() — búsqueda visual, no forma parte del
+        índice de texto (ver TEXT_EMBEDDING_MODEL)."""
         if self._clip_model is not None:
             return
         self.log.log(Stage.RAG, f"Cargando OpenCLIP {CLIP_MODEL} en CPU...")
@@ -67,6 +79,13 @@ class RAGAgent:
         self._clip_model = self._clip_model.to(self._clip_device).eval()
         self._tokenizer = open_clip.get_tokenizer(CLIP_MODEL)
         self.log.log(Stage.RAG, "OpenCLIP listo.")
+
+    def _load_text_embedder(self):
+        if self._text_model is not None:
+            return
+        self.log.log(Stage.RAG, f"Cargando embedder de texto {TEXT_EMBEDDING_MODEL}...")
+        self._text_model = SentenceTransformer(TEXT_EMBEDDING_MODEL)
+        self.log.log(Stage.RAG, "Embedder de texto listo.")
 
     def _load_chroma(self):
         if self._collection is not None:
@@ -93,7 +112,7 @@ class RAGAgent:
         metadata contiene: doc_name, tipo_normativa, año, pagina,
                            articulo_seccion, ruta_archivo, source.
         """
-        self._load_clip()
+        self._load_text_embedder()
         self._load_chroma()
 
         if self._collection is None:
@@ -155,11 +174,14 @@ class RAGAgent:
         Re-rankea por solapamiento de palabras clave tributarias con la consulta.
         Bonifica si la palabra aparece en el texto o en el ID del documento.
         """
-        query_words = {
-            w.lower().strip('.,;:!?¡¿()')
-            for w in query.split()
-            if len(w) > 2 and w.lower() not in _STOPWORDS_SRI
-        }
+        # Stripear puntuación ANTES de filtrar stopwords — si se filtra sobre
+        # la palabra cruda, "SRI." (con punto, fin de oración) no matchea el
+        # stopword "sri" y se cuela como keyword, dándole boost falso a
+        # cualquier doc con "Sri"/"Vigente" en el nombre (boilerplate de
+        # título, no señal real de tema — bug real encontrado en
+        # validacion_manual.md, ver docs/adr/0013).
+        stripped_words = (w.lower().strip('.,;:!?¡¿()') for w in query.split())
+        query_words = {w for w in stripped_words if len(w) > 2 and w not in _STOPWORDS_SRI}
         if not query_words:
             return chunks
 
@@ -181,12 +203,10 @@ class RAGAgent:
     # ── Embeddings ───────────────────────────────────────────────────────────
 
     def _embed_text(self, text: str) -> list[float] | None:
+        self._load_text_embedder()
         try:
-            tokens = self._tokenizer([text[:CLIP_MAX_TOKENS]]).to(self._clip_device)
-            with torch.no_grad():
-                vec = self._clip_model.encode_text(tokens)
-                vec /= vec.norm(dim=-1, keepdim=True)
-            return vec.cpu().numpy().flatten().tolist()
+            vec = self._text_model.encode([text], normalize_embeddings=True)
+            return vec[0].tolist()
         except Exception as exc:
             self.log.log(Stage.ERROR, f"Error vectorizando texto: {exc}")
             return None

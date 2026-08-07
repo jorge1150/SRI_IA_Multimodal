@@ -361,7 +361,20 @@ def _chunks_from_mineru_blocks(blocks: List[dict], *, name_no_ext: str, filename
             caption = " ".join(block.get("table_caption", []) or [])
             footnote = " ".join(block.get("table_footnote", []) or [])
             display = "\n".join(p for p in (caption, table_html, footnote) if p).strip()
-            graph_text = " ".join(p for p in (caption, footnote) if p).strip()
+            # graph_text es lo que se embebe (ver rag/ingesta.py, ADR-0004) —
+            # debía evitar el HTML crudo, pero quedarse solo con
+            # caption+footnote deja tablas sin caption descriptivo (título
+            # genérico tipo "RIMPE EMPRENDEDOR – SOCIEDAD") con un embedding
+            # casi vacío de señal: ninguna palabra de una pregunta sobre el
+            # contenido real de la tabla (ej. "noveno dígito 5", "18 de
+            # abril") puede matchear. Se agrega el cuerpo de la tabla SIN
+            # etiquetas HTML (celdas separadas por espacio) para que el
+            # embedding sí cargue los valores reales, sin el ruido de
+            # <table><tr><td> repetido que diluía la similitud (ver
+            # banco_preguntas_v2/validacion_manual.md, q02/q19).
+            table_plain = re.sub(r'<[^>]+>', ' ', table_html)
+            table_plain = re.sub(r'\s+', ' ', table_plain).strip()
+            graph_text = " ".join(p for p in (caption, table_plain, footnote) if p).strip()
             if display:
                 special_chunks.append({
                     "page_idx": page_idx, "kind": "table",

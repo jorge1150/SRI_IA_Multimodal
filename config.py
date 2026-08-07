@@ -55,12 +55,28 @@ MIC_DEVICE_INDEX = None
 OUTPUT_DEVICE_INDEX = None
 
 # ─────────────────────────────────────────────
-# OPENCLIP — Embeddings para RAG
+# OPENCLIP — Solo para embed_image() (búsqueda visual, no usado por el
+# índice de texto — ver TEXT_EMBEDDING_MODEL abajo)
 # ─────────────────────────────────────────────
 CLIP_MODEL: str = "hf-hub:timm/vit_base_patch32_clip_224.openai"
 CLIP_PRETRAINED: str = ""
 CLIP_EMBEDDING_DIM: int = 512
 CLIP_MAX_TOKENS: int = 200
+
+# ─────────────────────────────────────────────
+# EMBEDDINGS DE TEXTO — RAG (corpus + consultas)
+# ─────────────────────────────────────────────
+# OpenCLIP se usó originalmente también para el texto, pero su encoder de
+# texto está optimizado para alinear imagen-texto, no para comparar dos
+# textos entre sí: medido en producción, la similitud coseno entre una
+# pregunta y CUALQUIER chunk del corpus cae en un rango angosto (~0.5-0.97)
+# sin separación real por relevancia — un chunk irrelevante rankeaba por
+# encima del chunk correcto en 11/20 preguntas del banco v2 (ver
+# banco_preguntas_v2/validacion_manual.md y docs/adr/0013). RAGAS ya usaba
+# sentence-transformers para el juez por la misma razón (scripts/ragas_local.py)
+# — este modelo aplica ese mismo fix al retrieval real, no solo a la métrica.
+TEXT_EMBEDDING_MODEL: str = "paraphrase-multilingual-MiniLM-L12-v2"
+TEXT_EMBEDDING_DIM: int = 384
 
 # ─────────────────────────────────────────────
 # CHROMADB — Base vectorial SRI
@@ -71,8 +87,11 @@ CHROMA_COLLECTION: str = "normativa_tributaria"
 # Tiempo acumulado de construcción del vector store (ver rag/ingesta.py),
 # mismo patrón que build_seconds en graph_db/sri_graph.json.
 VECTOR_BUILD_METADATA_PATH: str = os.path.join(BASE_DIR, "vector_db", "build_metadata.json")
-RAG_TOP_K: int = 4
-RAG_MIN_SIMILARITY: float = 0.18
+RAG_TOP_K: int = 12
+# Escala de similitud distinta a la de CLIP (0.18) — sentence-transformers
+# separa mucho mejor relevante/irrelevante; retuneado empíricamente tras el
+# cambio de embedder (ver docs/adr/0013).
+RAG_MIN_SIMILARITY: float = 0.30
 
 # ─────────────────────────────────────────────
 # PIPER TTS

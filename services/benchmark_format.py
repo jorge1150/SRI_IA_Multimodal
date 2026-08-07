@@ -101,7 +101,13 @@ def compute_model_ranking(by_model: dict) -> list[dict]:
     comparar).
     """
     def _quality(v: dict) -> float | None:
-        parts = [x for x in (v.get("avg_faithfulness"), v.get("avg_answer_relevancy")) if not _is_missing(x)]
+        parts = [
+            x for x in (
+                v.get("avg_faithfulness"), v.get("avg_answer_relevancy"),
+                v.get("avg_answer_correctness"), v.get("avg_context_precision"),
+                v.get("avg_context_recall"),
+            ) if not _is_missing(x)
+        ]
         return sum(parts) / len(parts) if parts else None
 
     ranked_candidates = {
@@ -158,7 +164,8 @@ def explain_ranking_winner(ranking: list) -> str:
         return ""
     top, second = ranking[0], ranking[1]
     contribs = {
-        "calidad RAGAS (Faithfulness + Answer Relevancy)": 0.5 * (top["quality_n"] - second["quality_n"]),
+        "calidad RAGAS (Faithfulness + Answer Relevancy + Answer Correctness + Context Precision/Recall)":
+            0.5 * (top["quality_n"] - second["quality_n"]),
         "velocidad de respuesta": 0.3 * (top["speed_n"] - second["speed_n"]),
         "costo en tokens": 0.2 * (top["cost_n"] - second["cost_n"]),
     }

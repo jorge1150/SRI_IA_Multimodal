@@ -10,15 +10,19 @@ Uso:
 Mide, por cada combinación (modelo × modo × pregunta):
   - Tiempo de retrieval (HybridRetriever.retrieve, mode forzado)
   - Tiempo de generación (ResponseAgent.generate, modelo forzado)
-  - faithfulness / answer_relevancy (RAGAS, juez vía Ollama, embeddings
-    sentence-transformers — ver scripts/ragas_local.py). El juez por
-    defecto es el primer modelo cloud presente en --models (si hay alguno):
-    Faithfulness le exige al juez extraer afirmaciones atómicas y
-    verificarlas una por una contra el contexto, tarea en la que un juez
-    local chico (3B) falla mucho más seguido que uno grande — se puede
-    forzar cualquier otro con --judge-model.
+  - faithfulness / answer_relevancy / answer_correctness / context_precision /
+    context_recall (RAGAS, juez vía Ollama, embeddings sentence-transformers
+    — ver scripts/ragas_local.py). Las últimas 3 usan como ground truth el
+    campo "respuesta_esperada" de banco_preguntas_v2/banco_preguntas_v2.json
+    (verificado contra fuentes oficiales del SRI, no comparan texto idéntico
+    sino solape factual + similitud semántica). El juez por defecto es el
+    primer modelo cloud presente en --models (si hay alguno): Faithfulness
+    le exige al juez extraer afirmaciones atómicas y verificarlas una por
+    una contra el contexto, tarea en la que un juez local chico (3B) falla
+    mucho más seguido que uno grande — se puede forzar cualquier otro con
+    --judge-model.
   - Si el retrieval trajo chunks del documento fuente esperado (según
-    preguntas.docx), cuando el modo incluye recuperación vectorial.
+    banco_preguntas_v2.json), cuando el modo incluye recuperación vectorial.
 
 Salida en outputs/benchmarks/:
   - benchmark_<timestamp>.csv   — una fila por pregunta×modo×modelo
@@ -26,8 +30,8 @@ Salida en outputs/benchmarks/:
   - benchmark_<timestamp>_summary.json — agregados (leído por la UI)
 
 Nota de costo: cada pregunta implica al menos 1 llamada de generación +
-hasta 2 llamadas de juez RAGAS, todo en CPU local — una corrida completa
-(42 preguntas × 3 modos × N modelos) puede tardar horas. Usar --limit para
+hasta 5 llamadas de juez RAGAS, todo en CPU local — una corrida completa
+(20 preguntas × 3 modos × N modelos) puede tardar horas. Usar --limit para
 pruebas rápidas.
 """
 
@@ -52,9 +56,26 @@ from services.benchmark_format import (
     fmt_tokens, is_cloud_model, compute_model_ranking, explain_ranking_winner,
 )
 
-DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "preguntas.docx")
+DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "banco_preguntas_v2", "banco_preguntas_v2.json")
 DEFAULT_OUT_DIR = os.path.join(_ROOT, "outputs", "benchmarks")
 ALL_MODES = ["vector_only", "graph_only", "hybrid", "agentic"]
+
+
+def _load_questions(path: str) -> list[dict]:
+    """Carga banco_preguntas_v2.json — 20 preguntas verificadas contra
+    fuentes oficiales del SRI (ver banco_preguntas_v2_resumen.md), con
+    respuesta_esperada como ground truth para RAGAS reference-based."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return [
+        {
+            "categoria": item["categoria"],
+            "source_doc": item["fuente_documento"],
+            "question": item["pregunta"],
+            "ground_truth": item["respuesta_esperada"],
+        }
+        for item in data
+    ]
 
 
 def _normalize(s: str) -> str:
@@ -211,21 +232,33 @@ def _run_single(hybrid, response_agent, planner_agent, refiner_agent, validator_
     }
 
 
+RAGAS_METRIC_NAMES = (
+    "faithfulness", "answer_relevancy", "answer_correctness",
+    "context_precision", "context_recall",
+)
+
+
 def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: str) -> None:
-    """Corre RAGAS una sola vez sobre todas las filas y anota faithfulness/
-    answer_relevancy in-place. Filas sin retrieved_texts o answer vacía se
-    saltan (RAGAS no tiene nada que evaluar)."""
+    """Corre RAGAS una sola vez sobre todas las filas y anota las 5 métricas
+    in-place. answer_correctness/context_precision/context_recall usan
+    ground_truth (respuesta_esperada de banco_preguntas_v2.json) como
+    "reference" — comparan solape factual + similitud semántica contra la
+    respuesta del sistema, no exigen texto idéntico. Filas sin retrieved_texts,
+    answer o ground_truth vacíos se saltan (RAGAS no tiene nada que evaluar)."""
     from ragas import evaluate, EvaluationDataset
-    from ragas.metrics import faithfulness, answer_relevancy
+    from ragas.metrics import (
+        faithfulness, answer_relevancy, answer_correctness,
+        context_precision, context_recall,
+    )
     from scripts.ragas_local import make_judge_llm, make_embeddings
 
-    evaluable = [r for r in rows if r["answer"].strip() and r["retrieved_texts"]]
+    evaluable = [r for r in rows if r["answer"].strip() and r["retrieved_texts"] and r.get("ground_truth", "").strip()]
     for r in rows:
-        r["faithfulness"] = None
-        r["answer_relevancy"] = None
+        for name in RAGAS_METRIC_NAMES:
+            r[name] = None
 
     if not evaluable:
-        print("[BENCHMARK] Sin filas evaluables para RAGAS (respuestas o contexto vacíos).")
+        print("[BENCHMARK] Sin filas evaluables para RAGAS (respuestas, contexto o ground_truth vacíos).")
         return
 
     print(f"[BENCHMARK] Corriendo RAGAS sobre {len(evaluable)} fila(s) "
@@ -236,41 +269,44 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
             "user_input": r["question"],
             "response": r["answer"],
             "retrieved_contexts": r["retrieved_texts"],
+            "reference": r["ground_truth"],
         }
         for r in evaluable
     ])
 
     llm = make_judge_llm(judge_model, ollama_url)
     embeddings = make_embeddings(embedding_model)
-    result = evaluate(dataset=dataset, metrics=[faithfulness, answer_relevancy],
-                       llm=llm, embeddings=embeddings)
+    result = evaluate(
+        dataset=dataset,
+        metrics=[faithfulness, answer_relevancy, answer_correctness, context_precision, context_recall],
+        llm=llm, embeddings=embeddings,
+    )
     df = result.to_pandas()
 
-    n_failed_faith = n_failed_rel = 0
+    n_failed = {name: 0 for name in RAGAS_METRIC_NAMES}
     for r, (_, row) in zip(evaluable, df.iterrows()):
-        faith_val = _none_if_nan(row.get("faithfulness"))
-        rel_val = _none_if_nan(row.get("answer_relevancy"))
-        r["faithfulness"] = faith_val
-        r["answer_relevancy"] = rel_val
-        n_failed_faith += faith_val is None
-        n_failed_rel += rel_val is None
+        for name in RAGAS_METRIC_NAMES:
+            val = _none_if_nan(row.get(name))
+            r[name] = val
+            n_failed[name] += val is None
 
-    if n_failed_faith or n_failed_rel:
-        print(f"[BENCHMARK] Juez RAGAS no pudo evaluar {n_failed_faith}/{len(evaluable)} "
-              f"(faithfulness) y {n_failed_rel}/{len(evaluable)} (answer_relevancy) — "
+    failed_report = ", ".join(f"{n}/{len(evaluable)} ({name})" for name, n in n_failed.items() if n)
+    if failed_report:
+        print(f"[BENCHMARK] Juez RAGAS no pudo evaluar: {failed_report} — "
               f"NaN del juez local, se excluyen del promedio (no del CSV).", flush=True)
 
 
 def _write_csv(rows: list, path: str) -> None:
     fields = [
-        "category", "source_doc", "question", "model", "mode_requested", "mode_result",
+        "categoria", "source_doc", "question", "ground_truth", "model", "mode_requested", "mode_result",
         "off_topic",
         "refinement_seconds", "refinement_iterations", "refinement_tokens",
         "planning_seconds", "planning_tokens", "planner_used_graph",
         "retrieval_seconds", "generation_seconds", "generation_tokens", "total_seconds",
         "total_tokens",
         "n_vector_chunks", "n_graph_triples", "source_matched",
-        "faithfulness", "answer_relevancy", "answer",
+        "faithfulness", "answer_relevancy", "answer_correctness", "context_precision", "context_recall",
+        "answer",
     ]
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
@@ -291,8 +327,10 @@ def _aggregate(rows: list, key: str) -> dict:
     out = {}
     for k, items in groups.items():
         n = len(items)
-        faith = [i["faithfulness"] for i in items if _valid(i["faithfulness"])]
-        rel = [i["answer_relevancy"] for i in items if _valid(i["answer_relevancy"])]
+        ragas_vals = {
+            name: [i[name] for i in items if _valid(i.get(name))]
+            for name in RAGAS_METRIC_NAMES
+        }
         matched = [i["source_matched"] for i in items if i["source_matched"] is not None]
         # Descriptivo, no una métrica de acierto — no hay ground truth de
         # "esta pregunta debería haber usado grafo". Solo aplica al modo
@@ -301,8 +339,7 @@ def _aggregate(rows: list, key: str) -> dict:
         refinement_iters = [i.get("refinement_iterations") for i in items if i.get("refinement_iterations") is not None]
         out[k] = {
             "n": n,
-            "n_faithfulness_evaluated": len(faith),
-            "n_answer_relevancy_evaluated": len(rel),
+            **{f"n_{name}_evaluated": len(vals) for name, vals in ragas_vals.items()},
             "avg_refinement_seconds": sum(i.get("refinement_seconds", 0.0) for i in items) / n,
             "avg_refinement_iterations": (sum(refinement_iters) / len(refinement_iters)) if refinement_iters else None,
             "avg_planning_seconds": sum(i.get("planning_seconds", 0.0) for i in items) / n,
@@ -310,8 +347,7 @@ def _aggregate(rows: list, key: str) -> dict:
             "avg_generation_seconds": sum(i["generation_seconds"] for i in items) / n,
             "avg_total_seconds": sum(i["total_seconds"] for i in items) / n,
             "avg_total_tokens": sum(i.get("total_tokens", 0) for i in items) / n,
-            "avg_faithfulness": (sum(faith) / len(faith)) if faith else None,
-            "avg_answer_relevancy": (sum(rel) / len(rel)) if rel else None,
+            **{f"avg_{name}": (sum(vals) / len(vals)) if vals else None for name, vals in ragas_vals.items()},
             "source_match_rate": (sum(matched) / len(matched)) if matched else None,
             "planner_graph_usage_rate": (sum(planner_decisions) / len(planner_decisions)) if planner_decisions else None,
         }
@@ -371,6 +407,9 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
         f"<td>{fmt_number(v['avg_total_seconds'], 's')}<br>{_bar(v['avg_total_seconds'], max_total, '#3b82f6')}</td>"
         f"<td>{_fmt_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
         f"<td>{_fmt_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_answer_correctness'), v.get('n_answer_correctness_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_context_precision'), v.get('n_context_precision_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_context_recall'), v.get('n_context_recall_evaluated', 0), v['n'])}</td>"
         f"<td>{fmt_rate_pct(v['source_match_rate'])}</td>"
         f"<td>{fmt_rate_pct(v.get('planner_graph_usage_rate'))}</td>"
         f"</tr>"
@@ -387,6 +426,9 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
         f"<td>{fmt_tokens(v.get('avg_total_tokens'))}</td>"
         f"<td>{_fmt_ragas_cell(v.get('avg_faithfulness'), v.get('n_faithfulness_evaluated', 0), v['n'])}</td>"
         f"<td>{_fmt_ragas_cell(v.get('avg_answer_relevancy'), v.get('n_answer_relevancy_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_answer_correctness'), v.get('n_answer_correctness_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_context_precision'), v.get('n_context_precision_evaluated', 0), v['n'])}</td>"
+        f"<td>{_fmt_ragas_cell(v.get('avg_context_recall'), v.get('n_context_recall_evaluated', 0), v['n'])}</td>"
         f"</tr>"
         for model, v in sorted(by_model.items())
     )
@@ -409,7 +451,8 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
   </table>
   {f'<p class="meta"><strong>{html.escape(winner_explanation)}</strong></p>' if winner_explanation else ''}
   <p class="meta">Heurística de comparación (ver ADR-0009), no una medición absoluta:
-     score = 50% calidad (Faithfulness+Answer Relevancy) + 30% velocidad + 20% costo
+     score = 50% calidad (promedio de Faithfulness/Answer Relevancy/Answer
+     Correctness/Context Precision/Context Recall evaluados) + 30% velocidad + 20% costo
      (tokens totales), normalizado entre los modelos de esta corrida. Modelos sin
      RAGAS evaluado quedan fuera del ranking.</p>
 """
@@ -436,24 +479,28 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
   <h2>Comparación por modo de recuperación</h2>
   <table>
     <thead><tr><th>Modo</th><th>N</th><th>Refinamiento</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
-    <th>Faithfulness</th><th>Answer Relevancy</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th></tr></thead>
+    <th>Faithfulness</th><th>Answer Relevancy</th><th>Answer Correctness</th><th>Context Precision</th><th>Context Recall</th><th>% Doc. correcto</th><th>Grafo usado (planner)</th></tr></thead>
     <tbody>{mode_rows}</tbody>
   </table>
 
   <h2>Comparación por modelo LLM</h2>
   <table>
     <thead><tr><th>Modelo</th><th>N</th><th>Refinamiento</th><th>Planning</th><th>Retrieval</th><th>Generación</th><th>Total</th>
-    <th>Tokens</th><th>Faithfulness</th><th>Answer Relevancy</th></tr></thead>
+    <th>Tokens</th><th>Faithfulness</th><th>Answer Relevancy</th><th>Answer Correctness</th><th>Context Precision</th><th>Context Recall</th></tr></thead>
     <tbody>{model_rows}</tbody>
   </table>
   {ranking_html}
-  {"" if ragas_enabled else '<p class="meta" style="color:#f59e0b">⚠ Esta corrida usó --no-ragas: Faithfulness y Answer Relevancy quedan vacíos a propósito (no es un error) — solo se midió tiempo. El ranking recomendado tampoco está disponible sin RAGAS.</p>'}
+  {"" if ragas_enabled else '<p class="meta" style="color:#f59e0b">⚠ Esta corrida usó --no-ragas: las 5 métricas RAGAS quedan vacías a propósito (no es un error) — solo se midió tiempo. El ranking recomendado tampoco está disponible sin RAGAS.</p>'}
   <p class="meta" style="margin-top:24px">
-    Faithfulness/Answer Relevancy calculados con RAGAS, juez local vía Ollama
-    (<code>{meta.get('judge_model', '')}</code>) y embeddings
-    <code>{meta.get('embedding_model', '')}</code> — no comparables con
+    Faithfulness/Answer Relevancy/Answer Correctness/Context Precision/Context Recall
+    calculados con RAGAS, juez local vía Ollama (<code>{meta.get('judge_model', '')}</code>)
+    y embeddings <code>{meta.get('embedding_model', '')}</code> — no comparables con
     benchmarks que usan GPT-4 como juez, solo entre sí (mismo juez en todas
-    las filas). "% Doc. correcto" solo aplica a modos con retrieval vectorial.
+    las filas). Answer Correctness/Context Precision/Context Recall usan como
+    referencia el campo <code>respuesta_esperada</code> de
+    <code>banco_preguntas_v2.json</code> (verificado contra fuentes oficiales
+    del SRI) — comparan solape factual y similitud semántica, no exigen texto
+    idéntico. "% Doc. correcto" solo aplica a modos con retrieval vectorial.
     Un juez de 3B a veces no logra producir una evaluación parseable para
     una pregunta puntual (limitación conocida, ver ADR-0003) — cuando pasa,
     esa fila se excluye del promedio y se muestra "(N/total)" junto al
@@ -477,7 +524,7 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
 def main():
     parser = argparse.ArgumentParser(description="Benchmark RAG vs GraphRAG vs Híbrido, y comparación de LLMs")
     parser.add_argument("--questions", default=DEFAULT_QUESTIONS_PATH,
-                        help="Ruta al .docx de preguntas (default: preguntas.docx en la raíz)")
+                        help="Ruta al banco de preguntas JSON (default: banco_preguntas_v2/banco_preguntas_v2.json)")
     parser.add_argument("--models", default="qwen2.5:3b-instruct-q4_K_M",
                         help="Modelos Ollama a comparar, separados por coma")
     parser.add_argument("--modes", default=",".join(ALL_MODES),
@@ -493,7 +540,6 @@ def main():
     parser.add_argument("--out-dir", default=DEFAULT_OUT_DIR)
     args = parser.parse_args()
 
-    from scripts.benchmark_dataset import parse_questions_docx
     from scripts.ragas_local import DEFAULT_JUDGE_MODEL, DEFAULT_EMBEDDING_MODEL
     import config
 
@@ -517,7 +563,7 @@ def main():
         print(f"[BENCHMARK] No se encontró el archivo de preguntas: {args.questions}")
         sys.exit(1)
 
-    questions = parse_questions_docx(args.questions)
+    questions = _load_questions(args.questions)
     if args.limit:
         questions = questions[:args.limit]
 
@@ -550,9 +596,10 @@ def main():
                     log_agent, q["question"], mode, model,
                 )
                 row = {
-                    "category": q["category"],
+                    "categoria": q["categoria"],
                     "source_doc": q["source_doc"],
                     "question": q["question"],
+                    "ground_truth": q["ground_truth"],
                     "model": model,
                     "mode_requested": mode,
                     "mode_result": result["mode_result"],
@@ -585,8 +632,8 @@ def main():
 
     if args.no_ragas:
         for r in rows:
-            r["faithfulness"] = None
-            r["answer_relevancy"] = None
+            for name in RAGAS_METRIC_NAMES:
+                r[name] = None
     else:
         _run_ragas(rows, judge_model=judge_model, embedding_model=embedding_model,
                    ollama_url=config.OLLAMA_URL)

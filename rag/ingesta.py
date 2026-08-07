@@ -1,19 +1,18 @@
 """
 ingesta.py — Ingesta de documentos normativos SRI a ChromaDB.
 Procesa PDF, TXT, DOCX y MD desde las carpetas de datos,
-vectoriza con OpenCLIP y almacena con metadatos completos.
+vectoriza con sentence-transformers y almacena con metadatos completos.
 """
 
 import os
 import glob
 import json
 import time
-import torch
-import open_clip
 import chromadb
+from sentence_transformers import SentenceTransformer
 
 from config import (
-    CLIP_MODEL, CLIP_PRETRAINED, CLIP_MAX_TOKENS,
+    TEXT_EMBEDDING_MODEL,
     CHROMA_DB_PATH, CHROMA_COLLECTION, VECTOR_BUILD_METADATA_PATH,
     get_data_dirs,
 )
@@ -41,22 +40,13 @@ def _save_build_metadata(build_seconds: float, last_run_seconds: float) -> None:
         }, f, ensure_ascii=False, indent=2)
 
 
-def get_clip_embedder():
-    print(f"[INGESTA] Cargando OpenCLIP {CLIP_MODEL} en CPU...")
-    clip_device = "cpu"
-    kwargs = {} if CLIP_MODEL.startswith("hf-hub:") else {"pretrained": CLIP_PRETRAINED}
-    model, _, _ = open_clip.create_model_and_transforms(CLIP_MODEL, **kwargs)
-    model = model.to(clip_device).eval()
-    tokenizer = open_clip.get_tokenizer(CLIP_MODEL)
-    return model, tokenizer, clip_device
+def get_text_embedder() -> SentenceTransformer:
+    print(f"[INGESTA] Cargando embedder de texto {TEXT_EMBEDDING_MODEL}...")
+    return SentenceTransformer(TEXT_EMBEDDING_MODEL)
 
 
-def embed_text(text: str, model, tokenizer, device: str) -> list[float]:
-    tokens = tokenizer([text[:CLIP_MAX_TOKENS]]).to(device)
-    with torch.no_grad():
-        vec = model.encode_text(tokens)
-        vec /= vec.norm(dim=-1, keepdim=True)
-    return vec.cpu().numpy().flatten().tolist()
+def embed_texts(texts: list[str], model: SentenceTransformer) -> list[list[float]]:
+    return model.encode(texts, normalize_embeddings=True).tolist()
 
 
 def ingest_all_documents(reset: bool = False) -> int:
@@ -106,7 +96,7 @@ def ingest_all_documents(reset: bool = False) -> int:
     )
 
     # ── Cargar modelo de embeddings ──────────────────────────────────────────
-    model, tokenizer, clip_device = get_clip_embedder()
+    model = get_text_embedder()
 
     # ── IDs existentes (modo incremental) ───────────────────────────────────
     existing_ids: set = set()
@@ -128,14 +118,15 @@ def ingest_all_documents(reset: bool = False) -> int:
             print("           ✓ Sin cambios.", flush=True)
             continue
 
-        # Vectorizar y preparar batch
-        ids_batch, docs_batch, metas_batch, vecs_batch = [], [], [], []
+        # Vectorizar (en lote, todo el documento de una vez) y preparar batch
+        # Tabla/ecuación: graph_text (caption+footnote, sin HTML/LaTeX) es lo
+        # que se embebe — chunk["text"] completo se sigue mostrando al LLM
+        # (docs_batch abajo), solo el vector cambia (ADR-0004).
+        textos_para_embed = [c["graph_text"] or c["text"] for c in new_chunks]
+        vecs_batch = embed_texts(textos_para_embed, model)
+
+        ids_batch, docs_batch, metas_batch = [], [], []
         for chunk in new_chunks:
-            # Tabla/ecuación: graph_text (caption+footnote, sin HTML/LaTeX) es lo
-            # que se embebe — chunk["text"] completo se sigue mostrando al LLM
-            # (docs_batch abajo), solo el vector cambia (ADR-0004).
-            texto_para_embed = chunk["graph_text"] or chunk["text"]
-            vec = embed_text(texto_para_embed, model, tokenizer, clip_device)
             ids_batch.append(chunk["id"])
             docs_batch.append(chunk["text"])
             metas_batch.append({
@@ -147,7 +138,6 @@ def ingest_all_documents(reset: bool = False) -> int:
                 "articulo_seccion": str(chunk.get("articulo_seccion", "")),
                 "ruta_archivo":     str(chunk.get("ruta_archivo", "")),
             })
-            vecs_batch.append(vec)
 
         # Upsert batch por documento
         collection.upsert(

@@ -1,0 +1,23 @@
+# El retrieval de texto deja OpenCLIP por sentence-transformers — CLIP no discrimina relevancia entre textos en español
+
+Validación manual en vivo del sistema contra las 20 preguntas de `banco_preguntas_v2.json` (ver `banco_preguntas_v2/validacion_manual.md`, corrida con el subagente `contador-experto` vía `agent-browser` contra `localhost:7865`) dio **2/20 correctas (10%)**. En 11 de los 18 fallos el documento fuente esperado nunca aparecía entre los "Fragmentos Normativos Recuperados", pese a estar indexado en ChromaDB (confirmado consultando la colección directamente: los 12 PDFs, incluido `retenciones_fuente_ir_2026.pdf`, tenían chunks presentes). En otros 4 fallos el documento correcto sí estaba entre los fragmentos, pero en la página/artículo equivocado dentro del mismo archivo.
+
+## Causa raíz
+
+`agents/rag_agent.py` y `rag/ingesta.py` vectorizaban tanto el corpus como la consulta con el encoder de texto de **OpenCLIP** (`CLIP_MODEL = vit_base_patch32_clip_224.openai`). Diagnóstico reproducido en vivo contra el índice real: para la pregunta de q09 ("¿qué porcentaje de retención aplico a un abogado independiente por honorarios?"), la similitud coseno cruda entre la consulta y los 6556 chunks del corpus va de 0.51 a 0.97 **sin separación real por relevancia** — un chunk de un documento totalmente distinto (declaración de IVA) sacó 0.965 y el chunk correcto (retenciones, con el 10% buscado) quedó rankeado #18 de 6556, muy por debajo del `RAG_TOP_K=4`. El rerank por keyword (`_keyword_rerank`, boost de +10%/+25%/+15%) es insuficiente para compensar ese nivel de ruido en la señal base.
+
+Este problema ya estaba documentado en el propio repo, pero solo se había corregido en la métrica de evaluación, no en el producto: `scripts/ragas_local.py:7-10` señala explícitamente que "CLIP está optimizado para alinear imagen-texto, no para comparar dos textos entre sí; usarlo daría métricas de similitud ruidosas" y por eso el juez RAGAS usa `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`). `docs/adr/0007-off-topic-guardrail.md` (incidente #1) había encontrado el mismo síntoma por otro lado: similitud CLIP entre preguntas cortas en español cae siempre en ~0.83–0.90 sin importar el tema, razón por la que `OffTopicMemory` migró a comparación de texto (difflib) en vez de embeddings. Ninguna de esas dos correcciones tocó el camino real de retrieval que responde al usuario.
+
+## Decisión
+
+`agents/rag_agent.py::_embed_text` y `rag/ingesta.py::embed_texts` pasan a usar `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`, ya era dependencia del proyecto para RAGAS — mismo modelo, una sola dependencia). Sanity check offline confirma la mejora de separación: consulta de q09 vs. chunk relevante → 0.711; vs. chunk del mismo tema pero con otro dato (retención a sociedades) → 0.531; vs. chunks irrelevantes (IVA medicamentos, RIMPE) → 0.26–0.34. `RAG_MIN_SIMILARITY` se retunea de 0.18 a 0.30 para la nueva escala.
+
+OpenCLIP se conserva solo para `RAGAgent.embed_image()` (búsqueda visual) — confirmado que esa función no tiene ningún llamador en el pipeline actual (`rag/ingesta.py` nunca embebe imágenes, solo texto de chunks), así que el cambio no quita ninguna capacidad multimodal real, solo deja de usar mal una herramienta de imagen para un trabajo de texto.
+
+`SimilarityMemory` (base de `RefinementMemory`, ver ADR-0006) reusa el mismo `RAGAgent._embed_text`, así que también migra de forma transparente. Sus 42 entradas persistidas en `outputs/refinement_memory.json` tenían vectores CLIP de 512 dimensiones, incompatibles con los de 384 dimensiones del nuevo modelo — se respaldaron en `outputs/refinement_memory.pre_embedder_migration.json.bak` y el archivo activo se reinició vacío; son ejemplos de aprendizaje in-context que se repueblan solos con el uso normal, no ground truth que haya que preservar.
+
+## Consecuencia operativa
+
+Cambiar el embedder invalida los vectores ya almacenados en `vector_db/chroma_sri` (quedarían en un espacio vectorial distinto al de las consultas nuevas) — requiere `python rag/build_db.py --reset` completo (~2.5h para 6556 chunks, según el build anterior). `rag/ingesta.py` ahora vectoriza cada documento en un solo batch (`model.encode(lista_de_textos, ...)`) en vez de texto por texto, para no alargar más ese tiempo de reconstrucción.
+
+Los 3 fallos restantes del banco v2 (`dato_incorrecto`: q08, q17, q20) no son de retrieval — el documento y página correctos ya estaban entre los fragmentos recuperados, pero el LLM generador omitió u confundió un dato. Quedan pendientes de diagnóstico aparte, después de re-validar que el fix de retrieval efectivamente resuelve los 15 fallos de recuperación.

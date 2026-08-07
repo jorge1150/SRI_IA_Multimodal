@@ -1,6 +1,6 @@
 """
-tests/test_benchmark.py — Pruebas unitarias para el parser de preguntas.docx
-y los helpers puros de scripts/run_benchmark.py (sin Ollama/RAGAS).
+tests/test_benchmark.py — Pruebas unitarias para los helpers puros de
+scripts/run_benchmark.py (sin Ollama/RAGAS).
 Ejecutar: python -m pytest tests/test_benchmark.py -v
 """
 

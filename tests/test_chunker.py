@@ -111,12 +111,19 @@ class TestTableChunks(unittest.TestCase):
         self.assertIn("Tabla de tarifas", tbl["graph_text"])
         self.assertIn("Vigente desde 2024", tbl["graph_text"])
 
-    def test_table_without_caption_or_footnote_has_empty_graph_text(self):
+    def test_table_without_caption_or_footnote_uses_table_body_without_html(self):
+        # Sin caption/footnote, graph_text no puede quedar vacío (o casi
+        # vacío con solo un título genérico) — necesita el contenido real de
+        # la tabla para que el embedding tenga señal semántica (ver
+        # banco_preguntas_v2/validacion_manual.md, q02/q19: una tabla con
+        # graph_text = solo el título de sección nunca rankeaba para
+        # preguntas sobre sus valores).
         blocks = [
             {"type": "table", "page_idx": 0, "table_body": "<table><tr><td>x</td></tr></table>"},
         ]
         chunks = _run(blocks)
-        self.assertEqual(chunks[0]["graph_text"], "")
+        self.assertNotIn("<table>", chunks[0]["graph_text"])
+        self.assertIn("x", chunks[0]["graph_text"])
 
 
 class TestEquationChunks(unittest.TestCase):

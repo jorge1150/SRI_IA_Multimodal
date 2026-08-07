@@ -208,7 +208,7 @@ def consume_refinement_loop(refiner_agent, validator_agent, query: str, log_agen
     consumidores que no hacen streaming, ej. scripts/run_benchmark.py) y
     retorna el dict final (ver run_refinement_loop). `scripts/run_benchmark.py`
     nunca pasa previous_query/previous_answer (preguntas sueltas de
-    preguntas.docx, sin concepto de conversación) — quedan en None.
+    banco_preguntas_v2.json, sin concepto de conversación) — quedan en None.
     """
     gen = run_refinement_loop(
         refiner_agent, validator_agent, query, log_agent, max_iterations,

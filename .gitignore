@@ -35,6 +35,7 @@ outputs/benchmarks/
 # Modelos HuggingFace en caché
 .cache/
 
+.agents/
 .claude/
 skills-lock.json
 
