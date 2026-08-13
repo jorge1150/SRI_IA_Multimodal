@@ -252,13 +252,32 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
     )
     from scripts.ragas_local import make_judge_llm, make_embeddings
 
-    evaluable = [r for r in rows if r["answer"].strip() and r["retrieved_texts"] and r.get("ground_truth", "").strip()]
+    # answer.startswith("[ERROR]"): ver ResponseAgent.generate() — mensaje de
+    # error propio del proyecto (Ollama caído, modelo no encontrado/retirado,
+    # timeout), no una respuesta real. Antes se mandaban igual al juez RAGAS
+    # (no está vacío, así que pasaba el filtro) — desperdiciaba horas de
+    # llamadas reales evaluando texto de error como si fuera una respuesta,
+    # y encima el score real quedaba enmascarado por "0% cobertura" en vez
+    # de un aviso claro de que la generación falló.
+    n_error_answers = sum(1 for r in rows if r["answer"].strip().startswith("[ERROR]"))
+    evaluable = [
+        r for r in rows
+        if r["answer"].strip() and not r["answer"].strip().startswith("[ERROR]")
+        and r["retrieved_texts"] and r.get("ground_truth", "").strip()
+    ]
     for r in rows:
         for name in RAGAS_METRIC_NAMES:
             r[name] = None
 
+    if n_error_answers:
+        print(f"[BENCHMARK] AVISO: {n_error_answers}/{len(rows)} fila(s) con respuesta "
+              f"[ERROR] (falla de generación, no de RAGAS) — excluidas del juez. "
+              f"Revisar que el modelo esté disponible: 'docker compose exec ollama ollama pull <modelo>' "
+              f"para modelos locales, o que el modelo cloud no esté retirado.", flush=True)
+
     if not evaluable:
-        print("[BENCHMARK] Sin filas evaluables para RAGAS (respuestas, contexto o ground_truth vacíos).")
+        print("[BENCHMARK] Sin filas evaluables para RAGAS (respuestas, contexto o ground_truth vacíos, "
+              "o todas con [ERROR]).")
         return
 
     print(f"[BENCHMARK] Corriendo RAGAS sobre {len(evaluable)} fila(s) "
@@ -629,6 +648,15 @@ def main():
     if not rows:
         print("[BENCHMARK] No se generaron filas — nada que reportar.")
         sys.exit(1)
+
+    n_errors = sum(1 for r in rows if r["answer"].strip().startswith("[ERROR]"))
+    if n_errors:
+        pct = 100 * n_errors / len(rows)
+        print(f"[BENCHMARK] AVISO: {n_errors}/{len(rows)} filas ({pct:.0f}%) tienen respuesta "
+              f"[ERROR] — el modelo no generó de verdad en esas filas (ver mensaje de error en "
+              f"la columna 'answer' del CSV: modelo no encontrado/no pulled, timeout, o modelo "
+              f"cloud retirado). El reporte de tiempos/RAGAS de esas filas no es representativo.",
+              flush=True)
 
     if args.no_ragas:
         for r in rows:
