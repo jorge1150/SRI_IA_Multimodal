@@ -25,6 +25,13 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - ollama
+    # Cualquier variable en .env (USE_AGENTIC_PLANNER, REFINEMENT_MAX_ITERATIONS,
+    # etc. — ver config.py) pasa directo al contenedor sin tocar este archivo.
+    # `environment:` abajo pisa lo que venga de .env cuando hay conflicto de
+    # nombre (por diseño, para las vars que SIEMPRE deben ser fijas acá).
+    env_file:
+      - path: .env
+        required: false
     environment:
       OLLAMA_HOST: ollama
       OLLAMA_PORT: "11434"
