@@ -15,6 +15,7 @@ az vm create \
   --name sri-ingest-vm \
   --image Ubuntu2204 \
   --size Standard_E4s_v3 \
+  --os-disk-size-gb 64 \
   --admin-username jorge \
   --generate-ssh-keys
 ```
@@ -32,6 +33,15 @@ el límite. Si más adelante hace falta más CPU, pedir aumento de cuota
 desde el link que da el propio error de `QuotaExceeded` (puede tardar en
 aprobarse, no asumir que es instantáneo).
 
+⚠️ `--os-disk-size-gb 64`: el disco default (30GB) se llenó a mitad del
+build de `Dockerfile.mineru` (`no space left on device`) — mineru[pipeline]
+baja ~20GB de modelos/deps (incluye paquetes NVIDIA/CUDA aunque el proyecto
+corra CPU-only, son dependencias transitorias del paquete). Si ya creaste
+la VM sin este flag, se resuelve sin recrearla: `az vm deallocate` → `az
+disk update --name <nombre-del-os-disk> --size-gb 64` (nombre real con `az
+disk list -g sri-tesis-rg -o table`) → `az vm start` — Ubuntu/Azure crece
+el filesystem solo al bootear, no hace falta `growpart` manual.
+
 Prender / correr ingesta / apagar (cada vez que actualices el corpus):
 
 ```bash
@@ -41,7 +51,7 @@ ssh jorge@$(az vm show -d -g sri-tesis-rg -n sri-ingest-vm --query publicIps -o 
 az vm deallocate --resource-group sri-tesis-rg --name sri-ingest-vm
 ```
 
-Costo aproximado: `Standard_E4as_v5` ronda USD ~0.20-0.25/hora en `eastus`
+Costo aproximado: `Standard_E4s_v3` ronda USD ~0.20-0.25/hora en `eastus`
 (confirmar precio vigente en el portal — cambia por región/hora). Una
 corrida completa de 50+ docs con MinerU puede tardar varias horas en
 CPU-only: validar primero con el corpus chico actual (10 docs) para
@@ -80,6 +90,19 @@ prendida una tarde completa de evaluación es centavos, no un problema real
 de presupuesto. El riesgo de costo real está en la VM de ingesta (más
 grande) quedando prendida por olvido — confirmar siempre el `deallocate`
 al terminar cada corrida.
+
+⚠️ La IP pública es dinámica — puede cambiar cada vez que se hace
+`deallocate`/`start` (no cambia mientras la VM sigue prendida entre
+sesiones de la misma ventana de evaluación). Siempre reconfirmar con `az
+vm show -d -g sri-tesis-rg -n sri-demo-vm --query publicIps -o tsv` antes
+de compartir el link con los expertos, no reusar una IP vieja de memoria.
+
+⚠️ Confirmar que el puerto quedó realmente abierto después de crear la VM
+— `az vm open-port` pegado en el mismo bloque que `az vm create` puede no
+ejecutarse si el terminal interpreta mal el bloque multilínea. Verificar
+con `az network nsg rule list -g sri-tesis-rg --nsg-name sri-demo-vmNSG -o
+table` (debe listar una regla para el puerto 7865, no solo `22`) antes de
+asumir que la demo es alcanzable desde afuera.
 
 ## Revisar gasto de crédito
 

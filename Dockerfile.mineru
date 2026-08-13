@@ -18,8 +18,12 @@
 #           -e USE_MINERU_PDF=true sri-ia-mineru \
 #           bash -c "python rag/build_db.py && python scripts/build_graph.py"
 #
-# Nota de disco: mineru[pipeline] baja ~20GB de modelos — asegurar que el
-# disco de la VM de ingesta tenga margen (40GB+ recomendado).
+# Nota de disco: mineru[pipeline] baja ~20GB de modelos/deps (incluye
+# paquetes NVIDIA/CUDA transitorios pese a MINERU_DEVICE=cpu) — el disco
+# default de 30GB de una VM Ubuntu en Azure NO alcanza, el build falla a
+# mitad de camino con "no space left on device" (confirmado en la primera
+# corrida real, ver docs/adr/0014). Usar --os-disk-size-gb 64 al crear la
+# VM de ingesta (ver deploy/start_stop.md).
 
 FROM python:3.12-slim
 

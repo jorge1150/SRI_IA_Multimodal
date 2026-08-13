@@ -205,7 +205,10 @@ python app.py
 
 Para correr el sistema containerizado (local o en una VM) y para desplegar
 en Azure con validación de expertos tributarios, ver
-`docs/adr/0014-despliegue-cloud-azure.md` y los scripts/guías en `deploy/`.
+`docs/adr/0014-despliegue-cloud-azure.md` y las guías en `deploy/`:
+`azure_setup.md` (cuenta/storage, una vez), `start_stop.md` (crear las VMs
+desde cero) y **`RUNBOOK.md` (uso día a día: prender, correr ingesta,
+abrir la demo, apagar, troubleshooting)**.
 
 ```bash
 # Local, con Ollama en su propio contenedor:
