@@ -201,6 +201,19 @@ ollama serve &
 python app.py
 ```
 
+### Despliegue con Docker / nube
+
+Para correr el sistema containerizado (local o en una VM) y para desplegar
+en Azure con validación de expertos tributarios, ver
+`docs/adr/0014-despliegue-cloud-azure.md` y los scripts/guías en `deploy/`.
+
+```bash
+# Local, con Ollama en su propio contenedor:
+docker compose up -d --build
+docker compose exec ollama ollama signin   # una vez, para el modelo cloud
+docker compose exec ollama ollama pull moondream
+```
+
 ## Cargar Documentos Oficiales del SRI
 
 Las categorías son **dinámicas**: cada subcarpeta directa de `data/` (excepto

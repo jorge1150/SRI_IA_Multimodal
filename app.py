@@ -118,6 +118,9 @@ def main():
 
     from ui.interface import GRADIO_THEME
     import config as _cfg
+    _auth = _cfg.get_gradio_auth()
+    if _auth:
+        print(f"[INFO] Auth activa ({len(_auth)} credencial(es)).")
     demo.launch(
         server_name=_cfg.GRADIO_SERVER,
         server_port=_cfg.GRADIO_PORT,
@@ -125,6 +128,7 @@ def main():
         inbrowser=False,
         theme=GRADIO_THEME,
         allowed_paths=[_cfg.TEMP_DIR],
+        auth=_auth,
     )
 
 

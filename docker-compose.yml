@@ -1,0 +1,50 @@
+# docker-compose.yml — VM de demo (ver docs/adr/0014-despliegue-cloud-azure.md)
+#
+# Uso local (Mac de Jorge, para probar ANTES de tocar Azure):
+#   docker compose up -d
+#   # primera vez: entrar al contenedor ollama y autenticarse para el
+#   # modelo cloud (misma cuenta que ya usás en local):
+#   docker compose exec ollama ollama signin
+#   docker compose exec ollama ollama pull moondream
+#
+# Uso en la VM de demo: igual, más las env vars de auth (ver .env.example).
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama   # persiste el login de `ollama signin`
+    restart: unless-stopped
+    # Sin "ports:" a propósito — Ollama NO se expone al host/internet,
+    # solo es alcanzable por el servicio `app` dentro de la red interna
+    # de compose (ver Fase 3 del plan de despliegue: NSG solo abre 7865).
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: ollama
+      OLLAMA_PORT: "11434"
+      GRADIO_SERVER: "0.0.0.0"
+      GRADIO_PORT: "7865"
+      # Credenciales de acceso para expertos tributarios durante la
+      # ventana de evaluación — setear vía .env, NUNCA hardcodear acá.
+      GRADIO_AUTH_PAIRS: ${GRADIO_AUTH_PAIRS:-}
+      # chroma_db/graph_db descargados desde Azure Blob al volumen
+      # montado abajo (ver deploy/demo_vm_entrypoint.sh) — no van dentro
+      # de la imagen, así el mismo build sirve para cualquier corpus.
+      CHROMA_DB_PATH: /app/vector_db/chroma_sri
+      GRAPH_DB_PATH: /app/graph_db/sri_graph.json
+    volumes:
+      - ./vector_db:/app/vector_db
+      - ./graph_db:/app/graph_db
+      - ./outputs:/app/outputs
+    ports:
+      - "7865:7865"
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

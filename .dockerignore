@@ -1,0 +1,11 @@
+.git
+venv/
+venv_mineru/
+outputs/
+vector_db/
+graph_db/
+temp/
+*.pyc
+__pycache__/
+.DS_Store
+.env

@@ -1,0 +1,57 @@
+# Dockerfile.mineru — imagen de INGESTA (VM de ingesta, ver
+# docs/adr/0014-despliegue-cloud-azure.md). Corre rag/build_db.py y
+# scripts/build_graph.py sobre el corpus ampliado (50+ docs).
+#
+# No se usa para servir la app (eso es Dockerfile / docker-compose.yml en
+# la VM de demo) — solo para construir chroma_db/ + graph_db/ una vez y
+# subirlos a Azure Blob.
+#
+# Replica el aislamiento que ya documenta config.py/requirements.txt: el
+# venv principal (numpy<2, torch==2.2.2) y venv_mineru (numpy>=2,
+# mineru[pipeline]) son incompatibles entre sí y deben convivir como dos
+# entornos separados en el mismo filesystem, no fusionarse.
+#
+# Build:  docker build -f Dockerfile.mineru -t sri-ia-mineru .
+# Run:    docker run --rm -v $(pwd)/data:/app/data \
+#           -v $(pwd)/vector_db:/app/vector_db \
+#           -v $(pwd)/graph_db:/app/graph_db \
+#           -e USE_MINERU_PDF=true sri-ia-mineru \
+#           bash -c "python rag/build_db.py && python scripts/build_graph.py"
+#
+# Nota de disco: mineru[pipeline] baja ~20GB de modelos — asegurar que el
+# disco de la VM de ingesta tenga margen (40GB+ recomendado).
+
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libportaudio2 \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    libgl1 \
+    libglib2.0-0 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ── venv principal (mismas deps que Dockerfile de la app) ──
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# ── venv_mineru aislado (numpy>=2, opencv>=2, mineru[pipeline]) ──
+RUN python3.12 -m venv venv_mineru \
+    && venv_mineru/bin/pip install --no-cache-dir --upgrade pip \
+    && venv_mineru/bin/pip install --no-cache-dir "mineru[pipeline]" \
+    && venv_mineru/bin/pip install --no-cache-dir \
+        "numpy<2" "opencv-python==4.11.0.86" \
+        "opencv-python-headless==4.11.0.86" "scipy<1.14"
+
+COPY . .
+
+ENV USE_MINERU_PDF=true \
+    KMP_DUPLICATE_LIB_OK=TRUE
+
+# Sin CMD fijo: este contenedor se usa con `docker run ... bash -c "..."`
+# para encadenar build_db.py + build_graph.py + upload a Blob en un solo
+# paso (ver deploy/ingest_vm_run.sh).

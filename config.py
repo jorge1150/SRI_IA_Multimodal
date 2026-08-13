@@ -27,8 +27,10 @@ WHISPER_COMPUTE_TYPE: str = "float16" if DEVICE == "cuda" else "int8"
 # ─────────────────────────────────────────────
 # OLLAMA
 # ─────────────────────────────────────────────
-OLLAMA_HOST: str = "localhost"
-OLLAMA_PORT: int = 11434
+# Overrideable por env var: en Docker, la app y Ollama viven en contenedores
+# distintos (ver docker-compose.yml) — OLLAMA_HOST=ollama en vez de localhost.
+OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "localhost")
+OLLAMA_PORT: int = int(os.getenv("OLLAMA_PORT", "11434"))
 OLLAMA_URL: str = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 OLLAMA_TIMEOUT: int = 180
 
@@ -82,7 +84,12 @@ TEXT_EMBEDDING_DIM: int = 384
 # CHROMADB — Base vectorial SRI
 # ─────────────────────────────────────────────
 BASE_DIR: str = os.path.dirname(os.path.abspath(__file__))
-CHROMA_DB_PATH: str = os.path.join(BASE_DIR, "vector_db", "chroma_sri")
+# Overrideable: en la VM de demo, chroma_db/graph_db se descargan de Azure
+# Blob a un volumen montado que no necesariamente coincide con BASE_DIR
+# (ver deploy/demo_vm_entrypoint.sh).
+CHROMA_DB_PATH: str = os.getenv(
+    "CHROMA_DB_PATH", os.path.join(BASE_DIR, "vector_db", "chroma_sri")
+)
 CHROMA_COLLECTION: str = "normativa_tributaria"
 # Tiempo acumulado de construcción del vector store (ver rag/ingesta.py),
 # mismo patrón que build_seconds en graph_db/sri_graph.json.
@@ -192,15 +199,40 @@ MINERU_OCR_IMAGE_FALLBACK: bool = True
 # ─────────────────────────────────────────────
 # GRADIO
 # ─────────────────────────────────────────────
-GRADIO_PORT: int = 7865
-GRADIO_SERVER: str = "0.0.0.0"
+GRADIO_PORT: int = int(os.getenv("GRADIO_PORT", "7865"))
+GRADIO_SERVER: str = os.getenv("GRADIO_SERVER", "0.0.0.0")
 GRADIO_TITLE: str = "SRI IA Multimodal — Asistente Normativa Tributaria Ecuador"
+
+# Auth de acceso (ej. VM de demo expuesta a expertos tributarios durante la
+# validación humana, ver docs/adr/0014). Formato: "user1:pass1,user2:pass2".
+# Vacío (default local) = sin auth, igual que antes. Sin esta env var seteada
+# el comportamiento local no cambia.
+GRADIO_AUTH_PAIRS: str = os.getenv("GRADIO_AUTH_PAIRS", "")
+
+
+def get_gradio_auth():
+    """
+    Parsea GRADIO_AUTH_PAIRS a la lista [(user, pass), ...] que espera
+    gr.Blocks.launch(auth=...). None si no hay auth configurada (local).
+    """
+    if not GRADIO_AUTH_PAIRS:
+        return None
+    pairs = []
+    for pair in GRADIO_AUTH_PAIRS.split(","):
+        pair = pair.strip()
+        if not pair or ":" not in pair:
+            continue
+        user, _, pw = pair.partition(":")
+        pairs.append((user, pw))
+    return pairs or None
 
 # ─────────────────────────────────────────────
 # GRAPHRAG — Grafo de conocimiento tributario
 # ─────────────────────────────────────────────
 GRAPH_ENABLED: bool = True          # True = usa RAG híbrido (vector + grafo)
-GRAPH_DB_PATH: str = os.path.join(BASE_DIR, "graph_db", "sri_graph.json")
+GRAPH_DB_PATH: str = os.getenv(
+    "GRAPH_DB_PATH", os.path.join(BASE_DIR, "graph_db", "sri_graph.json")
+)
 GRAPH_TOP_K_TRIPLES: int = 10       # máx triples a retornar por consulta
 GRAPH_HOP_DEPTH: int = 2            # saltos de exploración en el grafo (1 ó 2)
 GRAPH_MIN_WEIGHT: float = 0.4       # peso mínimo de relación para incluir
