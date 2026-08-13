@@ -70,6 +70,12 @@ plan original, documentadas para no repetir el mismo ciclo de prueba-error:
   queda pendiente de investigar antes de correr el corpus ampliado de
   50+ docs — no es un problema de la infraestructura de despliegue en sí.
 
+## Dominio + HTTPS (añadido 2026-08-13, tras la corrida con el corpus ampliado)
+
+`GRADIO_AUTH_PAIRS` controla quién entra, pero no resuelve que el sitio se sirviera en `http://<IP>:7865` sin TLS — la mayoría de navegadores bloquea `getUserMedia` (micrófono, usado por STT) fuera de un "contexto seguro" (HTTPS o `localhost`), lo que habría roto la validación con expertos si alguno intentaba grabar voz en vez de escribir. Se agregó un tercer servicio `caddy` (`caddy:2-alpine`) como reverse proxy delante de `app`, con TLS automático vía Let's Encrypt (ACME HTTP-01) apuntando al nombre DNS **gratuito** que da Azure sobre la IP pública de la VM (`az network public-ip update --dns-name`, ver `deploy/RUNBOOK.md`) — no hace falta comprar un dominio propio. Ese label queda atado al *recurso* Public IP, no al valor de la IP, así que sigue resolviendo aunque la IP cambie cada vez que se prende/apaga la VM (comportamiento normal de esta arquitectura, ver "Por qué no una sola VM siempre prendida").
+
+Consecuencia en `docker-compose.yml`: el puerto 7865 de `app` pasa a publicarse solo en loopback (`127.0.0.1:7865:7865`) — el único servicio con puertos abiertos al público es `caddy` (80 para el challenge ACME, 443 para HTTPS). El NSG de la VM de demo pasa de abrir solo 7865 a abrir 80+443 (7865 puede cerrarse del NSG una vez confirmado que `caddy` funciona). En uso local (Mac de Jorge) `caddy` no se levanta (`docker compose up -d ollama app`, sin dominio real no hay a quién pedirle certificado) — `localhost` ya es contexto seguro para el navegador, no hace falta HTTPS ahí.
+
 ## Fuera de alcance de esta decisión
 
 El formulario CREDIT en sí, el script de correlación CREDIT↔RAGAS, y la ejecución completa de la matriz de ablación (grafo/agentes/multimodalidad) no forman parte de esta ADR — la infraestructura de despliegue los habilita (VM de ingesta con más compute que la laptop, corpus accesible desde donde se necesite correr `scripts/run_benchmark.py`), pero no los ejecuta ni los diseña.

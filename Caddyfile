@@ -1,0 +1,14 @@
+# Caddyfile — reverse proxy HTTPS para la VM de demo (ver docs/adr/0014).
+#
+# Caddy obtiene y renueva el certificado Let's Encrypt solo (ACME HTTP-01,
+# necesita el puerto 80 alcanzable desde internet para el challenge, además
+# del 443 para servir). DOMAIN se pasa por env var desde .env — ver
+# docker-compose.yml servicio `caddy` y .env.example.
+#
+# Requiere: NSG de la VM abriendo 80 y 443 (ver deploy/RUNBOOK.md), y un
+# nombre DNS resuelto a la IP pública de la VM (el label gratuito de Azure
+# alcanza, no hace falta dominio propio — ver RUNBOOK.md).
+
+{$DOMAIN} {
+	reverse_proxy app:7865
+}

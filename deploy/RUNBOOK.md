@@ -69,6 +69,42 @@ exit   # salir de la VM
 az vm deallocate --resource-group sri-tesis-rg --name sri-ingest-vm
 ```
 
+## Dominio + HTTPS — configurar una sola vez
+
+Sin esto la demo funciona igual por `http://<IP>:7865`, pero el navegador
+bloquea el micrófono (STT) en HTTP sobre IP pública — hace falta un
+"contexto seguro" (HTTPS o localhost). Solución sin comprar dominio: label
+DNS gratuito de Azure sobre la IP pública de la VM + `caddy` (HTTPS
+automático vía Let's Encrypt, ver `Caddyfile` y `docs/adr/0014`).
+
+Desde tu Mac (la VM de demo tiene que estar prendida y con IP asignada):
+
+```bash
+az network public-ip list -g sri-tesis-rg -o table
+# copiar el nombre del Public IP de sri-demo-vm
+
+az network public-ip update --resource-group sri-tesis-rg \
+  --name <nombre-del-public-ip> --dns-name sri-tesis-demo
+# nombre-del-public-ip lo sacás del comando anterior; "sri-tesis-demo" es
+# el label que elijas (único en la región eastus) — resultado:
+# sri-tesis-demo.eastus.cloudapp.azure.com
+
+az vm open-port --resource-group sri-tesis-rg --name sri-demo-vm --port 80 --priority 890
+az vm open-port --resource-group sri-tesis-rg --name sri-demo-vm --port 443 --priority 880
+```
+
+Dentro de la VM, agregar el dominio a `.env` (una sola vez, sobrevive a
+`git pull`s futuros porque `.env` no está versionado):
+
+```bash
+echo 'DOMAIN=sri-tesis-demo.eastus.cloudapp.azure.com' >> .env
+cat .env   # confirmar que no quedó duplicada la línea
+```
+
+El label sigue funcionando aunque la IP pública cambie al prender/apagar
+la VM (está atado al *recurso* Public IP, no al valor) — no hace falta
+repetir el `az network public-ip update` cada vez, solo la primera.
+
 ## VM de demo — abrir para que los expertos prueben
 
 ```bash
@@ -82,13 +118,17 @@ az vm show -d -g sri-tesis-rg -n sri-demo-vm --query publicIps -o tsv
 ssh jorge@<IP-de-arriba>
 ```
 
-Dentro de la VM (si ya está todo configurado — `.env`, Ollama logueado):
+Dentro de la VM (si ya está todo configurado — `.env` con `DOMAIN` y
+`GRADIO_AUTH_PAIRS`, Ollama logueado):
 
 ```bash
 cd ~/SRI_IA_Multimodal
 git pull
 
-# Si cambió el corpus desde la última vez, refrescar desde Blob:
+# Si cambió el corpus desde la última vez, refrescar desde Blob
+# (rm -rf primero: download-batch no sobreescribe, y dejar el corpus
+# viejo mezclado con el nuevo da resultados corruptos):
+rm -rf vector_db graph_db
 export AZURE_STORAGE_ACCOUNT=sritesisstorage
 export AZURE_STORAGE_KEY="<clave>"
 az storage blob download-batch --account-name sritesisstorage \
@@ -96,25 +136,32 @@ az storage blob download-batch --account-name sritesisstorage \
 az storage blob download-batch --account-name sritesisstorage \
   --source corpus-artifacts --destination . --pattern "graph_db/*"
 
-docker compose up -d
+# --build si cambió requirements.txt, Dockerfile, o el corpus en data/
+# (data/ va DENTRO de la imagen, no es un volumen — un `git pull` solo no
+# alcanza para que el contenedor lo vea, hace falta rebuildear):
+docker compose up -d --build
 docker compose logs app --tail 30   # confirmar que arrancó sin error
+docker compose logs caddy --tail 20 # confirmar que sacó el cert (busca "certificate obtained successfully")
 ```
 
-Verificar que responde ANTES de compartir el link:
+Verificar que responde ANTES de compartir el link (7865 sigue en loopback,
+`caddy` es el punto público ahora):
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:7865   # esperar 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:7865   # esperar 200 (app, interno)
+curl -s -o /dev/null -w "%{http_code}\n" https://$(grep DOMAIN .env | cut -d= -f2)   # esperar 200 (caddy, público)
 ```
 
 Desde tu Mac, confirmar que también responde desde afuera (no solo desde
 adentro de la VM — el NSG puede no estar abierto, ver Troubleshooting):
 
 ```bash
-curl -sv -m 8 http://<IP-de-la-VM>:7865
+curl -sv -m 8 https://sri-tesis-demo.eastus.cloudapp.azure.com
 ```
 
-Compartir con los expertos: `http://<IP-de-la-VM>:7865` + usuario/clave de
-`GRADIO_AUTH_PAIRS` en `.env`.
+Compartir con los expertos: `https://sri-tesis-demo.eastus.cloudapp.azure.com`
+(el dominio que hayas elegido) + usuario/clave de `GRADIO_AUTH_PAIRS` en
+`.env`. Ya no se comparte la IP ni el puerto 7865.
 
 Al terminar la ventana de evaluación:
 
@@ -143,14 +190,37 @@ docker compose up -d        # recrea el contenedor con el env nuevo, SIN --build
   eastus --output table`, buscar una familia con `Limit` > 0 y usar un
   tamaño de esa familia. Ver detalle en `deploy/start_stop.md`.
 - **`no space left on device` en un build de Docker**: el disco default
-  (30GB) no alcanza para `Dockerfile.mineru`. Agrandar con `az disk update
-  --size-gb 64` (VM deallocated primero). Ver `docs/adr/0014`.
-- **La demo responde adentro de la VM pero no desde afuera**: el puerto
-  7865 no está abierto en el NSG. Verificar con `az network nsg rule list
-  -g sri-tesis-rg --nsg-name sri-demo-vmNSG -o table` — si solo aparece el
-  puerto 22, correr `az vm open-port -g sri-tesis-rg -n sri-demo-vm --port
-  7865 --priority 900` de nuevo, solo (no pegado en un bloque con otros
-  comandos — a veces no se ejecuta si se pega junto con `az vm create`).
+  (30GB) no alcanza — pasó con `Dockerfile.mineru` en la VM de ingesta Y
+  con `Dockerfile` (app) en la VM de demo, la imagen `app` sola ya pesa
+  ~17GB (torch + wheels CUDA aunque sea CPU-only + transformers + etc.).
+  Diagnosticar con `df -h /` y `docker system df` antes de agrandar a lo
+  loco — si `docker system df` muestra poco `RECLAIMABLE`, no hay nada
+  que limpiar, hay que agrandar el disco: `az vm deallocate` → `az disk
+  update --name <disco> --size-gb 64` (nombre real con `az disk list -g
+  sri-tesis-rg -o table`) → `az vm start`. Ver `docs/adr/0014`.
+- **La "Base de Conocimiento" en la UI sigue mostrando el conteo de docs
+  viejo después de un `git pull` que trajo PDFs nuevos**: `data/` NO es un
+  volumen montado en `docker-compose.yml` (a diferencia de `vector_db/` y
+  `graph_db/`) — se copia DENTRO de la imagen en el build. Un `git pull`
+  solo actualiza el archivo en el host; el contenedor corriendo sigue con
+  los PDFs que tenía la imagen al buildear. Fix: `docker compose up -d
+  --build` (no alcanza `up -d` sin `--build`). Confirmar con `docker
+  compose exec app find data -iname "*.pdf" | wc -l`.
+- **La demo responde adentro de la VM pero no desde afuera**: falta abrir
+  el puerto en el NSG. Con `caddy` (HTTPS) son 80 y 443, no 7865 (ese
+  ahora es solo loopback). Verificar con `az network nsg rule list -g
+  sri-tesis-rg --nsg-name sri-demo-vmNSG -o table` — si faltan, correr
+  `az vm open-port -g sri-tesis-rg -n sri-demo-vm --port 80 --priority
+  890` y lo mismo para 443, cada uno solo (no pegado en un bloque con
+  otros comandos — a veces no se ejecuta si se pega junto con `az vm
+  create`).
+- **`caddy` no saca el certificado** (`docker compose logs caddy` no
+  muestra "certificate obtained successfully"): casi siempre es que 80
+  no está abierto en el NSG (Let's Encrypt necesita el HTTP-01 challenge
+  ahí) o que `DOMAIN` en `.env` no coincide exactamente con el label DNS
+  configurado en Azure (`az network public-ip show -g sri-tesis-rg --name
+  <public-ip> --query dnsSettings.fqdn -o tsv` para confirmar el nombre
+  real).
 - **`docker logs`/`docker compose logs` no muestran nada**: ya resuelto
   (`PYTHONUNBUFFERED=1` en el `Dockerfile`) — si vuelve a pasar, confirmar
   que la imagen en uso es la actualizada (`docker compose up -d --build`).

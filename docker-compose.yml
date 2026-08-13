@@ -1,13 +1,19 @@
 # docker-compose.yml — VM de demo (ver docs/adr/0014-despliegue-cloud-azure.md)
 #
 # Uso local (Mac de Jorge, para probar ANTES de tocar Azure):
-#   docker compose up -d
+#   docker compose up -d ollama app     # sin `caddy` — no hay dominio real
+#                                        # para pedirle un cert a Let's Encrypt
+#                                        # en la laptop; localhost ya es
+#                                        # "contexto seguro" para el navegador.
 #   # primera vez: entrar al contenedor ollama y autenticarse para el
 #   # modelo cloud (misma cuenta que ya usás en local):
 #   docker compose exec ollama ollama signin
 #   docker compose exec ollama ollama pull moondream
 #
-# Uso en la VM de demo: igual, más las env vars de auth (ver .env.example).
+# Uso en la VM de demo: `docker compose up -d` (los 3 servicios), con
+# DOMAIN seteado en .env — ver .env.example y deploy/RUNBOOK.md. `caddy`
+# sirve HTTPS con el nombre DNS de Azure; sin dominio real, el navegador
+# bloquea el micrófono (STT) en HTTP sobre IP pública.
 
 services:
   ollama:
@@ -50,8 +56,33 @@ services:
       - ./graph_db:/app/graph_db
       - ./outputs:/app/outputs
     ports:
-      - "7865:7865"
+      # Solo loopback: en la VM de demo el único punto público es `caddy`
+      # (80/443). Esto sigue sirviendo para debug local (curl localhost:7865
+      # desde adentro de la VM o en el Mac) sin exponer 7865 a internet.
+      - "127.0.0.1:7865:7865"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - app
+    environment:
+      # Nombre DNS que apunta a la IP pública de la VM — el label gratuito
+      # de Azure alcanza (ej. sri-tesis-demo.eastus.cloudapp.azure.com,
+      # ver deploy/RUNBOOK.md). Sin este valor Caddy no tiene con qué
+      # pedir el certificado y el contenedor va a fallar/reintentar —
+      # esperado en uso local (no se corre este servicio, ver arriba).
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
     restart: unless-stopped
 
 volumes:
   ollama_data:
+  caddy_data:
+  caddy_config:
