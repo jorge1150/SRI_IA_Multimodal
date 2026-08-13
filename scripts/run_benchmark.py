@@ -13,7 +13,7 @@ Mide, por cada combinación (modelo × modo × pregunta):
   - faithfulness / answer_relevancy / answer_correctness / context_precision /
     context_recall (RAGAS, juez vía Ollama, embeddings sentence-transformers
     — ver scripts/ragas_local.py). Las últimas 3 usan como ground truth el
-    campo "respuesta_esperada" de banco_preguntas_v2/banco_preguntas_v2.json
+    campo "respuesta_esperada" de banco_preguntas_v3/banco_preguntas_v3.json
     (verificado contra fuentes oficiales del SRI, no comparan texto idéntico
     sino solape factual + similitud semántica). El juez por defecto es el
     primer modelo cloud presente en --models (si hay alguno): Faithfulness
@@ -22,7 +22,7 @@ Mide, por cada combinación (modelo × modo × pregunta):
     mucho más seguido que uno grande — se puede forzar cualquier otro con
     --judge-model.
   - Si el retrieval trajo chunks del documento fuente esperado (según
-    banco_preguntas_v2.json), cuando el modo incluye recuperación vectorial.
+    banco_preguntas_v3.json), cuando el modo incluye recuperación vectorial.
 
 Salida en outputs/benchmarks/:
   - benchmark_<timestamp>.csv   — una fila por pregunta×modo×modelo
@@ -31,7 +31,7 @@ Salida en outputs/benchmarks/:
 
 Nota de costo: cada pregunta implica al menos 1 llamada de generación +
 hasta 5 llamadas de juez RAGAS, todo en CPU local — una corrida completa
-(20 preguntas × 3 modos × N modelos) puede tardar horas. Usar --limit para
+(100 preguntas × 3 modos × N modelos) puede tardar horas. Usar --limit para
 pruebas rápidas.
 """
 
@@ -56,14 +56,14 @@ from services.benchmark_format import (
     fmt_tokens, is_cloud_model, compute_model_ranking, explain_ranking_winner,
 )
 
-DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "banco_preguntas_v2", "banco_preguntas_v2.json")
+DEFAULT_QUESTIONS_PATH = os.path.join(_ROOT, "banco_preguntas_v3", "banco_preguntas_v3.json")
 DEFAULT_OUT_DIR = os.path.join(_ROOT, "outputs", "benchmarks")
 ALL_MODES = ["vector_only", "graph_only", "hybrid", "agentic"]
 
 
 def _load_questions(path: str) -> list[dict]:
-    """Carga banco_preguntas_v2.json — 20 preguntas verificadas contra
-    fuentes oficiales del SRI (ver banco_preguntas_v2_resumen.md), con
+    """Carga banco_preguntas_v3.json — 100 preguntas verificadas contra
+    fuentes oficiales del SRI (ver banco_preguntas_v3_resumen.md), con
     respuesta_esperada como ground truth para RAGAS reference-based."""
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
@@ -241,7 +241,7 @@ RAGAS_METRIC_NAMES = (
 def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: str) -> None:
     """Corre RAGAS una sola vez sobre todas las filas y anota las 5 métricas
     in-place. answer_correctness/context_precision/context_recall usan
-    ground_truth (respuesta_esperada de banco_preguntas_v2.json) como
+    ground_truth (respuesta_esperada de banco_preguntas_v3.json) como
     "reference" — comparan solape factual + similitud semántica contra la
     respuesta del sistema, no exigen texto idéntico. Filas sin retrieved_texts,
     answer o ground_truth vacíos se saltan (RAGAS no tiene nada que evaluar)."""
@@ -498,7 +498,7 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
     benchmarks que usan GPT-4 como juez, solo entre sí (mismo juez en todas
     las filas). Answer Correctness/Context Precision/Context Recall usan como
     referencia el campo <code>respuesta_esperada</code> de
-    <code>banco_preguntas_v2.json</code> (verificado contra fuentes oficiales
+    <code>banco_preguntas_v3.json</code> (verificado contra fuentes oficiales
     del SRI) — comparan solape factual y similitud semántica, no exigen texto
     idéntico. "% Doc. correcto" solo aplica a modos con retrieval vectorial.
     Un juez de 3B a veces no logra producir una evaluación parseable para
@@ -524,7 +524,7 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
 def main():
     parser = argparse.ArgumentParser(description="Benchmark RAG vs GraphRAG vs Híbrido, y comparación de LLMs")
     parser.add_argument("--questions", default=DEFAULT_QUESTIONS_PATH,
-                        help="Ruta al banco de preguntas JSON (default: banco_preguntas_v2/banco_preguntas_v2.json)")
+                        help="Ruta al banco de preguntas JSON (default: banco_preguntas_v3/banco_preguntas_v3.json)")
     parser.add_argument("--models", default="qwen2.5:3b-instruct-q4_K_M",
                         help="Modelos Ollama a comparar, separados por coma")
     parser.add_argument("--modes", default=",".join(ALL_MODES),

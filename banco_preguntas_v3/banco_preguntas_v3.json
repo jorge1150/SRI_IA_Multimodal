@@ -1,0 +1,1606 @@
+[
+  {
+    "id": "q01",
+    "categoria": "RIMPE",
+    "pregunta": "Tengo un cliente que es negocio popular dentro del RIMPE y me pregunta si puede seguir emitiendo notas de venta preimpresas o si ya está obligado a facturar electrónicamente. ¿Qué le respondo?",
+    "respuesta_esperada": "Depende de su categoría dentro del RIMPE: únicamente los contribuyentes catalogados como \"negocios populares\" están autorizados a emitir notas de venta preimpresas; los \"emprendedores\" del RIMPE sí están obligados al esquema electrónico. Texto del Art. 6 de la Resolución NAC-DGERCGC24-00000027: \"Los contribuyentes considerados como emprendedores dentro del RIMPE emitirán comprobantes de venta, retención y documentos complementarios, obligatoriamente en el esquema electrónico. Únicamente los contribuyentes considerados como negocios populares dentro del RIMPE están autorizados a emitir notas de venta preimpresas al amparo de la normativa vigente. Sin embargo, de ser su elección, podrán emitir comprobantes de venta, documentos complementarios y comprobantes de retención, en el esquema electrónico, de ser el caso.\" Además, el mismo artículo exige que los comprobantes autorizados y emitidos, tanto en esquema físico como electrónico, incluyan la leyenda \"Contribuyente RIMPE - Emprendedor\" o \"Contribuyente RIMPE Negocio Popular\", según corresponda.",
+    "fuente_documento": "RIMPE_normas_aplicacion_NAC-DGERCGC24-00000027.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=7c3fb8dc-31a6-4fe3-a6c0-abe1def2c78a&nombre=NAC-DGERCGC24-00000027.pdf",
+    "articulo_norma": "Art. 6 de la Resolución Nro. NAC-DGERCGC24-00000027",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q02",
+    "categoria": "RIMPE",
+    "pregunta": "Una sociedad cliente mía está catalogada como RIMPE Emprendedor y su RUC tiene noveno dígito 5. ¿Hasta qué fecha debe declarar y pagar su Impuesto a la Renta anual?",
+    "respuesta_esperada": "Hasta el 18 de abril. El Art. 8 de la Resolución NAC-DGERCGC24-00000027 fija una tabla diferenciada para \"RIMPE EMPRENDEDOR – SOCIEDAD\", donde \"Si el noveno dígito es 5, Fecha de vencimiento (hasta el día) 18 de abril\". Esta tabla es distinta de la aplicable a \"RIMPE EMPRENDEDOR – PERSONA NATURAL O NEGOCIO POPULAR\", cuyos vencimientos caen en mayo (p. ej., noveno dígito 5 vence el 18 de mayo). El propio artículo aclara: \"La declaración se efectuará de manera obligatoria, aunque no existieran valores a informar\", y que si el vencimiento coincide con un feriado se traslada al siguiente día hábil (salvo que eso implique pasar al mes siguiente, caso en el cual se adelanta al último día hábil del mes de vencimiento).",
+    "fuente_documento": "RIMPE_normas_aplicacion_NAC-DGERCGC24-00000027.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=7c3fb8dc-31a6-4fe3-a6c0-abe1def2c78a&nombre=NAC-DGERCGC24-00000027.pdf",
+    "articulo_norma": "Art. 8 de la Resolución Nro. NAC-DGERCGC24-00000027",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q03",
+    "categoria": "RIMPE",
+    "pregunta": "¿Existe un límite de tiempo para que un contribuyente \"emprendedor\" se mantenga dentro del RIMPE, o puede quedarse indefinidamente si le conviene tributariamente?",
+    "respuesta_esperada": "Sí existe un límite: como regla general, la permanencia no puede superar tres (3) períodos fiscales anuales consecutivos, contados desde el primer período en que el contribuyente registre en su declaración de impuesto a la renta ingresos operacionales atribuibles a las actividades acogidas al régimen. Texto del Art. 217 del Título IV \"Régimen Simplificado para Emprendedores y Negocios Populares - RIMPE\" del Reglamento para la Aplicación de la LRTI: \"Los contribuyentes sujetos al régimen permanecerán en este mientras cumplan las condiciones para ello, sin que en ningún caso su permanencia sea mayor a tres (3) períodos fiscales anuales consecutivos contados desde el primer período en que se registren en la declaración de impuesto a la renta, ingresos operacionales atribuibles a las actividades acogidas a este régimen...\" (Este límite máximo NO aplica a los contribuyentes categorizados como \"negocios populares\", quienes se mantienen en el RIMPE mientras cumplan las condiciones para ello, según el mismo artículo y el Art. 3 de la Resolución NAC-DGERCGC24-00000027.)",
+    "fuente_documento": "rimpe_reglamento_ley_desarrollo_covid_titulo_iv.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0a648dfb-e00d-4cb2-9259-550cd3ebe635/Reglamento%20LODE_%C3%BAltima%20reforma%2010%20de%20noviembre%20de%202022.pdf",
+    "articulo_norma": "Art. 217 del Reglamento para la Aplicación de la LRTI (Título IV RIMPE, incorporado por el Reglamento a la Ley Orgánica para el Desarrollo Económico y Sostenibilidad Fiscal tras la Pandemia COVID-19)",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q04",
+    "categoria": "RIMPE",
+    "pregunta": "Mi empresa (régimen general) le compró mercadería a un negocio popular del RIMPE, que me entregó una nota de venta. ¿Puedo usar el IVA de esa compra como crédito tributario directamente con esa nota de venta?",
+    "respuesta_esperada": "No directamente. Las notas de venta y documentos complementarios emitidos por negocios populares NO generan crédito tributario de IVA para quien los recibe. Para tener derecho a crédito tributario, el adquirente (que no sea consumidor final) debe emitir una liquidación de compras registrando el IVA sobre el valor del bien o servicio, y retener el 100% del IVA generado. Texto del Art. 224 del Título IV RIMPE del Reglamento para la Aplicación de la LRTI: \"Las notas de venta y documentos complementarios emitidas por los sujetos considerados como negocios populares acogidos a este régimen, no generarán crédito tributario de IVA a sus adquirientes; no obstante, los contribuyentes -que no sean consumidores finales- que mantengan transacciones con proveedores que tengan esta consideración, para tener derecho a crédito tributario de IVA, deberán emitir una liquidación de compras, en la cual se registre el impuesto al valor agregado considerando como base imponible el valor del bien transferido o servicio prestado y realizar la retención del 100% de IVA generado.\"",
+    "fuente_documento": "rimpe_reglamento_ley_desarrollo_covid_titulo_iv.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0a648dfb-e00d-4cb2-9259-550cd3ebe635/Reglamento%20LODE_%C3%BAltima%20reforma%2010%20de%20noviembre%20de%202022.pdf",
+    "articulo_norma": "Art. 224 del Reglamento para la Aplicación de la LRTI (Título IV RIMPE)",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q05",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Emito facturas electrónicas y hasta hace poco sabía que tenía hasta 4 días hábiles para transmitirlas al SRI. Un colega me dijo que eso cambió. ¿Cuál es el plazo vigente para transmitir mis comprobantes electrónicos?",
+    "respuesta_esperada": "Efectivamente cambió: desde el 1 de agosto de 2025 ya no existe el margen de 4 días hábiles. La Resolución NAC-DGERCGC25-00000014 reformó el artículo 7 de la Resolución NAC-DGERCGC18-00000233 y eliminó ese margen. Su Disposición Reformatoria Primera, numeral 2, dice textualmente: \"En el primer inciso del artículo 7, elimínase la siguiente frase: 'o hasta dentro de un máximo de cuatro días hábiles de haberse generado el mismo,'\". Con esta reforma, el artículo 7 vigente exige transmitir el comprobante \"en el momento mismo de realizarse la generación del comprobante electrónico... utilizando para ello los enlaces 'web services' dispuestos en la 'Ficha Técnica de Comprobantes Electrónicos'\". (Nota histórica: ese margen de 4 días había sido incorporado apenas el 30 de octubre de 2024 por la Resolución NAC-DGERCGC24-00000035, pero fue derogado por la NAC-DGERCGC25-00000014, aplicable desde el 01 de agosto de 2025, que sigue vigente.)",
+    "fuente_documento": "facturacion_electronica_NAC-DGERCGC25-00000014.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=137046a6-787c-47fb-a2d7-176595d292dc&nombre=NAC-DGERCGC25-00000014.pdf",
+    "articulo_norma": "Disposición Reformatoria Primera, numeral 2, de la Resolución NAC-DGERCGC25-00000014 (que reforma el Art. 7 de la Resolución NAC-DGERCGC18-00000233)",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q06",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Emití una factura electrónica en julio con un error y recién ahora en agosto me di cuenta. ¿Hasta qué fecha puedo anularla en línea sin tener que emitir una nota de crédito?",
+    "respuesta_esperada": "Hasta el día 7 (siete) del mes siguiente al de su emisión — en este caso, hasta el 7 de agosto (si esa fecha coincide con un día de descanso obligatorio o feriado, se traslada al siguiente día hábil). Superado ese plazo, el comprobante solo puede anularse mediante nota de crédito. Texto vigente del Art. 3 de la Resolución NAC-DGERCGC25-00000014 (reformado): \"Los comprobantes de venta, de retención y documentos complementarios, electrónicos, se podrán anular en línea hasta el día 7 (siete) del mes siguiente al de su emisión, cuando esa fecha coincida con días de descanso obligatorio o feriados nacionales o locales, se podrán anular hasta el siguiente día hábil. Superado este plazo, los comprobantes de venta electrónicos se podrán anular únicamente mediante el uso de notas de crédito...\". Las facturas emitidas con la leyenda \"consumidor final\" no se pueden anular ni sustituir por nota de crédito una vez transmitidas al SRI.",
+    "fuente_documento": "NAC-DGERCGC25-00000017.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=e98fc8a6-299e-4ea9-8de7-2f6c70dbb4f5&nombre=NAC-DGERCGC25-00000017.pdf",
+    "articulo_norma": "Art. 3 de la Resolución NAC-DGERCGC25-00000014, reformado por el Art. 1 literal a) numeral 1 de la Resolución NAC-DGERCGC25-00000017 (vigente desde el 01 de agosto de 2025)",
+    "fecha_consulta": "2026-08-06",
+    "nota_verificacion": "El plazo original de la Resolución NAC-DGERCGC25-00000014 era el día 10, modificado a 7 por la Resolución NAC-DGERCGC25-00000017 (Art. 1, literal a, numeral 1: \"En el primer inciso, sustitúyese la frase: 'el día 10', por: 'el día 7 (siete)'\"), aplicable a comprobantes emitidos a partir del 01 de agosto de 2025 (Disposición Transitoria Primera). Corregido el 2026-08-06 tras detectar que la respuesta original (generada 2026-08-04) citaba el plazo derogado.",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-06",
+      "reforma_encontrada": true,
+      "nota": "Corregido en ADR-0012: Art. 3 de NAC-DGERCGC25-00000014 (dia 10) reformado por NAC-DGERCGC25-00000017 (dia 7), vigente desde 01-ago-2025. Deteccion post-generacion por experto humano, no por el agente."
+    }
+  },
+  {
+    "id": "q07",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Le envié a mi proveedor una solicitud de anulación de un comprobante de retención electrónico y no me ha respondido. ¿Cuánto tiempo tiene para aceptar o rechazar antes de que la solicitud quede sin efecto?",
+    "respuesta_esperada": "Tiene 5 días hábiles contados desde la fecha de la solicitud de anulación. Si no responde dentro de ese plazo, la solicitud queda sin efecto y el comprobante mantiene su validez. Texto del Art. 4 de la Resolución NAC-DGERCGC25-00000014: \"Los comprobantes de retención, notas de crédito y notas de débito requieren de la aceptación del receptor para proceder con su anulación; para lo cual el receptor dispondrá de un plazo de 5 días hábiles a partir de la fecha de la solicitud de anulación, para aceptarla o rechazarla. En caso de no recibir respuesta dentro de dicho plazo, la solicitud quedará sin efecto y se mantendrá la validez del comprobante electrónico.\"",
+    "fuente_documento": "facturacion_electronica_NAC-DGERCGC25-00000014.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=137046a6-787c-47fb-a2d7-176595d292dc&nombre=NAC-DGERCGC25-00000014.pdf",
+    "articulo_norma": "Art. 4 de la Resolución NAC-DGERCGC25-00000014",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q08",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Un cliente nuevo me comenta que no ha presentado declaraciones de impuestos en los últimos 6 meses. ¿Eso le puede afectar la autorización para emitir sus comprobantes de venta y cuánto dura normalmente esa autorización?",
+    "respuesta_esperada": "Sí lo afecta. La autorización para emitir comprobantes de venta, documentos complementarios y comprobantes de retención dura, en condiciones normales, un año; pero si el contribuyente no ha presentado y pagado alguna declaración durante el último semestre, el SRI le autoriza los comprobantes solo por un plazo improrrogable de tres meses. Texto del Art. 6 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios: \"El período de vigencia de los comprobantes de venta, documentos complementarios y comprobantes de retención, será de un año para los sujetos pasivos, cuando cumplan las condiciones siguientes: 1. Haber presentado sus declaraciones tributarias y sus anexos cuando corresponda, y realizado el pago de las obligaciones declaradas...\" y más adelante: \"El Servicio de Rentas Internas, cuando el sujeto pasivo no hubiere presentado y pagado cuando corresponda, durante el último semestre alguna declaración, autorizará la impresión de los documentos con un plazo de vigencia improrrogable de tres meses, tiempo dentro del cual el contribuyente deberá cumplir con todas sus obligaciones pendientes. En ningún caso esta autorización podrá otorgarse de forma consecutiva.\"",
+    "fuente_documento": "reglamento_comprobantes_venta_retencion.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/142f0d6e-b156-4ac6-b804-0bd4938bc7b8/Reglamento+de+Comprobantes+de+Venta,+Retenci%C3%B3n+y+Documentos+Complementarios.pdf",
+    "articulo_norma": "Art. 6 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q09",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Voy a pagar honorarios a un abogado independiente (persona natural) por asesoría legal. ¿Qué porcentaje de retención en la fuente de Impuesto a la Renta debo aplicarle?",
+    "respuesta_esperada": "10%. La tabla de porcentajes vigente clasifica ese pago dentro de la retención del 10%. Texto del Art. 2, numeral 7, literal a) de la Resolución NAC-DGERCGC26-00000009: \"Honorarios, comisiones y demás pagos realizados a personas naturales residentes en el país que presten servicios en los que prevalezca el intelecto sobre la mano de obra, indistintamente de que el prestador del servicio posea o no título profesional o la relación del título con la actividad realizada.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 7, literal a) de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q10",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "La empresa donde trabajo arrienda una oficina a una persona natural. ¿Qué porcentaje de retención de Impuesto a la Renta debemos aplicar sobre el canon mensual de arrendamiento?",
+    "respuesta_esperada": "10%. El arrendamiento de bienes inmuebles está expresamente ubicado en el tramo del 10% de la tabla de retenciones. Texto del Art. 2, numeral 7, literal g) de la Resolución NAC-DGERCGC26-00000009: \"Arrendamiento de bienes inmuebles, cualquiera que fuese su denominación o modalidad contractual, en los cuales una parte se obliga a conceder el uso o goce del bien y otra a pagar, por este uso o goce, un determinado precio en dinero, especies o servicios.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 7, literal g) de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q11",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Contratamos a una compañía consultora (sociedad) para que nos preste servicios profesionales de auditoría. ¿A qué porcentaje de retención de Impuesto a la Renta está sujeto ese pago?",
+    "respuesta_esperada": "5%, distinto del 10% que aplica cuando el prestador es una persona natural. Texto del Art. 2, numeral 6, literal a) de la Resolución NAC-DGERCGC26-00000009: \"Servicios profesionales prestados por sociedades residentes en el Ecuador y establecimientos permanentes en el país, entendiéndose como tales servicios a aquellos que, para ser provistos, requieren el involucramiento de profesionales acreditados con un título.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 6, literal a) de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q12",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Voy a pagar por un concepto que no logro ubicar en ninguno de los porcentajes específicos de la tabla de retenciones de Impuesto a la Renta. ¿Qué porcentaje aplico por defecto?",
+    "respuesta_esperada": "3%. Texto del Art. 3 de la Resolución NAC-DGERCGC26-00000009: \"Retención en pagos sin un porcentaje específico.- Todos los pagos o créditos en cuenta no contemplados en los porcentajes específicos de retención señalados en esta Resolución, están sujetos a la retención del 3%.\"",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 3 de la Resolución NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q13",
+    "categoria": "IVA",
+    "pregunta": "Mi negocio se dedica exclusivamente a la venta de productos agrícolas en estado natural, gravados con tarifa 0% de IVA. ¿Debo declarar el IVA todos los meses o puedo hacerlo semestralmente?",
+    "respuesta_esperada": "Puede declarar semestralmente, salvo que además actúe como agente de retención de IVA, caso en el cual la declaración pasa a ser obligatoriamente mensual. Texto del Art. 158 del Reglamento para la Aplicación de la LRTI: \"Quienes transfieran bienes o presten servicios gravados únicamente con tarifa 0%, así como aquellos que estén sujetos a la retención total del IVA causado y los contribuyentes que establezca el SRI mediante resolución de carácter general, presentarán declaraciones semestrales; sin embargo, si tales sujetos pasivos deben actuar también como agentes de retención del IVA, obligatoriamente sus declaraciones serán mensuales.\"",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 158 del Reglamento para la Aplicación de la LRTI (Capítulo III: Declaración, liquidación y pago del IVA)",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q14",
+    "categoria": "IVA",
+    "pregunta": "Tengo una farmacia y vendo medicamentos de uso humano. ¿Esas ventas están gravadas con la tarifa general de IVA o con tarifa 0%?",
+    "respuesta_esperada": "Con tarifa 0%. Texto del Art. 55, numeral 6, de la LRTI (transferencias e importaciones con tarifa cero): \"Medicamentos y drogas de uso humano, de acuerdo con las listas que mediante Decreto establecerá anualmente el Presidente de la República, así como la materia prima e insumos importados o adquiridos en el mercado interno para producirlas.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 55, numeral 6, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q15",
+    "categoria": "IVA",
+    "pregunta": "Un cliente mío, persona natural, arrienda su departamento exclusivamente para vivienda. ¿Debe facturar ese arriendo con IVA?",
+    "respuesta_esperada": "No. El arrendamiento de inmuebles destinado exclusivamente a vivienda está gravado con tarifa 0% de IVA. Texto del Art. 56 de la LRTI, dentro del listado de servicios con tarifa cero, numeral 3: \"Los de alquiler o arrendamiento de inmuebles destinados, exclusivamente, para vivienda, en las condiciones que se establezca en el reglamento.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 56, numeral 3, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q16",
+    "categoria": "IVA",
+    "pregunta": "Una empresa exportadora de cacao pagó IVA en la compra local de materia prima e insumos para el producto que exporta. ¿Tiene derecho a recuperar ese IVA y cómo lo solicita?",
+    "respuesta_esperada": "Sí. Tiene derecho a crédito tributario por el IVA pagado en la adquisición de bienes, materias primas, insumos y servicios utilizados en los productos que exporta, y debe solicitar la devolución al SRI adjuntando copia de los documentos de exportación una vez realizada esta. Texto del Art. 57 de la LRTI: \"Las personas naturales y sociedades exportadoras que hayan pagado y retenido el IVA en la adquisición de bienes que exporten, tienen derecho a crédito tributario por dichos pagos. Igual derecho tendrán por el impuesto pagado en la adquisición de materias primas, insumos y servicios utilizados en los productos elaborados y exportados por el fabricante. Una vez realizada la exportación, el contribuyente solicitará al Servicio de Rentas Internas la devolución correspondiente acompañando copia de los respectivos documentos de exportación.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 57 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q17",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Para la declaración del Impuesto a la Renta del ejercicio fiscal 2026, ¿hasta qué monto de ingresos una persona natural no paga impuesto (fracción básica exenta)?",
+    "respuesta_esperada": "Hasta USD 12.208, monto sobre el cual la tarifa aplicable es 0%. Según la tabla oficial \"IMPUESTO A LA RENTA PERSONAS NATURALES\" publicada por el SRI para el \"AÑO 2026\", el primer tramo es: Fracción Básica 0, Exceso hasta 12.208, Impuesto Fracción Básica 0, % Impuesto Fracción Excedente 0%. Esta tabla del año 2026 se sustenta en la Resolución Nro. NAC-DGERCGC25-00000043, publicada en el Segundo Suplemento del Registro Oficial No. 194, de 30 de diciembre de 2025.",
+    "fuente_documento": "tabla_impuesto_renta_personas_naturales_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/58a7f4f6-ab51-48b6-b9ff-a8e97e1a28ef/Tablas%20de%20c%C3%A1lculo%20de%20Impuesto%20a%20la%20Renta.pdf",
+    "articulo_norma": "Tabla de Impuesto a la Renta Personas Naturales, Año 2026, conforme la Resolución Nro. NAC-DGERCGC25-00000043",
+    "fecha_consulta": "2026-08-04",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q18",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Una sociedad cliente me pregunta si está obligada a pagar un anticipo de Impuesto a la Renta durante el año. ¿Es obligatorio o voluntario, y cómo se calcula si decide hacerlo?",
+    "respuesta_esperada": "El pago del anticipo es voluntario, no obligatorio. Si el contribuyente decide anticipar, el valor equivale al 50% del Impuesto a la Renta causado en el ejercicio fiscal anterior, menos las retenciones en la fuente que le fueron efectuadas en ese mismo ejercicio; ese valor anticipado constituye crédito tributario para el pago del Impuesto a la Renta del ejercicio corriente. Texto del Art. 41 de la LRTI (Pago del impuesto): \"El pago del impuesto podrá anticiparse de forma voluntaria, y será equivalente al cincuenta por ciento (50%) del impuesto a la renta causado del ejercicio fiscal anterior, menos las retenciones en la fuente efectuadas en dicho ejercicio fiscal. El valor anticipado constituirá crédito tributario para el pago del impuesto a la renta. Las condiciones y requisitos para el pago del anticipo voluntario se establecerán en el reglamento.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 41 de la Ley de Régimen Tributario Interno (Pago del impuesto)",
+    "fecha_consulta": "2026-08-04",
+    "nota_verificacion": "Nombre de archivo corregido post-generación: este PDF y lrti_texto_vigente_sri_tarifa0_exportadores.pdf (fuente de q14/q15/q16) son el mismo documento (MD5 idéntico, la LRTI completa de 128 páginas) descargado dos veces con nombres distintos durante la investigación original. Se eliminó el duplicado del corpus (dominaba el ranking de retrieval por su tamaño — 1007 fragmentos — tapando documentos más chicos y específicos como retenciones_fuente_ir_2026.pdf) y se corrigió esta referencia al nombre del archivo que sobrevive. El contenido/artículo citado no cambia.",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q19",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Una sociedad cuyo RUC tiene noveno dígito 7, del régimen general (no RIMPE), ¿hasta qué fecha debe presentar y pagar su declaración anual de Impuesto a la Renta?",
+    "respuesta_esperada": "Hasta el 22 de abril. El Art. 72, numeral 1, del Reglamento para la Aplicación de la LRTI establece la tabla de plazos para sociedades según el noveno dígito del RUC: \"Para las sociedades, el plazo se inicia el 1 de febrero del año siguiente al que corresponda la declaración y vence en las siguientes fechas, según el noveno dígito del número del Registro Único de Contribuyentes (RUC) de la sociedad\", y en la tabla correspondiente: \"Si el noveno dígito es 7, Fecha de vencimiento (hasta el día) 22 de abril\".",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 72, numeral 1, del Reglamento para la Aplicación de la LRTI",
+    "fecha_consulta": "2026-08-04",
+    "nota_verificacion": "Nombre de archivo corregido post-generación: este PDF y reglamento_lrti_2023_declaracion_iva_art158.pdf (fuente de q13) son el mismo documento (MD5 idéntico) — \"Reglamento para la Aplicación de la LRTI\" descargado dos veces con nombres distintos durante la investigación original. Se eliminó el duplicado del corpus (dominaba el ranking de retrieval y tapaba documentos más específicos) y se corrigió esta referencia al nombre del archivo que sobrevive. El contenido/artículo citado no cambia.",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q20",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Un comisionista (persona natural) inició el ejercicio fiscal con activos menos pasivos relacionados con su actividad por USD 190.000. ¿Está obligado a llevar contabilidad?",
+    "respuesta_esperada": "Sí, porque supera el umbral de capital propio de USD 180.000 que la norma fija para este tipo de contribuyentes. Texto del Art. 37 del Reglamento para la Aplicación de la LRTI (Contribuyentes obligados a llevar contabilidad): \"...están obligadas a llevar contabilidad las personas naturales y las sucesiones indivisas que obtengan rentas objeto de este impuesto incluidas las actividades agrícolas, pecuarias, forestales o similares, así como los profesionales, comisionistas, artesanos, agentes, representantes, otros trabajadores autónomos, y demás personas que obtengan rentas de capital distintas de las mencionadas en el siguiente inciso, y que operen con un capital propio que al inicio de sus actividades económicas o al 1o. de enero de cada ejercicio impositivo hayan sido superiores a ciento ochenta mil (USD 180.000) dólares de los Estados Unidos de América o cuyos ingresos anuales del ejercicio fiscal inmediato anterior, hayan sido superiores a trescientos mil (USD 300.000) dólares de los Estados Unidos de América o cuyos costos y gastos anuales, imputables a la actividad económica, del ejercicio fiscal inmediato anterior hayan sido superiores a doscientos cuarenta mil (USD 240.000) dólares de los Estados Unidos de América.\"",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 37 del Reglamento para la Aplicación de la LRTI (Capítulo V: De la contabilidad)",
+    "fecha_consulta": "2026-08-04",
+    "nota_verificacion": "Nombre de archivo corregido post-generación: este PDF y reglamento_lrti_2023_declaracion_iva_art158.pdf (fuente de q13) son el mismo documento (MD5 idéntico) — \"Reglamento para la Aplicación de la LRTI\" descargado dos veces con nombres distintos durante la investigación original. Se eliminó el duplicado del corpus (dominaba el ranking de retrieval y tapaba documentos más específicos) y se corrigió esta referencia al nombre del archivo que sobrevive. El contenido/artículo citado no cambia.",
+    "vigencia_verificada": {
+      "revisado": false,
+      "fecha": null,
+      "reforma_encontrada": null,
+      "nota": "Heredado de banco_preguntas_v2 (ADR-0012); no re-verificado retroactivamente en la expansion a v3."
+    }
+  },
+  {
+    "id": "q21",
+    "categoria": "IVA",
+    "pregunta": "Voy a facturar una venta de cemento y varillas (materiales de construcción) a un cliente. Sé que en Ecuador la tarifa general de IVA ha cambiado varias veces por decretos ejecutivos en los últimos años. ¿Qué tarifa de IVA debo aplicar hoy a los materiales de construcción y cuál es la tarifa general vigente para el resto de bienes y servicios?",
+    "respuesta_esperada": "Según la guía institucional vigente del SRI sobre el Impuesto al Valor Agregado (base legal: Art. 54, art. 55, artículo innumerado posterior al artículo 55, art. 56 y art. 65 de la LRTI): \"La tarifa del Impuesto al Valor Agregado (IVA) vigente es del 0% y del 13% y aplica tanto para bienes (a excepción de materiales de construcción) como para servicios. Para la transferencia de materiales de construcción, la tarifa del Impuesto al Valor Agregado (IVA) vigente es del 5%.\" Es decir, actualmente el contador debe facturar los materiales de construcción con tarifa 5% de IVA, mientras que el resto de bienes y servicios gravados (que no tengan tarifa 0%) se facturan con tarifa 13%.",
+    "fuente_documento": "guia_iva_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-al-valor-agregado-iva",
+    "articulo_norma": "Guía institucional \"Impuesto al Valor Agregado IVA\" del SRI, con base legal en los Arts. 54, 55, artículo innumerado posterior al 55, 56 y 65 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-al-valor-agregado-iva (página institucional del SRI, contenido dinámico y actualizado a la fecha de consulta); se descargó copia en PDF de la página para respaldo (guia_iva_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q22",
+    "categoria": "IVA",
+    "pregunta": "Uno de los socios de mi empresa cliente va a aportar en especie una maquinaria a la compañía a cambio de participaciones sociales (no es una venta, es un aporte de capital). ¿Ese aporte en especie causa IVA?",
+    "respuesta_esperada": "No causa IVA. El Art. 54 de la Ley de Régimen Tributario Interno (Transferencias que no son objeto del impuesto) establece: \"No se causará el IVA en los siguientes casos: 1. Aportes en especie a sociedades; 2. Adjudicaciones por herencia o por liquidación de sociedades, inclusive de la sociedad conyugal; 3. Transferencias y transmisiones de empresas y establecimientos de comercio en los términos establecidos en el Código de Comercio. 4. Fusiones, escisiones y transformaciones de sociedades; 5. Donaciones a entidades y organismos del sector público, inclusive empresas públicas; y, a instituciones de carácter privado sin fines de lucro legalmente constituidas, definidas como tales en el Reglamento; 6. Cesión de acciones, participaciones sociales y demás títulos valores. 7. Las cuotas o aportes que realicen los condóminos para el mantenimiento de los condominios dentro del régimen de propiedad horizontal, así como las cuotas para el financiamiento de gastos comunes en urbanizaciones.\" El aporte en especie de la maquinaria encaja en el numeral 1, por lo que no se causa IVA en esa transferencia.",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 54, numeral 1, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec (texto no depende de la tarifa vigente ni ha sido modificado por los decretos ejecutivos de 2024-2026 sobre el porcentaje de IVA). La guía institucional vigente del SRI (consultada en vivo el 2026-08-13, https://www.sri.gob.ec/impuesto-al-valor-agregado-iva) confirma expresamente que \"Existen también transferencias que no son objeto del IVA las cuales se detallan en la Ley de Régimen Tributario Interno\", corroborando que el Art. 54 sigue vigente."
+    }
+  },
+  {
+    "id": "q23",
+    "categoria": "IVA",
+    "pregunta": "Presto un servicio de mantenimiento mensual mediante un contrato de tracto sucesivo (se factura el mismo monto cada mes durante todo el año). ¿En qué momento se causa el IVA de cada factura mensual?",
+    "respuesta_esperada": "El Art. 61 de la Ley de Régimen Tributario Interno (Hecho generador) establece los momentos en que se verifica el hecho generador del IVA. Para el caso de servicios de tracto sucesivo, el numeral 6 señala: \"En el caso de transferencia de bienes o prestación de servicios que adopten la forma de tracto sucesivo, el impuesto al valor agregado -IVA- se causará al cumplirse las condiciones para cada período, momento en el cual debe emitirse el correspondiente comprobante de venta.\" Por lo tanto, en un contrato de mantenimiento mensual de tracto sucesivo, el IVA se causa al cumplirse cada período (cada mes), momento en el cual corresponde emitir el comprobante de venta de ese mes.",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 61, numeral 6, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Es una regla estructural sobre el momento del hecho generador, no relacionada con la tarifa del IVA; la guía institucional vigente del SRI (consultada en vivo el 2026-08-13) reproduce la misma regla para el caso general de prestación de servicios (numeral 2 del mismo artículo), lo que corrobora que el Art. 61 sigue vigente."
+    }
+  },
+  {
+    "id": "q24",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Contraté a un albañil (persona natural, sin título profesional) para hacer trabajos de mano de obra en la remodelación de mi local comercial. ¿Qué porcentaje de retención en la fuente de Impuesto a la Renta debo aplicarle al pagarle su factura?",
+    "respuesta_esperada": "Debe aplicar el 3%. El Art. 2, numeral 5, literal a) de la Resolución Nro. NAC-DGERCGC26-00000009 establece la \"Retención del tres por ciento (3 %)\" para: \"a) Servicios prestados por personas naturales, en los que prevalezca la mano de obra sobre el factor intelectual.\" Un albañil que realiza trabajos de remodelación presta un servicio en el que prevalece la mano de obra, por lo que corresponde retener el 3% sobre el valor del servicio.",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 2, numeral 5, literal a) de la Resolución Nro. NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La Resolución NAC-DGERCGC26-00000009 fue dictada el 27 de febrero de 2026 y es aplicable a partir del 01 de marzo de 2026, derogando expresamente la Resolución NAC-DGERCGC24-00000008; es la tabla de porcentajes de retención de IR vigente a la fecha de consulta (2026-08-13)."
+    }
+  },
+  {
+    "id": "q25",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Mi empresa compra diésel y gasolina para abastecer la flota de vehículos de reparto. Al pagarle la factura de combustible al distribuidor autorizado, ¿debo efectuarle alguna retención en la fuente de Impuesto a la Renta?",
+    "respuesta_esperada": "No, no procede retención. El Art. 6 de la Resolución Nro. NAC-DGERCGC26-00000009 (Excepciones) establece que \"No procede la retención en la fuente por concepto de impuesto a la renta en los siguientes casos: (...) e) Los pagos por la compra de combustible, ni aquellos pagos sobre los que la normativa tributaria vigente lo establezca de manera expresa.\" Por lo tanto, los pagos por adquisición de combustible (diésel, gasolina) están expresamente exceptuados de retención en la fuente de Impuesto a la Renta.",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 6, literal e), de la Resolución Nro. NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Resolución vigente desde el 01 de marzo de 2026, actualmente en vigor a la fecha de consulta (2026-08-13)."
+    }
+  },
+  {
+    "id": "q26",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Le compré mercadería a crédito a un proveedor el 5 de agosto (quedó registrada como cuenta por pagar en ese momento) y voy a pagarle en efectivo recién el 20 de septiembre. ¿En qué fecha debo efectuar y declarar la retención en la fuente correspondiente?",
+    "respuesta_esperada": "Debe efectuar la retención en el momento en que ocurra primero entre el pago y la acreditación en cuenta. El Art. 8 de la Resolución Nro. NAC-DGERCGC26-00000009 (Momento de la retención) establece: \"La retención se efectuará el momento en que se realice el pago o se acredite en cuenta, lo que ocurra primero.\" Como la obligación se registró contablemente (se acreditó en cuenta) el 5 de agosto, es decir antes del pago efectivo del 20 de septiembre, la retención debe practicarse en la fecha de la acreditación en cuenta (5 de agosto), no en la fecha del pago posterior.",
+    "fuente_documento": "retenciones_fuente_ir_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=76ba02f0-718a-41b7-a54a-7e0f5615808a&nombre=NAC-DGERCGC26-00000009.pdf",
+    "articulo_norma": "Art. 8 de la Resolución Nro. NAC-DGERCGC26-00000009",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Resolución vigente desde el 01 de marzo de 2026, actualmente en vigor a la fecha de consulta (2026-08-13)."
+    }
+  },
+  {
+    "id": "q27",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Tengo una empresa de telecomunicaciones que factura el servicio mensual a miles de clientes. ¿En qué momento debo emitir y entregar el comprobante de venta, tomando en cuenta que es un servicio continuo?",
+    "respuesta_esperada": "El Art. 17 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios (Oportunidad de entrega de los comprobantes de venta y documentos autorizados) establece en su literal f): \"En el caso de servicios prestados de manera continua, de telecomunicaciones, agua potable, alcantarillado, aseo de calles, recolección de basura, energía eléctrica, financieros y otros de naturaleza semejante, que mediante resolución de carácter general establezca el Servicio de Rentas Internas, el comprobante de venta deberá ser generado por el prestador del servicio en sus sistemas computarizados, emitido y entregado al adquirente o usuario cuando este lo requiera.\" Es decir, para servicios continuos como telecomunicaciones, el comprobante se genera en los sistemas del prestador y se entrega al usuario cuando este lo requiera, conforme a la resolución de carácter general que el SRI emita para el efecto.",
+    "fuente_documento": "reglamento_comprobantes_venta_retencion.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/142f0d6e-b156-4ac6-b804-0bd4938bc7b8/Reglamento+de+Comprobantes+de+Venta,+Retenci%C3%B3n+y+Documentos+Complementarios.pdf",
+    "articulo_norma": "Art. 17, literal f), del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Documento ya utilizado como fuente vigente en banco_preguntas_v2/v3 (q08, Art. 6 del mismo reglamento); norma procedimental estructural no afectada por las reformas tributarias 2024-2026."
+    }
+  },
+  {
+    "id": "q28",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Voy a trasladar mercadería desde la bodega matriz de mi empresa hacia una sucursal de la misma compañía ubicada en otra ciudad. No hay ninguna venta de por medio, es un traslado interno. ¿De todas formas debo emitir guía de remisión?",
+    "respuesta_esperada": "Sí. El Art. 28 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios (Obligados a emitir guías de remisión) establece: \"Están obligados a emitir guías de remisión toda sociedad, persona natural o sucesión indivisa que traslade mercadería, debiendo emitirlas en especial en los siguientes casos: (...) 2. En la movilización de mercaderías entre establecimientos del mismo contribuyente.\" Por lo tanto, aunque el traslado sea interno (entre la matriz y una sucursal de la misma empresa) y no exista una venta, la empresa está obligada a emitir la guía de remisión para sustentar el transporte de la mercadería.",
+    "fuente_documento": "reglamento_comprobantes_venta_retencion.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/142f0d6e-b156-4ac6-b804-0bd4938bc7b8/Reglamento+de+Comprobantes+de+Venta,+Retenci%C3%B3n+y+Documentos+Complementarios.pdf",
+    "articulo_norma": "Art. 28, numeral 2, del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Documento ya utilizado como fuente vigente en banco_preguntas_v2/v3 (q08, Art. 6 del mismo reglamento); norma procedimental estructural no afectada por las reformas tributarias 2024-2026."
+    }
+  },
+  {
+    "id": "q29",
+    "categoria": "Facturación electrónica",
+    "pregunta": "Anulé una factura electrónica por un error de digitación en el valor. ¿Por cuánto tiempo debo conservar ese comprobante anulado en mis archivos?",
+    "respuesta_esperada": "Por siete años. El Art. 50 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios (Anulación) establece: \"Los comprobantes de venta, documentos complementarios y comprobantes de retención emitidos con errores y que hayan sido anulados, deberán ser conservados por siete años en los archivos del contribuyente en original, junto con todas las copias, y ordenados cronológicamente.\"",
+    "fuente_documento": "reglamento_comprobantes_venta_retencion.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/142f0d6e-b156-4ac6-b804-0bd4938bc7b8/Reglamento+de+Comprobantes+de+Venta,+Retenci%C3%B3n+y+Documentos+Complementarios.pdf",
+    "articulo_norma": "Art. 50 del Reglamento de Comprobantes de Venta, Retención y Documentos Complementarios",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Documento ya utilizado como fuente vigente en banco_preguntas_v2/v3 (q08, Art. 6 del mismo reglamento); norma procedimental estructural no afectada por las reformas tributarias 2024-2026."
+    }
+  },
+  {
+    "id": "q30",
+    "categoria": "RIMPE",
+    "pregunta": "Tengo un cliente persona natural que únicamente percibe ingresos por el arrendamiento de un local comercial de su propiedad (bien inmueble), sin prestar ningún servicio adicional ni desarrollar otra actividad económica. ¿Puede inscribirse o permanecer en el RIMPE por esa actividad?",
+    "respuesta_esperada": "No. Esos ingresos se consideran \"rentas de capital\", categoría excluida del RIMPE. El Art. 2, literal c) de la Resolución Nro. NAC-DGERCGC24-00000027 (De las actividades excluyentes) señala: \"Se entenderá como rentas de capital aquellos beneficios o rentas obtenidas por la colocación de capital, derechos representativos de capital, de créditos e inversiones de cualquier naturaleza como rendimientos financieros o aquellas rentas que procedan del arrendamiento de bienes inmuebles, así como las regalías, marcas y patentes, siempre que no existan procesos productivos o prestación de servicios u otros factores de trabajo asociados a las referidas actividades.\" Al tratarse exclusivamente de arrendamiento de un inmueble sin procesos productivos o servicios adicionales asociados, esos ingresos constituyen renta de capital y, por tanto, esa actividad no puede sujetarse al RIMPE.",
+    "fuente_documento": "RIMPE_normas_aplicacion_NAC-DGERCGC24-00000027.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=7c3fb8dc-31a6-4fe3-a6c0-abe1def2c78a&nombre=NAC-DGERCGC24-00000027.pdf",
+    "articulo_norma": "Art. 2, literal c), de la Resolución Nro. NAC-DGERCGC24-00000027",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Documento ya utilizado como fuente vigente en banco_preguntas_v2/v3 (q01 y q02, Arts. 6 y 8 de la misma resolución)."
+    }
+  },
+  {
+    "id": "q31",
+    "categoria": "RIMPE",
+    "pregunta": "A un cliente sujeto al RIMPE le detecté que ya no cumple los requisitos y condiciones del régimen (por ejemplo, empezó a desarrollar una actividad excluyente). ¿Desde qué momento debe salir del RIMPE y pasar al régimen general?",
+    "respuesta_esperada": "Desde el siguiente ejercicio fiscal, no de forma inmediata. El Art. 220 del Reglamento para la Aplicación de la LRTI (Título IV, RIMPE - Finalización del RIMPE) establece: \"La falta de cumplimiento de los requisitos y condiciones establecidos en la normativa tributaria aplicable conllevará que los sujetos pasivos dejen de ser parte del régimen desde el siguiente periodo fiscal.\" Es decir, el incumplimiento detectado en el ejercicio en curso no lo excluye de inmediato: el contribuyente sale del RIMPE recién a partir del ejercicio fiscal siguiente.",
+    "fuente_documento": "rimpe_reglamento_ley_desarrollo_covid_titulo_iv.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0a648dfb-e00d-4cb2-9259-550cd3ebe635/Reglamento%20LODE_%C3%BAltima%20reforma%2010%20de%20noviembre%20de%202022.pdf",
+    "articulo_norma": "Art. 220 del Reglamento para la Aplicación de la LRTI (Título IV RIMPE, Capítulo II: De la sujeción, permanencia y exclusión del régimen)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Documento ya utilizado como fuente vigente en banco_preguntas_v2/v3 (q03 y q04, Arts. 217 y 224 del mismo Título IV)."
+    }
+  },
+  {
+    "id": "q32",
+    "categoria": "RIMPE",
+    "pregunta": "Un cliente que está registrado como \"negocio popular\" dentro del RIMPE superó el límite de ingresos para mantenerse en esa categoría y ahora le corresponde pasar a la categoría de \"emprendedor\". ¿Tiene que hacer algún trámite para actualizar esa condición o el SRI lo hace automáticamente sin que él intervenga?",
+    "respuesta_esperada": "Puede actualizarlo él mismo en cualquier momento, sin perjuicio de que el SRI también pueda hacerlo de oficio. El Art. 3 de la Resolución Nro. NAC-DGERCGC24-00000027 (Sujeción al RIMPE) establece: \"Los contribuyentes sujetos al RIMPE que, sobre la base de la información consignada en su Registro Único de Contribuyentes o en sus declaraciones de impuestos, deban cambiar su condición de negocios populares a emprendedores, podrán realizar en cualquier momento del ejercicio económico la actualización de la información consignada en su Registro Único de Contribuyentes, sin perjuicio de la posibilidad de que el Servicio de Rentas Internas lo haga de oficio con base en sus facultades legalmente establecidas.\"",
+    "fuente_documento": "RIMPE_normas_aplicacion_NAC-DGERCGC24-00000027.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=7c3fb8dc-31a6-4fe3-a6c0-abe1def2c78a&nombre=NAC-DGERCGC24-00000027.pdf",
+    "articulo_norma": "Art. 3 de la Resolución Nro. NAC-DGERCGC24-00000027",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Documento ya utilizado como fuente vigente en banco_preguntas_v2/v3 (q01 y q02, Arts. 6 y 8 de la misma resolución)."
+    }
+  },
+  {
+    "id": "q33",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Un cliente persona natural (no obligado a llevar contabilidad) me pregunta hasta qué monto puede deducirse por gastos personales (vivienda, educación, salud, alimentación y vestimenta) en su declaración de Impuesto a la Renta de este ejercicio.",
+    "respuesta_esperada": "El límite general y los sub-límites por rubro constan en el Art. 34 del Reglamento para la Aplicación de la LRTI, que desarrolla el numeral 16 del Art. 10 de la LRTI. El numeral 16 del Art. 10 de la LRTI señala: \"Las personas naturales podrán deducir, hasta en el 50% del total de sus ingresos gravados sin que supere un valor equivalente a 1.3 veces la fracción básica desgravada de impuesto a la renta de personas naturales, sus gastos personales sin IVA e ICE, así como los de su cónyuge e hijos menores de edad o con discapacidad, que no perciban ingresos gravados y que dependan del contribuyente.\" El Art. 34 del Reglamento agrega el detalle por rubro: \"La deducción total por gastos personales no podrá superar el 50% del total de los ingresos gravados del contribuyente y en ningún caso será mayor al equivalente a 1.3 veces la fracción básica desgravada de Impuesto a la Renta de personas naturales. Sin perjuicio de los límites establecidos en el párrafo anterior, la cuantía máxima de cada tipo de gasto no podrá exceder a la fracción básica desgravada de impuesto a la renta en: Vivienda: 0,325 veces; Educación: 0,325 veces; Alimentación: 0,325 veces; Vestimenta: 0,325 veces; Salud: 1,3 veces.\"",
+    "fuente_documento": "art34_gastos_personales_sri.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/9659f783-4d17-4bad-84fc-3da4541dc594/Art.+34+Gastos+personales.pdf",
+    "articulo_norma": "Numeral 16 del Art. 10 de la Ley de Régimen Tributario Interno y Art. 34 del Reglamento para la Aplicación de la LRTI",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Descargado el 2026-08-13 directamente del enlace oficial de la Biblioteca del SRI (sri.gob.ec), enlazado desde resultados de búsqueda vigentes sobre \"gastos personales 2026\" que incluyen el boletín institucional \"BOLETÍN 032 - JUNIO, MES PARA ACTUALIZAR LA PROYECCIÓN DE GASTOS PERSONALES 2026\", lo que confirma que el mecanismo de deducción de gastos personales sigue vigente y operativo en el ejercicio fiscal 2026."
+    }
+  },
+  {
+    "id": "q34",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Mi cliente pagó un anticipo voluntario de Impuesto a la Renta y la Administración Tributaria le reconoce un interés a su favor por ese anticipo. Si ese interés reconocido no alcanza a compensarse totalmente en la declaración del mismo ejercicio fiscal, ¿qué pasa con el saldo pendiente?",
+    "respuesta_esperada": "El saldo del interés no compensado puede usarse hasta por tres años más, y si no se usa dentro de ese plazo no se devuelve. El Art. 77.1 del Reglamento para la Aplicación de la LRTI (Intereses por el anticipo pagado) establece: \"Los intereses previstos en el inciso anterior serán utilizados exclusivamente para el pago del impuesto a la renta del ejercicio fiscal al que corresponde el anticipo voluntario. En el caso de que existiera un saldo pendiente de compensar podrá ser utilizado en el pago del impuesto a la renta que cause en los ejercicios impositivos posteriores y hasta dentro de tres (3) años contados desde la fecha de exigibilidad de la declaración. Los valores que no fueren utilizados para el pago del impuesto a la renta, en las condiciones previstas en este inciso, no serán objeto de devolución. Para efectos de la prelación, en primer lugar, se compensará el interés por el anticipo voluntario, luego el crédito tributario por tal anticipo.\"",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 77.1 del Reglamento para la Aplicación de la LRTI",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec y cruzado con la página institucional vigente \"Determinación del anticipo\" (https://www.sri.gob.ec/determinacion-del-anticipo1, consultada en vivo el 2026-08-13), cuyo texto sobre el cálculo del anticipo voluntario (50% del IR del ejercicio anterior menos retenciones) coincide palabra por palabra con el Art. 76 del mismo Reglamento, confirmando que el Título de anticipo voluntario (Arts. 76 y 77.1) sigue vigente."
+    }
+  },
+  {
+    "id": "q35",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Mi empresa cliente es representante en Ecuador de una marca extranjera (actúa como agente comercial de una compañía del exterior). ¿Tiene alguna obligación especial de información ante el SRI por el solo hecho de ser representante o agente de una empresa extranjera?",
+    "respuesta_esperada": "Sí. El Art. 35 de la Ley de Régimen Tributario Interno (Ingresos por contratos de agencia y representación) establece: \"Las personas naturales o jurídicas, nacionales o extranjeras domiciliadas en el país, que realicen actividades de representación de empresas extranjeras, deberán presentar cada año al Servicio de Rentas Internas, copia del contrato de agencia o representación, debidamente legalizado.\" Adicionalmente, si a través de ese contrato se importan bienes, el mismo artículo añade: \"Las personas naturales o jurídicas, nacionales o extranjeras domiciliadas en el país, que importen bienes a través de agentes o representantes de casas extranjeras, deberán, anualmente, enviar al Servicio de Rentas Internas la información relacionada con estas importaciones.\"",
+    "fuente_documento": "lrti_texto_vigente_sri_tarifa0_exportadores.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/1c04850c-093e-44bf-ba98-e9bc8baae57e/Ley_Regimen_Tributario_Interno_20_jun_2023.pdf",
+    "articulo_norma": "Art. 35 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Es una obligación formal de información no relacionada con tarifas ni con las reformas tributarias 2024-2026; no consta como derogada en la normativa reformatoria posterior revisada durante esta investigación."
+    }
+  },
+  {
+    "id": "q36",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Voy a actuar como auditor externo de una compañía cliente que está obligada a presentar el Informe de Cumplimiento Tributario (ICT) ante el SRI. ¿Cuál es mi responsabilidad legal, como auditor, al emitir la opinión de cumplimiento tributario?",
+    "respuesta_esperada": "El auditor está obligado a emitir su opinión bajo juramento y responde legalmente por una opinión inexacta o infundada. El Art. 279 del Reglamento para la Aplicación de la LRTI (Capítulo V: Auditorías Externas - Responsabilidad de los auditores externos) establece: \"Los auditores están obligados, bajo juramento, a emitir una opinión sobre el cumplimiento de las normas legales y reglamentarias tributarias así como de las resoluciones de carácter general y obligatorio emitidas por el Director General del Servicio de Rentas Internas vigentes para el ejercicio fiscal auditado, ya sea como contribuyentes o en su calidad de agentes de retención o percepción de los tributos. Para el efecto, la Administración Tributaria mediante resolución general establecerá los contribuyentes obligados a presentar un informe de cumplimiento tributario y definirá el alcance de la revisión que efectuará el auditor, el contenido de los anexos correspondientes, la forma y plazos para su presentación. La opinión inexacta o infundada que un auditor externo emita en relación con lo establecido en este artículo le hará responsable (...)\".",
+    "fuente_documento": "reglamento_lrti_2023_declaracion_iva_art158.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/aa569bb7-b871-458c-a8c7-6bcf49841843/Reglamento_LRTI_24Nov2023.pdf",
+    "articulo_norma": "Art. 279 del Reglamento para la Aplicación de la LRTI (Título de Determinación de la Obligación Tributaria, Capítulo V: Auditorías Externas)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec y cruzado con la página institucional vigente \"Impuesto a la Renta\" (https://www.sri.gob.ec/impuesto-renta, consultada en vivo el 2026-08-13), que en su sección de Informes de Cumplimiento Tributario (ICT) sigue remitiendo a esta obligación de auditoría externa como vigente."
+    }
+  },
+  {
+    "id": "q37",
+    "categoria": "ICE",
+    "pregunta": "Tengo un cliente que es una cadena de supermercados (más de 3 locales bajo el mismo RUC) y entrega fundas plásticas tipo camiseta a sus clientes en caja. ¿Esa entrega de fundas causa el Impuesto a los Consumos Especiales (ICE)?",
+    "respuesta_esperada": "Sí. Según la guía institucional vigente del SRI sobre el ICE a las fundas plásticas: \"El hecho generador de este impuesto será la entrega de fundas o bolsas plásticas tipo acarreo o camiseta por parte del establecimiento de comercio (sociedades, establecimientos permanentes en el Ecuador y personas naturales obligadas a llevar contabilidad) que comercialicen productos al por mayor o menor y que consten en el Registro Único de Contribuyentes con tres (3) o más establecimientos abiertos; de la misma forma para el franquiciador y sus franquiciados, independientemente del número de sus establecimientos, que sean o no requeridas por el adquiriente o consumidor para cargar o llevar productos.\" Como el supermercado tiene 3 o más establecimientos registrados en su RUC, la entrega de las fundas plásticas tipo camiseta constituye hecho generador del ICE.",
+    "fuente_documento": "guia_ice_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-consumos-especiales",
+    "articulo_norma": "Guía institucional \"Impuesto a los Consumos Especiales\" del SRI, sección \"Fundas plásticas\" (base legal: LRTI y su Reglamento de aplicación, Resolución No. NAC-DGERCG20-00000033)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-consumos-especiales (página institucional del SRI); se descargó copia en PDF de la página para respaldo (guia_ice_sri_vigente_2026.pdf). El ICE a fundas plásticas está vigente desde el 09 de mayo de 2020 y la página no lo reporta como derogado a la fecha de consulta."
+    }
+  },
+  {
+    "id": "q38",
+    "categoria": "ICE",
+    "pregunta": "Un cliente fabrica fundas plásticas biodegradables y compostables. Otro cliente distinto usa fundas plásticas exclusivamente como empaque primario en contacto directo con alimentos congelados. ¿Alguno de los dos tiene algún beneficio en el ICE de fundas plásticas?",
+    "respuesta_esperada": "Sí, ambos tienen beneficios distintos. La guía institucional vigente del SRI señala: \"Rebaja: Corresponde al cincuenta por ciento (50%) en la tarifa del impuesto a los consumos especiales para fundas plásticas biodegradables y compostables, incluido el plástico biobasado.\" Es decir, las fundas biodegradables y compostables tienen una rebaja del 50% en la tarifa del ICE (no exención total). Por otro lado, respecto de las fundas para alimentos: \"Exención: Estarán exentas del ICE fundas plásticas para uso industrial, agrícola, agroindustrial, de exportación, para productos congelados y las que contengan un mínimo de adición del cincuenta por ciento (50%) de materia prima reciclada post consumo, así como las fundas utilizadas como empaques primarios (fundas plásticas de un solo uso que estén en contacto directo con los alimentos).\" Por lo tanto, las fundas usadas como empaque primario en contacto directo con alimentos están exentas totalmente del ICE.",
+    "fuente_documento": "guia_ice_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-consumos-especiales",
+    "articulo_norma": "Guía institucional \"Impuesto a los Consumos Especiales\" del SRI, sección \"Fundas plásticas — Exoneración y rebaja en la tarifa específica\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-consumos-especiales; se descargó copia en PDF de la página para respaldo (guia_ice_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q39",
+    "categoria": "ICE",
+    "pregunta": "Tengo un cliente que es una fábrica artesanal de licor. Para calcular la tarifa ad valorem del ICE de bebidas alcohólicas de este ejercicio 2026, ¿cuál es el valor de precio de venta del fabricante que debo usar como referencia según la última resolución del SRI?",
+    "respuesta_esperada": "El valor de referencia para el período fiscal 2026 es de USD 4,72 por litro. La Resolución Nro. NAC-DGERCGC25-00000042 (Artículo Único) establece: \"Para efectos de determinar la base imponible para el cálculo de la tarifa ad valorem del impuesto a los consumos especiales de bebidas alcohólicas, incluida la cerveza, se ajusta el valor del precio de venta del fabricante y precio ex aduana, conforme lo señalado en el artículo 76 de la Ley de Régimen Tributario Interno, en CUATRO DÓLARES CON SETENTA Y DOS CENTAVOS DE DÓLAR DE LOS ESTADOS UNIDOS DE AMÉRICA (USD 4,72) por litro de bebida, para el período fiscal 2026.\" Este valor sirve de referencia para determinar si, sobre el excedente del precio de venta del fabricante o ex aduana respecto de ese monto, corresponde aplicar la tarifa ad valorem del artículo 82 de la LRTI.",
+    "fuente_documento": "NAC-DGERCGC25-00000042.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=a68bf0ab-4897-4e42-b609-8840640aa658&nombre=NAC-DGERCGC25-00000042.pdf",
+    "articulo_norma": "Artículo Único de la Resolución Nro. NAC-DGERCGC25-00000042",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La resolución fue dictada el 29 de diciembre de 2025 y es aplicable desde el 01 de enero de 2026, específicamente para el período fiscal 2026, por lo que es la norma vigente a la fecha de consulta (2026-08-13)."
+    }
+  },
+  {
+    "id": "q40",
+    "categoria": "Precios de Transferencia",
+    "pregunta": "Voy a asesorar a una sociedad que celebra operaciones con partes relacionadas del exterior y quiero saber cómo la clasifica el SRI para efectos de determinar el monto de las multas por precios de transferencia: ¿existe alguna estratificación de contribuyentes para este fin?",
+    "respuesta_esperada": "Sí. El Art. 12 de la Resolución NAC-DGERCGC15-00000455 (reformada por la Resolución Nro. NAC-DGERCGC24-00000020) establece: \"Estratificación de sujetos pasivos.- Para el establecimiento de las cuantías de las sanciones pecuniarias normadas en los artículos 13 y 14 de la presente resolución, se observará la siguiente estratificación prevista en las normas tributarias, y en las regulaciones emitidas por la administración tributaria: Grandes contribuyentes (incluidos los Grandes Patrimonios): Sujetos pasivos de impuesto a la renta que se encuentren en esta categoría a partir del 1 de enero del ejercicio fiscal en el que se genera la obligación de presentar el Informe de Precios de Transferencia y el Anexo de Operaciones con Partes Relacionadas. Contribuyentes especiales: Sujetos pasivos de impuesto a la renta que se encuentren en esta categoría a partir del 1 de enero del ejercicio fiscal en el que se genera la obligación de presentar el Informe de Precios de Transferencia y el Anexo de Operaciones con Partes Relacionadas, exceptuando a los grandes contribuyentes. Otros contribuyentes sujetos al régimen de precios de transferencia: Sujetos pasivos de impuesto a la renta que no se encuentren considerados en las categorías anteriores y que cumplan con los requisitos descritos en los artículos innumerados a continuación del artículo 15 de la Ley de Régimen Tributario Interno.\"",
+    "fuente_documento": "NAC-DGERCGC24-00000020.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=3c8e92c5-f276-46bd-a11e-7014601b270f&nombre=NAC-DGERCGC24-00000020.pdf",
+    "articulo_norma": "Art. 12 de la Resolución NAC-DGERCGC15-00000455 (incorporado por el Art. 2 de la Resolución Nro. NAC-DGERCGC24-00000020)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Resolución publicada en 2024 que reforma la Resolución NAC-DGERCGC15-00000455 vigente; no consta derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q41",
+    "categoria": "Precios de Transferencia",
+    "pregunta": "Un cliente mío es un Gran Contribuyente y no presentó el Informe Integral de Precios de Transferencia estando obligado a hacerlo. ¿Con qué monto de multa se arriesga?",
+    "respuesta_esperada": "Hasta USD 15.000. El Art. 13, literal a) de la Resolución NAC-DGERCGC15-00000455 (reformada por la Resolución Nro. NAC-DGERCGC24-00000020) establece: \"Sanción por no presentación de Informe Integral de Precios de Transferencia o del Anexo de Operaciones con Partes Relacionadas.- Los sujetos pasivos que estando obligados a presentar el Informe Integral de Precios de Transferencia o el Anexo de Operaciones con Partes Relacionadas, no lo hagan, serán sancionados con una multa de hasta USD 15.000,00 por cada obligación\", y el cuadro correspondiente fija, para Grandes contribuyentes (incluidos los Grandes Patrimonios): USD 15.000 por la no presentación del Informe Integral de Precios de Transferencia, y USD 10.000 por la no presentación del Anexo de Operaciones con Partes Relacionadas.",
+    "fuente_documento": "NAC-DGERCGC24-00000020.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=3c8e92c5-f276-46bd-a11e-7014601b270f&nombre=NAC-DGERCGC24-00000020.pdf",
+    "articulo_norma": "Art. 13, literal a), de la Resolución NAC-DGERCGC15-00000455 (incorporado por el Art. 2 de la Resolución Nro. NAC-DGERCGC24-00000020)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. El monto máximo de USD 15.000 coincide con el límite establecido en el artículo innumerado a continuación del artículo 22 de la LRTI citado en los considerandos de la misma resolución, lo que corrobora su vigencia."
+    }
+  },
+  {
+    "id": "q42",
+    "categoria": "Otros",
+    "pregunta": "El día del vencimiento de mi declaración de IVA el portal del SRI colapsó por alta demanda y no pude presentar la declaración a tiempo. ¿Puede el SRI ampliar el plazo en estos casos, y bajo qué norma legal se ampara?",
+    "respuesta_esperada": "Sí, el Código Tributario prevé expresamente la ampliación de plazos por fuerza mayor o caso fortuito, y el SRI ya ha aplicado esta norma en la práctica. El artículo innumerado agregado a continuación del Art. 86 del Código Tributario establece: \"Igualmente, ante casos de fuerza mayor o caso fortuito que así lo justifiquen, se podrá ampliar el plazo para la presentación de declaraciones y anexos tributarios de los sujetos pasivos, así como para el pago de los impuestos bajo su administración que sean atribuidos a dichas declaraciones; para lo cual la autoridad tributaria publicará los nuevos plazos de suspensión a través de los medios previstos en este Código.\" De hecho, mediante la Resolución Nro. NAC-DGERCGC23-00000010 el SRI ya amplió plazos de declaraciones y anexos con vencimiento en marzo de 2023 para ciertos contribuyentes, invocando expresamente esta misma norma por \"intermitencias tecnológicas en las herramientas dispuestas para la recepción de declaraciones y anexos tributarios, debido a la alta demanda transaccional\".",
+    "fuente_documento": "codigo_tributario_20_junio_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/ecfc5e70-e0cf-4f52-b2ba-8c4fc8035f68/Codigo_Tributario_20_junio_2023.pdf",
+    "articulo_norma": "Artículo innumerado agregado a continuación del Art. 86 del Código Tributario; antecedente aplicado en la Resolución Nro. NAC-DGERCGC23-00000010",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial del Código Tributario descargado de sri.gob.ec, cruzado con el texto de la Resolución NAC-DGERCGC23-00000010 (también descargada de sri.gob.ec), cuyos considerandos citan textualmente esta misma norma como base legal para ampliar plazos, confirmando su aplicación vigente."
+    }
+  },
+  {
+    "id": "q43",
+    "categoria": "Otros",
+    "pregunta": "A un cliente le van a notificar una contravención tributaria (no una infracción grave) por un incumplimiento formal. ¿Entre qué montos puede oscilar la multa que le impongan?",
+    "respuesta_esperada": "Entre USD 30 y USD 1.500. El Art. 349 del Código Tributario (Sanciones por Contravenciones) establece: \"A las contravenciones establecidas en este Código y en las demás leyes tributarias se aplicará como pena pecuniaria una multa que no sea inferior a 30 dólares ni exceda de 1.500 dólares de los Estados Unidos de América, sin perjuicio de las demás sanciones, que para cada infracción, se establezcan en las respectivas normas. (...) El pago de la multa no exime del cumplimiento de la obligación tributaria o de los deberes formales que la motivaron.\"",
+    "fuente_documento": "codigo_tributario_20_junio_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/ecfc5e70-e0cf-4f52-b2ba-8c4fc8035f68/Codigo_Tributario_20_junio_2023.pdf",
+    "articulo_norma": "Art. 349 del Código Tributario (Sanciones por Contravenciones)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Los mismos montos (multa no inferior a 30 ni superior a 1.500/1.000 dólares según el tipo de infracción) son citados como vigentes en los considerandos de la Resolución NAC-DGERCGC24-00000020 (2024), lo que corrobora que el Código Tributario en esta parte sigue vigente."
+    }
+  },
+  {
+    "id": "q44",
+    "categoria": "Otros",
+    "pregunta": "¿Cuál es la diferencia, en cuanto al monto de la multa, entre una \"contravención\" y una \"falta reglamentaria\" tributaria?",
+    "respuesta_esperada": "La contravención se sanciona con multa de entre USD 30 y USD 1.500, mientras que la falta reglamentaria se sanciona con multa de entre USD 30 y USD 1.000. El Art. 349 del Código Tributario dispone para las contravenciones una \"multa que no sea inferior a 30 dólares ni exceda de 1.500 dólares de los Estados Unidos de América\". Por su parte, el artículo innumerado agregado a continuación del Art. 351 del Código Tributario (Sanciones por Faltas Reglamentarias) establece: \"Las faltas reglamentarias serán sancionadas con una multa que no sea inferior a 30 dólares ni exceda de 1.000 dólares de los Estados Unidos de América, sin perjuicio de las demás sanciones, que para cada infracción, se establezcan en las respectivas normas. El pago de la multa no exime del cumplimiento de la obligación tributaria o de los deberes formales que la motivaron.\" Además, el Art. 351 define la falta reglamentaria como \"la inobservancia de normas reglamentarias y disposiciones administrativas de obligatoriedad general, que establezcan los procedimientos o requisitos necesarios para el cumplimiento de las obligaciones tributarias y deberes formales de los sujetos pasivos\".",
+    "fuente_documento": "codigo_tributario_20_junio_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/ecfc5e70-e0cf-4f52-b2ba-8c4fc8035f68/Codigo_Tributario_20_junio_2023.pdf",
+    "articulo_norma": "Art. 349 y artículo innumerado a continuación del Art. 351 del Código Tributario",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. El límite de USD 1.000 para faltas reglamentarias es citado textualmente y vigente en los considerandos de la Resolución NAC-DGERCGC24-00000020 (2024), lo que corrobora que esta parte del Código Tributario sigue vigente."
+    }
+  },
+  {
+    "id": "q45",
+    "categoria": "Otros",
+    "pregunta": "Le van a clausurar el establecimiento a un cliente por una infracción tributaria. ¿Existe un tiempo máximo legal para esa clausura?",
+    "respuesta_esperada": "Sí, un máximo de tres meses. El Art. innumerado (1) del Código Tributario (Clausura del establecimiento) establece: \"Salvo casos especiales previstos en la ley, la clausura de un establecimiento no podrá exceder de tres meses. Si la clausura afectare a terceros el contribuyente contraventor responderá de los daños y perjuicios que con la imposición de la sanción se cause. La clausura del establecimiento del infractor conlleva la suspensión de todas sus actividades en el establecimiento clausurado.\"",
+    "fuente_documento": "codigo_tributario_20_junio_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/ecfc5e70-e0cf-4f52-b2ba-8c4fc8035f68/Codigo_Tributario_20_junio_2023.pdf",
+    "articulo_norma": "Art. innumerado (1) del Código Tributario, agregado por el Art. 21 de la Ley s/n, R.O. 242-3S, 29-XII-2007 (Clausura del establecimiento)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Es una norma estructural del régimen sancionatorio tributario, sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q46",
+    "categoria": "Otros",
+    "pregunta": "El SRI le determinó una obligación tributaria a un cliente hace más de 5 años y nunca inició la acción de cobro ni hubo ningún acto que la interrumpiera. ¿Puede el cliente alegar que la deuda ya prescribió?",
+    "respuesta_esperada": "Sí, en principio puede alegarlo, pero debe hacerlo expresamente (no opera de oficio). El Art. 55 del Código Tributario (Plazo de prescripción de la acción de cobro) establece: \"La obligación y la acción de cobro de los créditos tributarios y sus intereses, así como de multas por incumplimiento de los deberes formales, prescribirá en el plazo de cinco años, contados desde la fecha en que fueron exigibles; o, desde aquella en que debió presentarse la correspondiente declaración, si ésta resultare incompleta o si no se la hubiere presentado. (...) La prescripción debe ser alegada expresamente por quien pretende beneficiarse de ella, el juez o autoridad administrativa no podrá declararla de oficio.\" Además, el Art. 56 aclara que la prescripción se interrumpe \"por el reconocimiento expreso o tácito de la obligación por parte del deudor o con la citación legal del auto de pago\", por lo que debe confirmarse que no ocurrió ninguno de esos actos dentro de los 5 años.",
+    "fuente_documento": "codigo_tributario_20_junio_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/ecfc5e70-e0cf-4f52-b2ba-8c4fc8035f68/Codigo_Tributario_20_junio_2023.pdf",
+    "articulo_norma": "Art. 55 y Art. 56 del Código Tributario",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. El Art. 55 fue reformado por el Art. 77 de la Ley s/n, R.O. 587-3S, 29-XI-2021 (última reforma reflejada en el propio texto), sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q47",
+    "categoria": "IVA",
+    "pregunta": "Tengo un cliente adulto mayor (68 años) que ya está habilitado en el mecanismo de devolución automática del IVA. ¿Cuál es el monto máximo que puede recibir de devolución de IVA por sus compras de este mes de 2026?",
+    "respuesta_esperada": "El monto máximo mensual para 2026 es de USD 144,60. La guía institucional vigente del SRI sobre devolución automática del IVA a personas adultas mayores señala: \"El monto máximo de devolución del IVA mensual corresponde a la multiplicación de la suma de dos salarios básicos unificados del trabajador por la tarifa de IVA vigente en el periodo que se efectuó la adquisición\", y en la tabla de beneficio tributario mensual por año detalla: \"Año 2026: USD 144,60\".",
+    "fuente_documento": "guia_devolucion_iva_adultos_mayores_discapacidad_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/devolucion-automatica-del-iva-a-personas-adultas-mayores-y-personas-con-discapacidad",
+    "articulo_norma": "Guía institucional \"Devolución automática del IVA a personas adultas mayores y personas con discapacidad\" del SRI",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/devolucion-automatica-del-iva-a-personas-adultas-mayores-y-personas-con-discapacidad; la propia página incluye la tabla con el valor específico de 2026 (USD 144,60), calculado como 2 SBU x tarifa de IVA vigente (13%). Se descargó copia en PDF de la página para respaldo."
+    }
+  },
+  {
+    "id": "q48",
+    "categoria": "IVA",
+    "pregunta": "Un turista extranjero que estuvo de paso 20 días en Ecuador compró artesanías en un local afiliado y quiere pedir la devolución del IVA pagado al salir del país por el aeropuerto de Guayaquil. ¿Le van a devolver el 100% del IVA pagado en esas facturas?",
+    "respuesta_esperada": "No exactamente: al valor a devolver se le descuenta un costo administrativo fijo. La guía institucional vigente del SRI sobre devolución del IVA a turistas extranjeros señala, en la sección \"Reintegro de valores\": \"La acreditación de la devolución será a través de la tarjeta de crédito internacional a nombre del solicitante, la cual fue detallada en la solicitud presentada. Únicamente se realizan acreditaciones a tarjetas DINERS CLUB, MASTERCARD O VISA. Del valor a devolver se descontarán los costos administrativos, los mismos que tienen un equivalente a USD 3,00 (Tres dólares de los Estados Unidos de Norteamérica).\" Además, el turista debe cumplir el requisito de estancia: \"Ciudadanos extranjeros que ingresen al territorio ecuatoriano en calidad de turistas para una estancia no mayor a 90 días\", por lo que sus 20 días de estadía sí califican.",
+    "fuente_documento": "guia_devolucion_iva_turistas_extranjeros_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/devolucion-del-iva-turistas-extranjeros",
+    "articulo_norma": "Guía institucional \"Devolución del IVA turistas extranjeros\" del SRI (base legal: Art. 182 del Reglamento para la Aplicación de la LRTI y Resolución NAC-DGERCGC10-00000723, reformada por la Resolución NAC-DGERCGC22-00000002)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/devolucion-del-iva-turistas-extranjeros; se descargó copia en PDF de la página para respaldo (guia_devolucion_iva_turistas_extranjeros_2026.pdf)."
+    }
+  },
+  {
+    "id": "q49",
+    "categoria": "Comercio Exterior",
+    "pregunta": "Mi empresa cliente va a pagar al exterior, mediante transferencia bancaria, la importación de materia prima farmacéutica y, por otro lado, la importación de maquinaria industrial de otro sector. ¿Qué tarifa de Impuesto a la Salida de Divisas (ISD) le corresponde a cada pago en 2026?",
+    "respuesta_esperada": "A la importación de productos farmacéuticos le corresponde tarifa 0%, y a la importación de maquinaria de otros sectores productivos le corresponde 2,5% (salvo que la tarifa general del 5% no le sea aplicable por no estar en esos listados). La guía institucional vigente del SRI sobre el ISD, en la sección \"¿Cuál es la tarifa?\", señala para el \"Año 2026: Tarifa general: 5%. Importaciones de combustibles: 0%. Importaciones subpartidas arancelarias según listado de sector farmacéutico: 0%. Importaciones subpartidas arancelarias según listado de sectores productivos: 2.5%.\" Por lo tanto, el pago por la importación de materia prima farmacéutica (dentro del listado del sector farmacéutico) se grava con tarifa 0%, y el pago por la importación de maquinaria de otro sector productivo (dentro del listado de sectores productivos) se grava con 2,5%.",
+    "fuente_documento": "guia_isd_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-a-la-salida-de-divisas-isd",
+    "articulo_norma": "Guía institucional \"Impuesto a la Salida de Divisas ISD\" del SRI, sección \"¿Cuál es la tarifa?\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-a-la-salida-de-divisas-isd; la propia página muestra el historial de tarifas desde 2019 hasta 2026, con el detalle específico del año 2026 vigente a la fecha de consulta. Se descargó copia en PDF de la página para respaldo (guia_isd_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q50",
+    "categoria": "Comercio Exterior",
+    "pregunta": "Mi empresa cliente pagó Impuesto a la Salida de Divisas (ISD) por la importación de bienes de capital que constan en el listado del Comité de Política Tributaria. ¿Puede usar ese ISD pagado como crédito tributario de Impuesto a la Renta, y hasta cuándo tiene plazo para hacerlo?",
+    "respuesta_esperada": "Sí, y tiene hasta cuatro años adicionales al del pago para usarlo como crédito tributario; si no lo usa en ese plazo, puede pedir su devolución. La guía institucional vigente del SRI sobre el ISD, en la sección \"Crédito IR\", establece: \"Los pagos realizados por concepto ISD en la importación de las materias primas, insumos y bienes de capital que consten en el listado que para el efecto establezca el Comité de Política Tributaria pueden ser considerados como crédito tributario para el pago del IR, del año en que se efectuaron dichos pagos, así como de los cuatro años posteriores. Aquellos pagos de ISD, realizados a partir del 1 de enero de 2013, susceptibles de ser considerados como crédito tributario del IR, que no hayan sido utilizados como tal respecto del ejercicio fiscal en que se generaron o respecto de los cuatro ejercicios fiscales posteriores, podrán ser objeto de devolución por parte del SRI, previa solicitud del sujeto pasivo.\"",
+    "fuente_documento": "guia_isd_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-a-la-salida-de-divisas-isd",
+    "articulo_norma": "Guía institucional \"Impuesto a la Salida de Divisas ISD\" del SRI, sección \"Crédito IR\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-a-la-salida-de-divisas-isd; se descargó copia en PDF de la página para respaldo (guia_isd_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q51",
+    "categoria": "Comercio Exterior",
+    "pregunta": "Una entidad pública ecuatoriana (institución del Estado) necesita transferir divisas al exterior para pagar un contrato internacional. ¿Debe pagar Impuesto a la Salida de Divisas (ISD) por esa transferencia?",
+    "respuesta_esperada": "No. El Art. 7, numeral 1, del Reglamento para la Aplicación de la Ley de Régimen Tributario Interno al Impuesto a la Salida de Divisas (Transferencias, traslados, envíos o retiros que no son objeto del impuesto) establece: \"No se causa el impuesto a la salida de divisas en los siguientes casos: 1. Cuando quienes soliciten la transferencia, traslado o envío de divisas al exterior, o realicen el retiro de divisas desde el exterior, sean Instituciones del Estado, según la definición contenida en la Constitución Política de la República, de conformidad con el artículo 158 de la Ley Reformatoria para la Equidad Tributaria.\" Por lo tanto, al ser una Institución del Estado, esa transferencia no causa ISD.",
+    "fuente_documento": "ley_reglamento_isd.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/e3f5bbd0-d558-4a07-9cbc-5927e28c92f6/190416+rLey+Impuesto+Salida+de+Divisas.pdf",
+    "articulo_norma": "Art. 7, numeral 1, del Reglamento para la Aplicación del Impuesto a la Salida de Divisas",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Es una exoneración estructural (sujeto institucional) no ligada a la tarifa del ISD, que ha variado por decreto en los últimos años; no consta derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q52",
+    "categoria": "RIMPE",
+    "pregunta": "Tengo un cliente antiguo que estuvo inscrito en el RISE (Régimen Impositivo Simplificado) desde hace varios años. ¿Sigue vigente el RISE para que se mantenga en ese régimen, o ya cambió automáticamente a otro régimen sin que él haya hecho ningún trámite?",
+    "respuesta_esperada": "El RISE ya no está vigente para nuevas inscripciones ni permanencia: fue reemplazado por el RIMPE, y el cambio fue automático, sin necesidad de trámite del contribuyente. La página institucional del SRI sobre el RISE indica expresamente: \"El contenido de este espacio es de carácter histórico o de consulta, véase actualmente RIMPE.\" Y la Disposición Transitoria Tercera del Reglamento para la Aplicación de la LRTI (Título IV, incorporado por el D.E. 1114 y reformado por el D.E. de creación del RIMPE) establece: \"Todos los sujetos pasivos sujetos al Régimen Impositivo Simplificado RISE, así como al Régimen Impositivo para Microempresas, siempre que cumplan las consideraciones establecidas en la Ley de Régimen Tributario Interno, se incorporarán de oficio de manera automática al régimen de emprendedores y negocios populares RIMPE, para lo cual el Servicio de Rentas Internas actualizará las bases de datos correspondientes sin necesidad de comunicación previa y por tanto no corresponde peticiones adicionales de inclusión o exclusión por parte de los sujetos pasivos.\" Adicionalmente, la Disposición Derogatoria Única del mismo decreto dispone: \"Deróguense todas las disposiciones del Reglamento para la Aplicación de la Ley de Régimen Tributario Interno y otros cuerpos reglamentarios que hagan referencia al Régimen Impositivo Simplificado RISE y el Régimen Impositivo para Microempresas.\"",
+    "fuente_documento": "guia_rise_sri_historico_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/regimen-impositivo-simplificado-rise/",
+    "articulo_norma": "Página institucional \"Régimen Impositivo Simplificado (RISE)\" del SRI; Disposición Transitoria Tercera y Disposición Derogatoria Única del Reglamento para la Aplicación de la LRTI (Título IV RIMPE)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/regimen-impositivo-simplificado-rise/ (rótulo explícito de contenido histórico); se descargó copia en PDF de la página para respaldo (guia_rise_sri_historico_2026.pdf). El texto de la Disposición Transitoria Tercera y Derogatoria Única se verificó por lectura directa del PDF ya existente en data/RIMPE/rimpe_reglamento_ley_desarrollo_covid_titulo_iv.pdf (reutilizado porque trata literalmente la derogatoria del RISE, distinto de los artículos 217/220/224 ya citados en preguntas previas de ese mismo documento)."
+    }
+  },
+  {
+    "id": "q53",
+    "categoria": "Impuestos Vehiculares",
+    "pregunta": "Un cliente persona natural es propietario de un vehículo cuyo avalúo (base imponible) para este año es de USD 10.000. ¿Cómo calculo el Impuesto a la Propiedad de Vehículos Motorizados (IPVM) que debe pagar junto con la matrícula?",
+    "respuesta_esperada": "Se aplica la tabla progresiva del Art. 5 de la Ley del IPVM, que establece: \"Sobre la base imponible se aplicará la tarifa contenida en la siguiente tabla: BASE IMPONIBLE Desde ($) Hasta ($) / TARIFA Sobre la Fracción Básica ($) Sobre la Fracción Excedente (%): 0 - 4.000: 0 / 0.5; 4.001 - 8.000: 20 / 1.0; 8.001 - 12.000: 60 / 2.0; (...)\". Para un avalúo de USD 10.000 (tramo 8.001 a 12.000), el impuesto es de USD 60 sobre la fracción básica de USD 8.000, más el 2,0% sobre el excedente de USD 2.000 (es decir, USD 40 adicionales), dando un total de USD 100. El mismo Art. 5 aclara: \"Este impuesto será el único exigible para la obtención de la matrícula anual de vehículos, además de los valores de las tasas que corresponden a la Policía Nacional o a la Comisión de Tránsito del Guayas, según el caso, y los correspondientes a multas impuestas por infracciones de tránsito.\"",
+    "fuente_documento": "ley_ipvm.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/bae7d82f-6397-4dcd-af9e-d906a19af94e/Ley%20del%20Impuesto%20a%20los%20Vehiculos%20Motorizados%20(IPVM).pdf",
+    "articulo_norma": "Art. 5 de la Ley del Impuesto a la Propiedad de Vehículos Motorizados (IPVM)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec y cruzado con la guía institucional vigente del SRI (https://www.sri.gob.ec/impuesto-a-los-vehiculos-motorizados, consultada en vivo el 2026-08-13), cuya tabla de tarifas reproduce exactamente los mismos tramos y porcentajes (0-4.000: 0%%/0.5%%; etc.), confirmando que el Art. 5 sigue vigente sin reformas de tarifa."
+    }
+  },
+  {
+    "id": "q54",
+    "categoria": "Impuestos Vehiculares",
+    "pregunta": "Un cliente de la tercera edad es propietario de un único vehículo. ¿Tiene algún beneficio en el cálculo del Impuesto a la Propiedad de Vehículos Motorizados (IPVM)?",
+    "respuesta_esperada": "Sí. El Art. 9 de la Ley del IPVM (Rebajas especiales) establece: \"En el caso de los vehículos de propiedad de personas de la tercera edad y de los discapacitados, para establecer la base imponible, se considerará una rebaja especial de US $ 8.000. Este tratamiento se efectuará a razón de un solo vehículo por cada titular.\" Es decir, al avalúo del vehículo se le resta USD 8.000 antes de aplicar la tabla progresiva de tarifas del Art. 5, y el beneficio aplica únicamente a un vehículo por titular.",
+    "fuente_documento": "ley_ipvm.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/bae7d82f-6397-4dcd-af9e-d906a19af94e/Ley%20del%20Impuesto%20a%20los%20Vehiculos%20Motorizados%20(IPVM).pdf",
+    "articulo_norma": "Art. 9 de la Ley del Impuesto a la Propiedad de Vehículos Motorizados (IPVM)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Es una norma estructural (rebaja fija en dólares) no ligada a decretos anuales de tarifa; corroborada además por el Art. 73 de la Ley Orgánica de Discapacidades, que establece la misma rebaja de USD 8.000 para vehículos de personas con discapacidad."
+    }
+  },
+  {
+    "id": "q55",
+    "categoria": "Impuestos Vehiculares",
+    "pregunta": "Un cliente tiene un automóvil (no híbrido) de 2.200 cc de cilindraje y 7 años de antigüedad. ¿Cómo se calcula el Impuesto Ambiental a la Contaminación Vehicular (IACV) que debe pagar, y hay algún tope máximo?",
+    "respuesta_esperada": "Se aplica la fórmula oficial del SRI: \"La fórmula para calcular el IACV es la siguiente: IACV = [(b - 1500) t] (1+FA). Donde: b= Base imponible (cilindraje en centímetros cúbicos); t= Valor de imposición específica; FA= Factor de ajuste.\" Para un cilindraje de 2.200 cc (tramo \"1.501 - 2.000 cc\" no aplica; corresponde al tramo \"2.001 - 2.500 cc\", con t = 0,09 $/cc) y una antigüedad de 7 años (tramo \"De 5 a 10 años\", con FA = 5%), el cálculo sería: IACV = [(2.200 - 1.500) × 0,09] × (1 + 0,05) = 63 × 1,05 = USD 66,15. Respecto del tope, la guía institucional del SRI aclara: \"En ningún caso el valor del impuesto a pagar será mayor al valor correspondiente al 40% del avalúo del vehículo, en el año al que corresponda el pago del referido impuesto.\"",
+    "fuente_documento": "guia_iacv_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-ambiental-a-la-contaminacion-vehicular1",
+    "articulo_norma": "Guía institucional \"Impuesto Ambiental a la Contaminación Vehicular\" del SRI (base legal: Ley del Impuesto Ambiental a la Contaminación Vehicular, R.O. 583, 24-XI-2011, y su Reglamento)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-ambiental-a-la-contaminacion-vehicular1; se descargó copia en PDF de la página para respaldo (guia_iacv_sri_vigente_2026.pdf). El propio SRI confirma en la misma página que el IACV está vigente para vehículos con cilindraje mayor a 1.500 cc, pese a la existencia de una \"Ley Derogatoria al Impuesto Ambiental a la Contaminación Vehicular\" de 2019 que el SRI cita únicamente como referencia de base legal, sin reportar el IACV como derogado en el contenido operativo de la guía."
+    }
+  },
+  {
+    "id": "q56",
+    "categoria": "Impuestos Vehiculares",
+    "pregunta": "Un cliente tiene un vehículo híbrido. Para el cálculo del Impuesto Ambiental a la Contaminación Vehicular (IACV), ¿el factor de ajuste por ser híbrido le aumenta o le reduce el impuesto a pagar?",
+    "respuesta_esperada": "Le reduce el impuesto: el factor de ajuste (FA) para vehículos híbridos es negativo (-20%). La tabla de \"Factor de ajuste\" por antigüedad de la guía institucional vigente del SRI señala, entre los tramos: \"6 - Híbridos - Factor (FA): -20%\", a diferencia de los demás tramos de antigüedad (que van del 0% para vehículos de menos de 5 años hasta 20% para vehículos de más de 20 años). Como la fórmula es IACV = [(b - 1500) t] (1+FA), un FA negativo del 20% reduce el resultado final del impuesto en comparación con un vehículo convencional de igual cilindraje y antigüedad.",
+    "fuente_documento": "guia_iacv_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-ambiental-a-la-contaminacion-vehicular1",
+    "articulo_norma": "Guía institucional \"Impuesto Ambiental a la Contaminación Vehicular\" del SRI, tabla \"Tramo de Antigüedad (años) - Automóviles\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-ambiental-a-la-contaminacion-vehicular1; se descargó copia en PDF de la página para respaldo (guia_iacv_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q57",
+    "categoria": "Impuesto a las Tierras Rurales",
+    "pregunta": "Un cliente es propietario de un predio agrícola en la Sierra (fuera de la Amazonía) declarado como área de protección o reserva ecológica privada, debidamente registrada. ¿Debe pagar el Impuesto a las Tierras Rurales (ITR) por ese predio?",
+    "respuesta_esperada": "No, ese predio está exonerado. La guía institucional vigente del SRI sobre el Impuesto a las Tierras Rurales señala: \"Están exonerados de este impuesto los propietarios o poseedores de inmuebles en los siguientes casos: a) Los inmuebles ubicados en ecosistemas páramos, debidamente definidos por el Ministerio de Ambiente. b) Los inmuebles ubicados en áreas de protección o reserva ecológica públicas o privadas, registradas en el organismo público correspondiente.\" Al tratarse de un área de protección o reserva ecológica privada debidamente registrada, aplica la exoneración del literal b). No obstante, la guía aclara que \"Para tener derecho a las exoneraciones de pago del ITR, se debe contar con los certificados de exoneración emitidos por los organismos competentes. Si el total de predios se encuentre exonerado, el propietario o posesionario está obligado a realizar la declaración respectiva.\"",
+    "fuente_documento": "guia_itr_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-tierras-rurales",
+    "articulo_norma": "Guía institucional \"Impuesto a las Tierras Rurales\" del SRI (base legal: Ley Reformatoria para la Equidad Tributaria en el Ecuador, Arts. 173 al 181)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-tierras-rurales; se descargó copia en PDF de la página para respaldo (guia_itr_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q58",
+    "categoria": "Impuesto a las Tierras Rurales",
+    "pregunta": "Un cliente tiene varios predios rurales fuera de la Amazonía que en conjunto suman 40 hectáreas, sin ninguna exoneración aplicable. ¿A partir de cuántas hectáreas paga el Impuesto a las Tierras Rurales (ITR), y puede usar lo pagado como algún beneficio en su Impuesto a la Renta?",
+    "respuesta_esperada": "Paga ITR únicamente sobre el excedente de 25 hectáreas, y sí puede usar el ITR pagado como deducción (multiplicado por 4) en su Impuesto a la Renta por la actividad de producción de la tierra. La guía institucional vigente del SRI señala: \"Si es propietario o posesionario únicamente de predios ubicados en zonas distintas a la Amazonía y similares, el pago del impuesto lo realizará si el total de la superficie (sumatoria de todos los predios) es mayor a 25 hectáreas\", y \"Los contribuyentes sujetos a este impuesto deberán pagar el valor equivalente al uno por mil (0,001) de la fracción básica no gravada del Impuesto a la Renta (IR) de personas naturales y sucesiones indivisas, por cada hectárea o fracción que sobrepase las 25 o 70 hectáreas según sea el caso.\" Respecto del beneficio en Renta: \"El ITR pagado, multiplicado por cuatro será deducible para el cálculo del IR generado exclusivamente por la producción de la tierra y hasta por el monto del ingreso gravado percibido por esa actividad en el correspondiente ejercicio económico, aplicable al Impuesto a la Renta Global (art. 179 Ley Reformatoria para la Equidad Tributaria del Ecuador).\"",
+    "fuente_documento": "guia_itr_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-tierras-rurales",
+    "articulo_norma": "Guía institucional \"Impuesto a las Tierras Rurales\" del SRI; Art. 179 de la Ley Reformatoria para la Equidad Tributaria en el Ecuador",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-tierras-rurales; se descargó copia en PDF de la página para respaldo (guia_itr_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q59",
+    "categoria": "Impuesto Redimible a las Botellas Plásticas",
+    "pregunta": "Mi cliente embotella una gaseosa en botellas plásticas PET no retornables. ¿Cuánto debe pagar por cada botella por concepto del Impuesto Redimible a las Botellas Plásticas No Retornables (IRBP), y puede recuperar ese valor si recicla las botellas?",
+    "respuesta_esperada": "Paga 2 centavos de dólar por cada botella, y ese valor solo se devuelve íntegramente a quien tenga la calidad de reciclador transformador certificado (no al embotellador por el simple hecho de reciclar). El Art. 7 del Decreto-Ley de creación del IRBP (Tarifa) establece: \"Por cada botella plástica PET no retornable gravada con este impuesto, se aplicará la tarifa de dos centavos de dólar de los Estados Unidos de América (0,02 USD). El valor del impuesto se devolverá en su totalidad únicamente a quien sea considerado reciclador transformador, conforme lo disponga la certificación emitida en conjunto entre el ente rector de la producción y el ente rector en materia ambiental.\"",
+    "fuente_documento": "ley_irbp_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/6fb57391-03be-4f05-bf94-9c67ba6652c4/Ley_creacion_impredimible_botellas_plasticas_21_sept_2023.pdf",
+    "articulo_norma": "Art. 7 del Decreto-Ley de Urgencia Económica de creación del Impuesto Redimible a las Botellas Plásticas No Retornables (IRBP)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec (texto codificado al 21 de septiembre de 2023). La Resolución NAC-DGERCGC26-00000009 (retenciones en la fuente, vigente desde marzo de 2026, ya usada como fuente en q09-q12/q24-q26 de este banco) sigue regulando la retención del 2% sobre la recepción de botellas plásticas PET, lo que confirma que el régimen del IRBP continúa vigente y operativo en 2026."
+    }
+  },
+  {
+    "id": "q60",
+    "categoria": "Impuesto Redimible a las Botellas Plásticas",
+    "pregunta": "Un laboratorio embotella un jarabe medicinal en botellas plásticas PET no retornables. ¿Ese embotellamiento causa el Impuesto Redimible a las Botellas Plásticas No Retornables (IRBP)?",
+    "respuesta_esperada": "No. El Art. 8 del Decreto-Ley de creación del IRBP (Exoneraciones) establece: \"Se encuentra exento del pago de este impuesto el embotellamiento o importación bajo el régimen de consumo de productos lácteos y medicamentos en botellas de plástico PET no retornables.\" Al tratarse de un medicamento (jarabe), el embotellamiento está exento del IRBP.",
+    "fuente_documento": "ley_irbp_2023.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/6fb57391-03be-4f05-bf94-9c67ba6652c4/Ley_creacion_impredimible_botellas_plasticas_21_sept_2023.pdf",
+    "articulo_norma": "Art. 8 del Decreto-Ley de Urgencia Económica de creación del Impuesto Redimible a las Botellas Plásticas No Retornables (IRBP)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec (texto codificado al 21 de septiembre de 2023); es una exoneración estructural por tipo de producto, sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q61",
+    "categoria": "Herencias, Legados y Donaciones",
+    "pregunta": "Mi cliente va a declarar el Impuesto a la Renta por un bien inmueble que recibió en herencia. El avalúo comercial que consta en el catastro municipal es más alto que el valor asignado en el juicio de inventarios. ¿Qué valor debe declarar?",
+    "respuesta_esperada": "Debe declarar el mayor de los dos valores: no puede declarar un valor inferior al más alto entre el avalúo pericial del juicio de inventarios y el avalúo comercial del catastro municipal. El Art. 58, numeral 2, del Reglamento para la Aplicación de la LRTI (Criterios de Valoración) establece: \"En el caso de bienes inmuebles la declaración no podrá considerar un valor inferior al que haya sido asignado por peritos dentro del juicio de inventarios ni al avalúo comercial con el que conste en el respectivo catastro municipal.\"",
+    "fuente_documento": "extracto_art58_reglamento_lrti_herencias.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/b5932b94-b49f-4792-904e-1c27075b3a28/Extracto_Art%C3%ADculo_58_Reglamento_Ley_R%C3%A9gimen_Tributario_Interno.pdf",
+    "articulo_norma": "Art. 58, numeral 2, del Reglamento para la Aplicación de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por la Dirección Nacional Jurídica del SRI como extracto vigente aplicable al Impuesto a la Renta de ingresos provenientes de Herencias, Legados y Donaciones."
+    }
+  },
+  {
+    "id": "q62",
+    "categoria": "Herencias, Legados y Donaciones",
+    "pregunta": "A mi cliente le legaron el derecho de uso y habitación sobre un inmueble (no la propiedad plena). ¿Cómo se calcula el valor imponible de ese legado para el Impuesto a la Renta sobre herencias, legados y donaciones?",
+    "respuesta_esperada": "El valor imponible del derecho de uso y habitación es el 60% del valor del inmueble (y, si a otra persona le corresponde la nuda propiedad, a esta se le imputa el 40% restante). El Art. 58, numeral 7, del Reglamento para la Aplicación de la LRTI establece: \"El valor imponible de los derechos de uso y habitación, obtenido a título gratuito, será el equivalente al 60% del valor del inmueble o de los inmuebles sobre los cuales se constituyan tales derechos. El valor de la nuda propiedad motivo de la herencia, legado o donación será equivalente al 40% del valor del inmueble.\"",
+    "fuente_documento": "extracto_art58_reglamento_lrti_herencias.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/b5932b94-b49f-4792-904e-1c27075b3a28/Extracto_Art%C3%ADculo_58_Reglamento_Ley_R%C3%A9gimen_Tributario_Interno.pdf",
+    "articulo_norma": "Art. 58, numeral 7, del Reglamento para la Aplicación de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por la Dirección Nacional Jurídica del SRI como extracto vigente aplicable al Impuesto a la Renta de ingresos provenientes de Herencias, Legados y Donaciones."
+    }
+  },
+  {
+    "id": "q63",
+    "categoria": "RUC",
+    "pregunta": "Un cliente sociedad va a cambiar su domicilio fiscal y también va a nombrar un nuevo representante legal. ¿En qué plazo debe actualizar esa información en el RUC ante el SRI?",
+    "respuesta_esperada": "En el plazo de 30 días desde ocurrido cada hecho. El Art. 14 de la Ley del Registro Único de Contribuyentes (De la actualización de la información) establece: \"Los obligados a obtener el Registro Único de Contribuyentes deben comunicar al Servicio de Rentas Internas, dentro del plazo de treinta días de ocurridos los siguientes hechos: a) Cambio de denominación o razón social; b) Cambio de actividad económica; c) Cambio de domicilio; (...) h) Cambio de representante legal; (...)\". Por lo tanto, tanto el cambio de domicilio (literal c) como el cambio de representante legal (literal h) deben comunicarse dentro de los 30 días siguientes a cada hecho.",
+    "fuente_documento": "ley_ruc.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/c646f5d1-7f73-4164-999a-2453806eb9a9/Ley_RUC.pdf",
+    "articulo_norma": "Art. 14 de la Ley del Registro Único de Contribuyentes",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec; es una norma procedimental estructural de la Ley del RUC, sin reforma ni derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q64",
+    "categoria": "RUC",
+    "pregunta": "Voy a inscribir en el RUC a un cliente persona natural que recién empieza a vender productos por su cuenta (no tiene una sociedad constituida). ¿Qué fecha debo registrar como \"fecha de inicio de actividades\"?",
+    "respuesta_esperada": "La fecha del primer acto de comercio, no la fecha de inscripción del RUC. El Art. 6 del Reglamento a la Ley del RUC (De la fecha de inicio de actividades) establece: \"Se entiende como fecha de inicio de actividad(es) para personas naturales, la fecha del primer acto de comercio vinculado con la realización de cualquier actividad económica o de la primera transacción relativa a dicha actividad.\" (Distinto es el caso de una sociedad mercantil, para la cual el mismo artículo señala: \"Para todas las sociedades privadas mercantiles que inscriban su escritura de constitución en el Registro Mercantil, se considerará como fecha de inicio de actividades, la fecha de inscripción de dicha escritura.\") El mismo artículo advierte además que si el SRI constata que el contribuyente realizó actos de comercio antes de la fecha registrada en el RUC, procederán las acciones legales correspondientes.",
+    "fuente_documento": "reglamento_ley_ruc.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/168cca80-ab6f-4bfd-be7b-88cba10021e8/REGLAMENTO%20A%20LA%20LEY%20DE%20REGISTRO%20%C3%9ANICO%20DE%20CONTRIBUYENTES,%20RUC.pdf",
+    "articulo_norma": "Art. 6 del Reglamento a la Ley del Registro Único de Contribuyentes (RUC), reformado por el Art. 113 del D.E. 1114, R.O. 260-2S, 4-VIII-2020",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec; refleja la última reforma consolidada en el propio texto (D.E. 1114 de 2020), sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q65",
+    "categoria": "Beneficios Tributarios - Discapacidad",
+    "pregunta": "Un cliente con discapacidad va a matricular su único vehículo, que está destinado a su traslado personal. ¿Qué beneficios tiene en el IPVM y en el Impuesto Ambiental a la Contaminación Vehicular (IACV) de ese vehículo?",
+    "respuesta_esperada": "Tiene una rebaja de USD 8.000 en la base imponible del IPVM (más una rebaja adicional del 50% sobre el excedente), y está totalmente exonerado del IACV. El Art. 73 de la Ley Orgánica de Discapacidades establece: \"En el caso de los vehículos destinados al uso y traslado de personas con discapacidad, para establecer la base imponible, se considerará una rebaja especial de ocho mil dólares (US$ 8.000). En el caso de que luego de realizada la rebaja, existiera un excedente, se concederá además una rebaja especial del cincuenta por ciento (50%) del mismo. Adicionalmente, estarán exonerados del pago del impuesto ambiental a la contaminación vehicular. Esta medida será aplicada para un (1) solo vehículo por persona natural o jurídica (...)\".",
+    "fuente_documento": "ley_organica_discapacidades.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/b154cb4c-65d5-4ef3-b697-14732c01e1e9/160303+LEY+ORGA%C3%91ICA+DE+DISCAPACIDADES.pdf",
+    "articulo_norma": "Art. 73 de la Ley Orgánica de Discapacidades",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, cruzado con la rebaja de USD 8.000 ya identificada en el Art. 9 de la Ley del IPVM para personas de la tercera edad y discapacitados (q54), lo que corrobora la coherencia y vigencia de ambas normas entre sí."
+    }
+  },
+  {
+    "id": "q66",
+    "categoria": "Beneficios Tributarios - Discapacidad",
+    "pregunta": "Un cliente con discapacidad tiene ingresos gravados. ¿Tiene alguna exoneración específica en el Impuesto a la Renta por su condición de discapacidad, aparte de la tabla general de Impuesto a la Renta para personas naturales?",
+    "respuesta_esperada": "Sí, además de la tabla general, tiene una exoneración adicional equivalente al doble de la fracción básica gravada con tarifa 0%. El Art. 76 de la Ley Orgánica de Discapacidades (Impuesto a la renta) establece: \"Los ingresos de las personas con discapacidad están exonerados en un monto equivalente al doble de la fracción básica gravada con tarifa cero (0) del pago del impuesto a la renta. También serán beneficiarios de la exoneración antes señalada los sustitutos. Este beneficio sólo se podrá extender, en este último caso, a una persona.\" Es decir, el sustituto de la persona con discapacidad (quien tiene bajo su cuidado y depende económicamente de ella) también puede beneficiarse de esta exoneración adicional, pero solo un sustituto por persona con discapacidad.",
+    "fuente_documento": "ley_organica_discapacidades.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/b154cb4c-65d5-4ef3-b697-14732c01e1e9/160303+LEY+ORGA%C3%91ICA+DE+DISCAPACIDADES.pdf",
+    "articulo_norma": "Art. 76 de la Ley Orgánica de Discapacidades",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec; norma estructural de exoneración vigente, referenciada de forma consistente en la tabla de Impuesto a la Renta de Personas Naturales 2026 ya usada como fuente en q17 de este banco (que también contempla rebajas por discapacidad sobre la base imponible)."
+    }
+  },
+  {
+    "id": "q67",
+    "categoria": "Beneficios Tributarios - Turismo",
+    "pregunta": "Un hotel inscrito en el Registro Nacional de Turismo, con su Licencia Única Anual de Funcionamiento (LUAF) al día, va a hospedar a un turista extranjero que ingresó al país hace 40 días. ¿Con qué tarifa de IVA debe facturar el servicio de alojamiento?",
+    "respuesta_esperada": "Con tarifa 0% de IVA. La guía institucional vigente del SRI sobre beneficios tributarios para el sector turístico señala: \"Los servicios prestados por establecimientos de alojamiento turístico a turistas extranjeros gravarán tarifa 0% del IVA, siempre y cuando el establecimiento: Se encuentre inscrito en el Registro Nacional de Turismo; y, Cuente con la Licencia Única Anual de Funcionamiento (LUAF). Se considera turista extranjero a toda persona proveniente de otro país que permanezca en el Ecuador por menos de 90 días y que no cuente con residencia temporal o permanencia en el país.\" Como el hotel cumple ambos requisitos y el turista lleva 40 días en el país (menos de 90), corresponde facturar el servicio de alojamiento con tarifa 0% de IVA.",
+    "fuente_documento": "guia_beneficios_turismo_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/beneficios-tributarios-para-el-sector-turistico",
+    "articulo_norma": "Guía institucional \"Beneficios tributarios para el sector turístico\" del SRI, sección \"Tarifa 0% del IVA\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/beneficios-tributarios-para-el-sector-turistico; se descargó copia en PDF de la página para respaldo (guia_beneficios_turismo_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q68",
+    "categoria": "Beneficios Tributarios - Turismo",
+    "pregunta": "Durante un feriado, el Presidente de la República emitió un decreto ejecutivo para reducir la tarifa de IVA aplicable a servicios turísticos. ¿Existe un límite legal a cuántos días al año se puede aplicar esta reducción, y qué requisitos debe cumplir el prestador del servicio para facturar con la tarifa reducida?",
+    "respuesta_esperada": "Sí, el límite es de 12 días al año, y el prestador debe estar inscrito en el Registro de Turismo y prestar el servicio dentro de las fechas del decreto. La guía institucional vigente del SRI señala: \"El Presidente de la República, mediante Decreto Ejecutivo, podrá reducir la tarifa del IVA (...) en la prestación de servicios definidos como actividades turísticas, hasta por un máximo de 12 días al año durante feriados o fines de semana.\" Y añade, sobre las condiciones para aplicarla: \"Para aplicar la tarifa reducida del IVA, el prestador del servicio deberá cumplir las siguientes condiciones: El prestador del servicio debe constar en el Registro de Turismo el cual estará publicado en el portal web institucional del Ministerio de Turismo. (...) El servicio turístico debe ser prestado en las fechas establecidas mediante el Decreto Ejecutivo y sustentado en comprobantes de venta válidos, emitidos en tales fechas.\"",
+    "fuente_documento": "guia_beneficios_turismo_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/beneficios-tributarios-para-el-sector-turistico",
+    "articulo_norma": "Guía institucional \"Beneficios tributarios para el sector turístico\" del SRI, sección \"Reducción de la tarifa del IVA\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/beneficios-tributarios-para-el-sector-turistico; se descargó copia en PDF de la página para respaldo (guia_beneficios_turismo_sri_vigente_2026.pdf). Nota: el mecanismo se describe en la página con referencia textual a una reducción \"del 12% hasta el 8%\", fraseo histórico que antecede al cambio de la tarifa general a 13% verificado en q21 de este banco; se cita la mecánica de reducción (hasta 12 días al año, requisitos de inscripción) como el contenido operativo vigente, no el valor numérico específico de la tarifa base."
+    }
+  },
+  {
+    "id": "q69",
+    "categoria": "Impuesto a los Activos en el Exterior",
+    "pregunta": "Un cliente mío es una cooperativa de ahorro y crédito que mantiene fondos disponibles en cuentas bancarias en el exterior. ¿Está sujeta al Impuesto a los Activos en el Exterior (IAE) por esos fondos?",
+    "respuesta_esperada": "Sí. La guía institucional vigente del SRI sobre el Impuesto a los Activos en el Exterior señala: \"Son sujetos pasivos del impuesto a los Activos en el Exterior: los bancos, cooperativas de ahorro y crédito y otras entidades privadas dedicadas a realizar actividades financieras conforme lo dispuesto en el Código Orgánico Monetario y Financiero; sociedades administradoras de fondos y fideicomisos y casas de valores, empresas aseguradoras, y compañías reaseguradoras bajo el control de la Superintendencia de Compañías, Valores y Seguros, así como las empresas de administración, intermediación, gestión y/o compraventa de cartera (...)\". Al ser una cooperativa de ahorro y crédito con fondos disponibles en el exterior, es sujeto pasivo del IAE.",
+    "fuente_documento": "guia_iae_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-activos-en-el-exterior",
+    "articulo_norma": "Guía institucional \"Impuesto a los Activos en el Exterior\" del SRI (base legal: Ley Reformatoria para la Equidad Tributaria en el Ecuador, Arts. 182 a 190)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-activos-en-el-exterior; se descargó copia en PDF de la página para respaldo (guia_iae_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q70",
+    "categoria": "Impuesto a los Activos en el Exterior",
+    "pregunta": "Un banco ecuatoriano mantiene parte de sus fondos en el exterior directamente, y otra parte a través de una subsidiaria ubicada en un paraíso fiscal. ¿La tarifa mensual del Impuesto a los Activos en el Exterior (IAE) es la misma en ambos casos?",
+    "respuesta_esperada": "No, la tarifa es más alta cuando los fondos se canalizan a través de una subsidiaria en un paraíso fiscal. La guía institucional vigente del SRI señala: \"a. La tarifa de este tributo es de 0.25% mensual sobre la base imponible aplicable para los fondos disponibles en entidades extranjeras y de inversiones emitidas por emisores domiciliados fuera del territorio nacional. b. Cuando la captación de fondos o de inversiones que se mantengan o realicen a través de subsidiarias ubicadas en paraísos fiscales o regímenes fiscales preferentes o a través de afiliadas u oficinas en el exterior del contribuyente, la tarifa aplicable será del 0.35% mensual sobre la base imponible.\" Es decir, los fondos directos en el exterior pagan 0,25% mensual, mientras que los canalizados a través de subsidiarias en paraísos fiscales pagan 0,35% mensual.",
+    "fuente_documento": "guia_iae_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/impuesto-activos-en-el-exterior",
+    "articulo_norma": "Guía institucional \"Impuesto a los Activos en el Exterior\" del SRI, sección \"¿Cuál es la tarifa?\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/impuesto-activos-en-el-exterior; se descargó copia en PDF de la página para respaldo (guia_iae_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q71",
+    "categoria": "ZEDE - Zonas Especiales de Desarrollo Económico",
+    "pregunta": "Un cliente va a operar como administrador de una Zona Especial de Desarrollo Económico (ZEDE) recién autorizada, que apenas empezará a generar ingresos operacionales el próximo ejercicio fiscal. ¿Tiene algún beneficio en Impuesto a la Renta por ser administrador de la ZEDE?",
+    "respuesta_esperada": "Sí, una exoneración total del Impuesto a la Renta durante los primeros 10 años de ingresos operacionales. El extracto oficial del Art. 9.7 de la Ley de Régimen Tributario Interno (Exoneración del pago del impuesto a la renta para ZEDE's), publicado por el SRI, establece: \"Los sujetos pasivos que sean administradores u operadores de una Zona Especial de Desarrollo Económico, estarán exonerados del pago del impuesto a la renta por los primeros 10 años, contados a partir del primer ejercicio fiscal en el que se generen ingresos operacionales.\"",
+    "fuente_documento": "art9_exenciones_lrti_sri.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/e6c5f5af-9384-4ef5-96b2-455a71fd617d/Art.+9+Exenciones.pdf",
+    "articulo_norma": "Art. 9.7 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como guía para contribuyentes sobre ingresos exentos del Impuesto a la Renta vigente."
+    }
+  },
+  {
+    "id": "q72",
+    "categoria": "ZEDE - Zonas Especiales de Desarrollo Económico",
+    "pregunta": "Una empresa operadora de una ZEDE va a importar mercancía extranjera para sus procesos productivos autorizados dentro de la zona. ¿Debe pagar los tributos al comercio exterior por esa importación?",
+    "respuesta_esperada": "No, en principio está exenta de los tributos al comercio exterior (aunque sí debe pagar las tasas por servicios aduaneros). El Art. 46 del Código Orgánico de la Producción, Comercio e Inversiones (COPCI) — Del tratamiento aduanero y de comercio exterior — establece: \"Por tratarse de una estructura jurídica de excepción, las zonas especiales de desarrollo económico gozarán del tratamiento de destino aduanero que les otorga el régimen legal aduanero, con la exención del pago de los tributos al comercio exterior excepto tasas por servicios aduaneros, de las mercancías extranjeras que ingresen a dichas zonas, para el cumplimiento de los procesos autorizados, tanto para administradores como para operadores.\"",
+    "fuente_documento": "copci_2021.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/9163fe0a-6aeb-4be2-ab4a-01457de0a3f2/COPCI-%C3%BAltima%20modificaci%C3%B3n%2027%20de%20agosto%20de%202021.pdf",
+    "articulo_norma": "Art. 46 del Código Orgánico de la Producción, Comercio e Inversiones (COPCI)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec (última modificación consolidada al 27 de agosto de 2021); es una norma estructural del régimen ZEDE, consistente con la exoneración de renta del Art. 9.7 LRTI verificada en q71, sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q73",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "A un cliente le tocó un premio de un sorteo organizado por la Junta de Beneficencia de Guayaquil. ¿Ese premio está gravado con Impuesto a la Renta?",
+    "respuesta_esperada": "No, está exento. La guía del SRI para contribuyentes sobre ingresos exentos del Impuesto a la Renta (Art. 9 de la LRTI) señala entre los ingresos exonerados: \"Los provenientes de premios de loterías o sorteos auspiciados por la Junta de Beneficencia de Guayaquil y por Fe y Alegría.\" Nótese que esta exención es específica para esos dos auspiciantes; los premios de loterías, rifas o sorteos de otros organizadores no están amparados por esta exención puntual y se rigen por las reglas generales de retención en la fuente.",
+    "fuente_documento": "art9_exenciones_lrti_sri.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/e6c5f5af-9384-4ef5-96b2-455a71fd617d/Art.+9+Exenciones.pdf",
+    "articulo_norma": "Art. 9 de la Ley de Régimen Tributario Interno (Ingresos exentos)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como guía para contribuyentes sobre ingresos exentos del Impuesto a la Renta vigente."
+    }
+  },
+  {
+    "id": "q74",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Al calcular la base imponible de Impuesto a la Renta de un empleado en relación de dependencia, ¿debo incluir como ingreso gravado los valores que recibió por Décimo Tercer y Décimo Cuarto Sueldo?",
+    "respuesta_esperada": "No, esos valores están exentos y no se incluyen en la base imponible del Impuesto a la Renta. La guía del SRI para contribuyentes sobre ingresos exentos del Impuesto a la Renta (Art. 9 de la LRTI) incluye expresamente entre los ingresos exonerados: \"Las Décima Tercera y Décima Cuarta Remuneraciones.\"",
+    "fuente_documento": "art9_exenciones_lrti_sri.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/e6c5f5af-9384-4ef5-96b2-455a71fd617d/Art.+9+Exenciones.pdf",
+    "articulo_norma": "Art. 9 de la Ley de Régimen Tributario Interno (Ingresos exentos)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como guía para contribuyentes sobre ingresos exentos del Impuesto a la Renta vigente."
+    }
+  },
+  {
+    "id": "q75",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Mi empresa cliente va a contratar formalmente a 3 jóvenes de 22 años recién graduados de una universidad pública, generando un incremento neto de plazas de trabajo. ¿Tiene algún incentivo tributario en el Impuesto a la Renta por esas nuevas contrataciones?",
+    "respuesta_esperada": "Sí, una deducción adicional del 75% sobre el gasto de sueldos y salarios de esos nuevos empleados (con aporte a la seguridad social). El Art. 6 de la Ley Orgánica de Eficiencia Económica y Generación de Empleo, que agrega el numeral 9.2 al Art. 10 de la LRTI, establece: \"El contribuyente que genere incremento neto de plazas de trabajo para jóvenes entre los dieciocho (18) y los veinte y nueve (29) años de edad, así como para las personas obligadas a pagar pensiones alimenticias tendrán una deducción adicional del cincuenta por ciento (50%) respecto del gasto de sueldos y salarios sobre los que se haya aportado a la seguridad social. La deducción adicional será del setenta y cinco por ciento (75%) si las nuevas plazas de trabajo son de jóvenes entre los dieciocho (18) y los veinte y nueve (29) años de edad graduados o egresados de universidad públicas e institutos superiores técnicos, tecnológicos, pedagógicos, de artes y conservatorios superiores o de instituciones educativas públicas, municipales o fiscomisionales.\" Como los 3 jóvenes tienen 22 años y se graduaron de una universidad pública, corresponde la deducción adicional del 75%, siempre que los contratos se inscriban en el Ministerio del Trabajo y la empresa esté al día con el SRI, el IESS y el Ministerio del Trabajo.",
+    "fuente_documento": "ley_eficiencia_economica_empleo.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/bc4b9983-05f1-4a7a-a7c6-8a7cb2ec5572/LEY%20ORG%C3%81NICA%20DE%20EFICIENCIA%20ECON%C3%93MICA%20Y%20GENERACI%C3%93N%20DE%20EMPLEO.pdf",
+    "articulo_norma": "Art. 6 de la Ley Orgánica de Eficiencia Económica y Generación de Empleo (que agrega el numeral 9.2 al Art. 10 de la LRTI)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La Ley Orgánica de Eficiencia Económica y Generación de Empleo fue publicada en el Suplemento del Registro Oficial 461 de 20 de diciembre de 2023; no consta derogatoria de este numeral detectada durante esta investigación, y el propio SRI la referencia como base legal vigente en los considerandos de la Resolución NAC-DGERCGC24-00000020 (ya usada como fuente en q40/q41 de este banco)."
+    }
+  },
+  {
+    "id": "q76",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Un cliente va a contratar a una persona que cumplió una pena privativa de libertad de 2 años y ya la cumplió en su totalidad, generando un incremento neto de plazas de trabajo. ¿Tiene algún incentivo tributario en Renta por esa contratación de reinserción laboral?",
+    "respuesta_esperada": "Sí, una deducción adicional del 75% sobre el gasto de sueldos y salarios de esa persona (con aporte a la seguridad social). El Art. 6 de la Ley Orgánica de Eficiencia Económica y Generación de Empleo, que agrega el numeral 9.3 al Art. 10 de la LRTI, establece: \"El contribuyente que genere incremento neto de plazas de trabajo para personas que hayan cumplido con una pena privativa de la libertad superior a un año, o a sus cónyuges o parejas en unión de hecho tendrán una deducción adicional del setenta y cinco por ciento (75%) respecto del gasto de sueldos y salarios sobre los que se haya aportado a la seguridad social; los contratos laborales deberán inscribirse en el Ministerio del Trabajo. La deducción adicional será del cincuenta por ciento (50%) si las nuevas plazas de trabajo están destinadas a personas que hubiesen estado privadas de la libertad sin sentencia condenatoria ejecutoriada.\" Como la persona cumplió una pena privativa de libertad de 2 años (superior a 1 año), corresponde la deducción adicional del 75%.",
+    "fuente_documento": "ley_eficiencia_economica_empleo.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/bc4b9983-05f1-4a7a-a7c6-8a7cb2ec5572/LEY%20ORG%C3%81NICA%20DE%20EFICIENCIA%20ECON%C3%93MICA%20Y%20GENERACI%C3%93N%20DE%20EMPLEO.pdf",
+    "articulo_norma": "Art. 6 de la Ley Orgánica de Eficiencia Económica y Generación de Empleo (que agrega el numeral 9.3 al Art. 10 de la LRTI)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Publicada en el Suplemento del Registro Oficial 461 de 20 de diciembre de 2023; no consta derogatoria de este numeral detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q77",
+    "categoria": "Otros",
+    "pregunta": "Quiero presentar en nombre de mi cliente sociedad una consulta tributaria formal dirigida al Director General del SRI, para tener seguridad jurídica sobre cómo tratar un caso específico. ¿Necesito la firma de un abogado en el escrito, y puedo impugnar la respuesta si no me gusta?",
+    "respuesta_esperada": "Sí necesita firma de abogado patrocinador, y no, no podrá impugnar la respuesta. La guía institucional vigente del SRI sobre consultas vinculantes señala: \"Las consultas jurídico-tributarias dirigidas al Director General del Servicio de Rentas Internas, requieren para su atención firma de abogado patrocinador y el cumplimiento de todos los requisitos legales establecidos en los artículos 135 y 136 del Código Tributario. Los contribuyentes o entidades consultantes, no podrán interponer reclamo, recurso o acción judicial alguna contra el acto que absuelva su consulta.\"",
+    "fuente_documento": "guia_consultas_vinculantes_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/consultas-vinculantes-sobre-el-regimen-juridico-tributario",
+    "articulo_norma": "Guía institucional \"Consultas vinculantes sobre el Régimen Jurídico Tributario\" del SRI (base legal: Arts. 135 y 136 del Código Tributario)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/consultas-vinculantes-sobre-el-regimen-juridico-tributario; se descargó copia en PDF de la página para respaldo (guia_consultas_vinculantes_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q78",
+    "categoria": "Otros",
+    "pregunta": "Presenté una consulta tributaria formal a nombre de mi cliente, pero el SRI me notificó que el escrito es oscuro y no reúne todos los requisitos legales. ¿Qué pasa si no la corrijo?",
+    "respuesta_esperada": "Se tendrá por no presentada. La guía institucional vigente del SRI sobre consultas vinculantes establece: \"Si la consulta fuere obscura o no reuniere los requisitos previstos para tal efecto, la Administración Tributaria dispondrá que se la aclare o complete en el plazo de diez días; y, de no hacerlo se tendrá por no presentada.\" Por lo tanto, se cuenta con 10 días para aclarar o completar el escrito de consulta; si no se cumple ese plazo, la consulta se tiene por no presentada.",
+    "fuente_documento": "guia_consultas_vinculantes_sri_vigente_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/consultas-vinculantes-sobre-el-regimen-juridico-tributario",
+    "articulo_norma": "Guía institucional \"Consultas vinculantes sobre el Régimen Jurídico Tributario\" del SRI (base legal: Arts. 135 y 136 del Código Tributario)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/consultas-vinculantes-sobre-el-regimen-juridico-tributario; se descargó copia en PDF de la página para respaldo (guia_consultas_vinculantes_sri_vigente_2026.pdf)."
+    }
+  },
+  {
+    "id": "q79",
+    "categoria": "Otros",
+    "pregunta": "Un cliente tiene una deuda firme de Impuesto a la Renta (no de IVA ni de retenciones) y no puede pagarla de contado. Quiere solicitar facilidades de pago sin entregar ninguna garantía. ¿Hasta qué plazo puede solicitar y cuánto debe pagar como cuota inicial?",
+    "respuesta_esperada": "Puede solicitar hasta 24 meses sin garantía, pagando el 20% de la obligación como cuota inicial. La guía institucional del SRI sobre facilidades de pago señala: \"Los contribuyentes podrán solicitar al Director Zonal del Servicio de Rentas Internas facilidades de pago cancelando el 20% de la obligación tributaria y el saldo restante se podrá cancelar en un plazo de hasta 24 meses sin garantía.\" Si en cambio requiriera hasta 48 meses (4 años), necesitaría entregar garantías suficientes: \"Los contribuyentes podrán solicitar al Director General del SRI facilidades de pago con un plazo de hasta 4 años, siempre y cuando se entreguen garantías suficientes que respalden el pago del saldo de la deuda (...) se deberá garantizar la obligación tributaria sobre el ciento diez por ciento (110%) del saldo.\" Cabe recordar que esto solo aplica a deudas distintas de impuestos percibidos o retenidos, ya que el Art. 152 del Código Tributario prohíbe conceder facilidades de pago sobre los tributos percibidos y retenidos por agentes de percepción y retención.",
+    "fuente_documento": "facilidades_pago_extracto.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/f3fe4a4f-1691-459e-bd22-cbab0f4082d1/Facilidades+de+Pago.pdf",
+    "articulo_norma": "Guía institucional del SRI sobre Facilidades de Pago (base legal: Arts. 152 y 153 del Código Tributario y Resolución NAC-DGERCGC15-00000249)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, cruzado con el texto del Art. 152 del Código Tributario (ya descargado en data/Otros/codigo_tributario_20_junio_2023.pdf, usado como fuente en q42-q46 de este banco), que en su último inciso confirma textualmente: \"No se concederán facilidades de pago sobre los tributos percibidos y retenidos por agentes de percepción y retención (...)\", y con el Art. 153 del mismo Código, que confirma el plazo de 24 meses y la cuota inicial del 20%."
+    }
+  },
+  {
+    "id": "q80",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Soy el contador de una empresa (agente de retención) con RUC cuyo noveno dígito es 3. ¿Hasta qué fecha tengo plazo para presentar el Anexo de Retenciones en la Fuente bajo Relación de Dependencia (RDEP) de mis empleados del ejercicio anterior?",
+    "respuesta_esperada": "Hasta el 25 de enero. El Art. 4 de la Resolución No. NAC-DGERCGC24-00000002 (reformado por el Art. 1 de la Resolución Nro. NAC-DGERCGC24-00000037) establece: \"Plazo para la presentación.- El Anexo RDEP deberá ser presentado según el noveno dígito del Registro Único de Contribuyentes RUC del respectivo sujeto obligado, conforme el siguiente cuadro: (...) Si el noveno dígito es 3, Fecha máxima de entrega: 25 de enero (...) Cuando una fecha de vencimiento coincida con días de descanso obligatorio o feriados, aquella se trasladará al siguiente día hábil.\"",
+    "fuente_documento": "NAC-DGERCGC24-00000037.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=73679b20-66be-4568-871a-a7801072c9e4&nombre=NAC-DGERCGC24-00000037.pdf",
+    "articulo_norma": "Art. 1 de la Resolución Nro. NAC-DGERCGC24-00000037, que sustituye el Art. 4 de la Resolución No. NAC-DGERCGC24-00000002",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La Resolución fue dictada el 04 de diciembre de 2024 y reforma directamente la resolución base del Anexo RDEP (NAC-DGERCGC24-00000002, de enero de 2024), sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q81",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "En el año, mi empresa cliente no tuvo ningún empleado en relación de dependencia con ingresos sujetos a retención. ¿De todas formas debe presentar el Anexo RDEP?",
+    "respuesta_esperada": "Sí, la presentación es obligatoria incluso si no se generó ninguna retención en el período. La Resolución Nro. NAC-DGERCGC24-00000037 (que reforma el Art. 4 de la Resolución No. NAC-DGERCGC24-00000002) establece: \"Los sujetos obligados deberán presentar el Anexo RDEP establecido en la presente Resolución, inclusive en aquellos casos en que durante el período, no se haya generado ninguna retención.\"",
+    "fuente_documento": "NAC-DGERCGC24-00000037.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=73679b20-66be-4568-871a-a7801072c9e4&nombre=NAC-DGERCGC24-00000037.pdf",
+    "articulo_norma": "Art. 1 de la Resolución Nro. NAC-DGERCGC24-00000037, que sustituye el Art. 4 de la Resolución No. NAC-DGERCGC24-00000002",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Resolución dictada el 04 de diciembre de 2024, sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q82",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "Mi cliente sociedad distribuyó dividendos a sus accionistas (personas naturales residentes) tanto en julio de 2025 como en octubre de 2025. ¿El tratamiento del Impuesto a la Renta sobre esos dividendos es el mismo en ambos casos?",
+    "respuesta_esperada": "No, cambió el régimen a partir de septiembre de 2025. El Boletín institucional del SRI sobre el Anexo de Dividendos (ADI) correspondiente a 2025 explica: \"Para el ejercicio fiscal 2025 existen dos regímenes aplicables, dependiendo de la fecha de distribución de los dividendos: Régimen general: vigente hasta agosto de 2025, en el que el ingreso gravado corresponde al 40% del monto del dividendo distribuido, antes de la entrada en vigencia de la Ley Orgánica de Transparencia Social. Régimen de impuesto único: aplicable desde septiembre de 2025, conforme al artículo 39.2 de la Ley de Régimen Tributario Interno, en el que el ingreso gravado corresponde al 100% del dividendo distribuido, tras la vigencia de la Ley Orgánica de Transparencia Social.\" Por lo tanto, el dividendo distribuido en julio de 2025 tributa sobre el 40% del monto distribuido (régimen general), mientras que el distribuido en octubre de 2025 tributa como impuesto único sobre el 100% del dividendo distribuido.",
+    "fuente_documento": "boletin_027_anexo_dividendos_2025.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/f890fb00-2e88-443e-8122-f59be8cf9096/BOLET%C3%8DN%20BOLET%C3%8DN%20027%20-%20EN%20MAYO%20SE%20DEBE%20PRESENTAR%20EL%20ANEXO%20DE%20DIVIDENDOS%20CORRESPONDIENTE%20AL%202025.pdf",
+    "articulo_norma": "Boletín institucional NAC-COM-26-027 del SRI (11 de mayo de 2026); Art. 39.2 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, un boletín institucional emitido el 11 de mayo de 2026 (posterior a la reforma de la Ley Orgánica de Transparencia Social de 2025), por lo que refleja el régimen de dividendos vigente y aplicable a la fecha de consulta de este banco (2026-08-13)."
+    }
+  },
+  {
+    "id": "q83",
+    "categoria": "Impuesto a la Renta",
+    "pregunta": "¿Quiénes están obligados a presentar el Anexo de Dividendos (ADI) ante el SRI, y hasta qué fecha debe presentarlo una sociedad cuyo RUC tiene noveno dígito 8?",
+    "respuesta_esperada": "Están obligadas las sociedades nacionales y extranjeras residentes o establecidas en Ecuador, las organizaciones de la economía popular y solidaria, y las personas naturales residentes que reciban dividendos del exterior; la sociedad con noveno dígito 8 debe presentarlo hasta el 24 de mayo. El Boletín institucional del SRI señala: \"Deben cumplir con esta obligación: Sociedades nacionales y extranjeras, incluidas las de economía mixta, residentes o establecidas en el Ecuador. Sociedades nacionales o extranjeras residentes o establecidas en el Ecuador y personas naturales residentes en el país, la información relativa a dividendos que les hayan sido distribuidos durante el periodo reportado, provenientes de sociedades extranjeras no residentes ni establecidas en el Ecuador. Organizaciones sujetas al régimen de la Ley Orgánica de la Economía Popular y Solidaria y del Sector Financiero Popular y Solidario.\" Y en cuanto al plazo: \"Los contribuyentes obligados deben presentar el ADI de acuerdo con el noveno dígito de su RUC (...) Si el noveno dígito es 8, Fecha de vencimiento (hasta el día): 24 de mayo.\"",
+    "fuente_documento": "boletin_027_anexo_dividendos_2025.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/f890fb00-2e88-443e-8122-f59be8cf9096/BOLET%C3%8DN%20BOLET%C3%8DN%20027%20-%20EN%20MAYO%20SE%20DEBE%20PRESENTAR%20EL%20ANEXO%20DE%20DIVIDENDOS%20CORRESPONDIENTE%20AL%202025.pdf",
+    "articulo_norma": "Boletín institucional NAC-COM-26-027 del SRI (11 de mayo de 2026)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, boletín institucional emitido el 11 de mayo de 2026, con el calendario de vencimientos 2026 vigente a la fecha de consulta de este banco (2026-08-13)."
+    }
+  },
+  {
+    "id": "q84",
+    "categoria": "Retenciones en la fuente",
+    "pregunta": "Un empleado tiene un solo empleador durante todo el año, no utiliza gastos personales para reducir su Impuesto a la Renta, y su empleador ya le entregó el comprobante de retenciones bajo relación de dependencia. ¿Ese empleado igual tiene que presentar su propia declaración de Impuesto a la Renta como persona natural?",
+    "respuesta_esperada": "No necesariamente: el comprobante de retención que le entrega el empleador hace las veces de declaración en ese caso. La Resolución Nro. NAC-DGERCGC24-00000037, en sus considerandos (que reproducen la regla del Art. 96 del Reglamento para la Aplicación de la LRTI), señala: \"Los comprobantes de retención entregados por el empleador, de acuerdo con las normas de este artículo, se constituirán en la declaración del trabajador que perciba ingresos provenientes únicamente de su trabajo en relación de dependencia con un solo empleador, para el caso de empleados que no utilicen gastos personales.\" Es decir, si el trabajador tuvo un solo empleador y no dedujo gastos personales, el comprobante de retención del empleador sustituye a su declaración individual de Impuesto a la Renta.",
+    "fuente_documento": "NAC-DGERCGC24-00000037.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=73679b20-66be-4568-871a-a7801072c9e4&nombre=NAC-DGERCGC24-00000037.pdf",
+    "articulo_norma": "Art. 96 del Reglamento para la Aplicación de la LRTI, citado en los considerandos de la Resolución Nro. NAC-DGERCGC24-00000037",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La regla se cita como vigente en los considerandos de una resolución dictada el 04 de diciembre de 2024, sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q85",
+    "categoria": "Fiscalidad Internacional",
+    "pregunta": "Un cliente extranjero no residente en Ecuador me presentó un certificado de residencia fiscal de su país para acogerse a los beneficios de un convenio de doble tributación. El certificado está en inglés y sin apostilla. ¿Es válido para el SRI tal como está?",
+    "respuesta_esperada": "No, falta cumplir requisitos formales de traducción y legalización. El Art. 134 del Reglamento para la Aplicación de la LRTI (Acreditación de residencia fiscal) establece: \"Para aplicar las respectivas disposiciones sobre residencia fiscal o para acogerse a los beneficios de convenios internacionales ratificados por el Ecuador, con el fin de evitar la doble imposición internacional, los contribuyentes deberán acreditar su residencia fiscal. La acreditación de la residencia fiscal de una persona en otro país o jurisdicción se sustentará con el certificado de residencia fiscal vigente para el período fiscal en análisis emitido por su respectiva autoridad competente, el cual deberá contener la traducción certificada al castellano y autenticación de cónsul ecuatoriano o apostilla.\" Por lo tanto, el certificado debe llevar traducción certificada al castellano y, además, autenticación de cónsul ecuatoriano o apostilla.",
+    "fuente_documento": "art134_acreditacion_residencia_fiscal.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/84e58d9a-0788-4f9f-bbb0-9badea77d008/Art.+134+Acreditaci%C3%B3n+de+residencia+fiscal.pdf",
+    "articulo_norma": "Art. 134 del Reglamento para la Aplicación de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de base legal vigente para el trámite de residencia fiscal."
+    }
+  },
+  {
+    "id": "q86",
+    "categoria": "Fiscalidad Internacional",
+    "pregunta": "Un cliente persona natural (ecuatoriano) vivió en Ecuador 190 días calendario durante el ejercicio fiscal (no consecutivos, con algunas ausencias esporádicas cortas). ¿Se lo considera residente fiscal del Ecuador para efectos del Impuesto a la Renta de ese ejercicio?",
+    "respuesta_esperada": "Sí. El Art. 4.1 de la Ley de Régimen Tributario Interno (Residencia fiscal de personas naturales) establece: \"Serán considerados residentes fiscales del Ecuador, en referencia a un ejercicio impositivo, las personas naturales que se encuentren en alguna de las siguientes condiciones: a) Cuando su permanencia en el país, incluyendo ausencias esporádicas sea de ciento ochenta y tres (183) días calendario o más, consecutivos o no, en el mismo periodo fiscal.\" Como el cliente permaneció 190 días (más de 183) en el mismo periodo fiscal, aunque no de forma consecutiva, se lo considera residente fiscal del Ecuador conforme al literal a).",
+    "fuente_documento": "residencia_fiscal_personas_naturales_ley.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0bcb30b5-61d5-4a50-854c-ad29c6748f49/Residencia%20Fiscal%20de%20personas%20naturales%20(Ley).pdf",
+    "articulo_norma": "Art. 4.1, literal a), de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de la LRTI vigente sobre residencia fiscal de personas naturales."
+    }
+  },
+  {
+    "id": "q87",
+    "categoria": "Fiscalidad Internacional",
+    "pregunta": "Un cliente persona natural no vivió en Ecuador más de 183 días este año, pero es titular indirecto de derechos representativos de capital de una sociedad residente en Ecuador por un valor de USD 1.500.000, y en años previos fue representante legal de esa sociedad. ¿Podría igual ser considerado residente fiscal ecuatoriano por el criterio de \"núcleo principal de sus actividades o intereses económicos\"?",
+    "respuesta_esperada": "Sí, existe una presunción legal en ese sentido (que admite prueba en contrario). El Art. 4.1, literal c), de la LRTI establece que se considera residente fiscal a quien tenga \"el núcleo principal de sus actividades o intereses económicos\" en Ecuador, y agrega: \"Se presumirá que una persona natural tiene el núcleo principal de sus actividades o intereses económicos en el país, cuando sea titular, de manera directa o indirecta, de activos situados en el Ecuador, incluyendo derechos representativos de capital de sociedades residentes o de establecimientos permanentes en el país, por un valor mayor a un millón de dólares de los Estados Unidos de América (USD 1 millón), y dicha persona natural, en cualquier momento previo o durante el ejercicio fiscal pertinente, haya: (...) iii. Ejercido como representante legal o apoderado de una sociedad residente en el Ecuador o de un establecimiento permanente en el Ecuador, de una sociedad no residente. La presunción referida en este acápite admite prueba en contrario.\" Como el cliente supera el USD 1 millón en derechos representativos de capital y fue representante legal de la sociedad ecuatoriana, se activa la presunción, salvo que el cliente logre desvirtuarla.",
+    "fuente_documento": "residencia_fiscal_personas_naturales_ley.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/0bcb30b5-61d5-4a50-854c-ad29c6748f49/Residencia%20Fiscal%20de%20personas%20naturales%20(Ley).pdf",
+    "articulo_norma": "Art. 4.1, literal c), de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de la LRTI vigente sobre residencia fiscal de personas naturales."
+    }
+  },
+  {
+    "id": "q88",
+    "categoria": "Vivienda de Interés Social",
+    "pregunta": "Mi cliente es una constructora que desarrolla un proyecto de vivienda de interés social calificado por el ente rector de vivienda. Pagó IVA en la compra local de materiales que no le dan derecho a crédito tributario en ese proyecto. ¿Puede recuperar ese IVA, y en qué plazo?",
+    "respuesta_esperada": "Sí, puede solicitar su devolución sin intereses en un plazo no mayor a 90 días. El artículo innumerado segundo a continuación del Art. 173 del Reglamento para la Aplicación de la LRTI (Devolución del IVA para proyectos de construcción de vivienda de interés social) establece: \"Las sociedades y las personas naturales que desarrollen proyectos de construcción de vivienda de interés social en proyectos calificados por parte del ente rector en materia de vivienda, tendrán derecho a que este impuesto les sea reintegrado, sin intereses, en un tiempo no mayor a noventa (90) días, a través de la emisión de la respectiva nota de crédito, acreditación en cuenta u otro medio de pago, respecto del IVA pagado en las adquisiciones locales de bienes y servicios, empleados para el desarrollo del proyecto, declaradas como adquisiciones que no dan derecho a crédito tributario (...)\". El mismo artículo aclara que el valor devuelto no podrá exceder el IVA registrado en el presupuesto calificado del proyecto.",
+    "fuente_documento": "reglamento_lrti_devolucion_iva_vis.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/3816c181-d229-4560-956c-14e95a71e4f5/Reglamento%20LRTI_art%C3%ADculo%20innumerado%20segundo%20a%20continuaci%C3%B3n%20del%20art.%20173.pdf",
+    "articulo_norma": "Artículo innumerado segundo a continuación del Art. 173 del Reglamento para la Aplicación de la LRTI",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. Norma agregada por el D.E. 617 (R.O. Suplemento 392, 20-XII-2018), vigente y desarrollada operativamente por la Resolución NAC-DGERCGC18-00000419 (ver q89 de este banco), sin derogatoria posterior detectada durante esta investigación."
+    }
+  },
+  {
+    "id": "q89",
+    "categoria": "Vivienda de Interés Social",
+    "pregunta": "Un constructor de vivienda de interés social ya utilizó como crédito tributario en su declaración de IVA un valor pagado en la compra de cemento. ¿Puede además pedir la devolución de ese mismo valor por el beneficio de vivienda de interés social?",
+    "respuesta_esperada": "No, no puede reclamarlo dos veces. El Art. 10 de la Resolución No. NAC-DGERCGC18-00000419 (Valores de IVA que no darán derecho a devolución) establece: \"Se excluyen de los valores sujetos a devolución, aquellos que hayan sido compensados mediante la figura de crédito tributario en su declaración, o de cualquier otra forma de conformidad con la Ley de Régimen Tributario Interno y su Reglamento de aplicación.\" Como el valor del cemento ya fue usado como crédito tributario en la declaración de IVA, está excluido del beneficio de devolución para vivienda de interés social.",
+    "fuente_documento": "NAC-DGERCGC18-00000419_VIS.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/b7b76c00-023d-4010-b0f3-732d90f79db9/NAC-DGERCGC18-00000419%20y%20sus%20reformas_VIS.pdf",
+    "articulo_norma": "Art. 10 de la Resolución No. NAC-DGERCGC18-00000419 y sus reformas",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec (texto consolidado \"y sus reformas\"), norma procedimental vigente que desarrolla el beneficio del artículo innumerado segundo a continuación del Art. 173 del Reglamento LRTI (ver q88 de este banco)."
+    }
+  },
+  {
+    "id": "q90",
+    "categoria": "RIVUT - Regularización de Activos en el Exterior",
+    "pregunta": "Un cliente que fue funcionario público en 2019 me pregunta si él (o una sociedad donde tuvo más del 10% de participación en esa época) podría haberse acogido al Régimen Impositivo Voluntario, Único y Temporal (RIVUT) para regularizar activos no declarados en el exterior.",
+    "respuesta_esperada": "No podía acogerse: los ex funcionarios públicos (y las sociedades en las que hayan tenido más del 10% de participación) están expresamente excluidos del RIVUT. La guía institucional del SRI sobre este régimen señala: \"No podrán acogerse al régimen las siguientes personas, ni los siguientes bienes, activos o rentas: (...) Las personas que hayan tenido la condición de funcionarios públicos en cualquier momento desde el inicio del ejercicio fiscal 2015 hasta el 29 de noviembre de 2021 y sus familiares; y las sociedades en las que los funcionarios públicos tengan o hayan tenido al 29 de noviembre de 2021 o hayan tenido en cualquier momento anterior desde el inicio del ejercicio fiscal 2015, una participación mayor al diez por ciento (10%) de los derechos representativos de capital o tengan o hayan tenido el control del destino de los beneficios económicos de la sociedad.\" Como el cliente fue funcionario público en 2019 (dentro del rango 2015-2021), tanto él como esa sociedad estaban excluidos del RIVUT.",
+    "fuente_documento": "guia_rivut_sri_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/regimen-impositivo-voluntario-unico-y-temporal-para-la-regularizacion-de-activos-en-el-exterior",
+    "articulo_norma": "Guía institucional del SRI sobre el Régimen Impositivo Voluntario, Único y Temporal (RIVUT), base legal: Ley Orgánica para el Desarrollo Económico y Sostenibilidad Fiscal tras la Pandemia COVID-19",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/regimen-impositivo-voluntario-unico-y-temporal-para-la-regularizacion-de-activos-en-el-exterior; se descargó copia en PDF de la página para respaldo (guia_rivut_sri_2026.pdf). Nota de vigencia: la ventana de acogimiento al RIVUT (declaración juramentada) se limitó al período comprendido entre el 1 de enero y el 31 de diciembre de 2022, por lo que este es un régimen ya cerrado a nuevas adhesiones; se mantiene documentado como referencia histórica vigente en la página institucional del SRI, de forma análoga al tratamiento dado al RISE en q52 de este banco."
+    }
+  },
+  {
+    "id": "q91",
+    "categoria": "RIVUT - Regularización de Activos en el Exterior",
+    "pregunta": "Un cliente que sí calificaba para el RIVUT presentó su declaración juramentada y pagó el impuesto único el 15 de junio de 2022. ¿Qué tarifa le correspondía aplicar sobre la base imponible?",
+    "respuesta_esperada": "4,5%. La guía institucional del SRI detalla la tabla de tarifas escalonadas según la fecha de declaración y pago: \"Si la declaración y pago se realiza hasta el 31 de marzo de 2022: 3,5%. Si la declaración y pago se realiza hasta el 30 de junio de 2022: 4,5%. Si la declaración y pago se realiza hasta el 31 de diciembre de 2022: 5,5%.\" Como el pago se realizó el 15 de junio de 2022 (dentro del segundo tramo, hasta el 30 de junio de 2022), correspondía la tarifa del 4,5% sobre la base imponible.",
+    "fuente_documento": "guia_rivut_sri_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/regimen-impositivo-voluntario-unico-y-temporal-para-la-regularizacion-de-activos-en-el-exterior",
+    "articulo_norma": "Guía institucional del SRI sobre el Régimen Impositivo Voluntario, Único y Temporal (RIVUT), sección \"¿Cuál es la tarifa y plazos de declaración?\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/regimen-impositivo-voluntario-unico-y-temporal-para-la-regularizacion-de-activos-en-el-exterior; se descargó copia en PDF de la página para respaldo (guia_rivut_sri_2026.pdf). Es información histórica (ejercicio 2022) que la página institucional del SRI mantiene publicada como registro vigente de las tarifas que efectivamente se aplicaron."
+    }
+  },
+  {
+    "id": "q92",
+    "categoria": "Beneficios Tributarios - Tercera Edad",
+    "pregunta": "Un cliente de 68 años tiene ingresos mensuales estimados de 4 remuneraciones básicas unificadas y un patrimonio que no supera las 500 remuneraciones básicas unificadas. Me pregunta si, por su sola condición de adulto mayor, está exonerado de todos los impuestos fiscales y municipales.",
+    "respuesta_esperada": "En principio sí está exonerado por cumplir los topes de ingreso y patrimonio, pero para los impuestos nacionales que administra el SRI la exoneración solo aplica en los casos que las leyes tributarias de cada impuesto lo señalen expresamente. El Art. 14 de la Ley Orgánica de las Personas Adultas Mayores (De las exoneraciones) establece: \"Toda persona que ha cumplido 65 años de edad y con ingresos mensuales estimados en un máximo de 5 remuneraciones básicas unificadas o que tuviere un patrimonio que no exceda de 500 remuneraciones básicas unificadas, estará exonerada del pago de impuestos fiscales y municipales. (...) Si la renta o patrimonio excede de las cantidades determinadas en el inciso primero, los impuestos se pagarán únicamente por la diferencia o excedente. Sobre los impuestos nacionales administrados por el Servicio de Rentas Internas sólo serán aplicables los beneficios expresamente señalados en las leyes tributarias que establecen dichos tributos.\" Como el cliente tiene 68 años, ingresos de 4 RBU (menos de 5) y patrimonio dentro del límite, cumple los topes generales del Art. 14; pero para cada impuesto administrado por el SRI (renta, IVA, IPVM, etc.) hay que verificar el beneficio específico que la ley de ese tributo establezca para adultos mayores.",
+    "fuente_documento": "art14_ley_anciano.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/e1a676c1-5ab7-4810-b6d2-08ce449f59af/Art%C3%ADculo+14+de+la+Ley+del+Anciano.pdf",
+    "articulo_norma": "Art. 14 de la Ley Orgánica de las Personas Adultas Mayores",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de base legal vigente, bajo el título actualizado \"Ley Orgánica de las Personas Adultas Mayores\" (sucesora de la antigua \"Ley del Anciano\")."
+    }
+  },
+  {
+    "id": "q93",
+    "categoria": "Beneficios Tributarios - Tercera Edad",
+    "pregunta": "Un cliente adulto mayor que no está inscrito en el mecanismo de devolución automática del IVA quiere pedir la devolución del IVA pagado en sus compras presentando directamente sus facturas físicas al SRI. ¿Qué requisito puntual deben cumplir esas facturas para sustentar la solicitud?",
+    "respuesta_esperada": "Deben ser los originales de las facturas y deben estar identificadas con los apellidos, nombres completos y número de cédula del adulto mayor. El Art. 4 del Reglamento para la Aplicación de los Beneficios Tributarios a favor del Anciano correspondientes a Impuestos Fiscales (Devolución del impuesto al valor agregado) establece: \"Toda persona mayor de 65 años de edad, dentro de los límites previstos en el artículo 14 de la Ley del Anciano, tendrá derecho a la devolución del impuesto al valor agregado. Para el efecto, el interesado deberá presentar al Servicio de Rentas Internas la correspondiente solicitud de devolución a la que acompañará el original de las facturas correspondientes en las cuales se encuentre plenamente identificado con sus apellidos y nombres completos y su número de cédula de ciudadanía. Estas facturas deberán cumplir con todos los demás requisitos previstos en el correspondiente reglamento.\"",
+    "fuente_documento": "art4_reglamento_beneficios_anciano.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/360c04a0-d391-4ab1-a037-6d5a32aadec9/Art%C3%ADculo+4+del+Reglamento+para+la+Aplicaci%C3%B3n+de+los+Beneficios+Tributarios+a+favor+del+Anciano.pdf",
+    "articulo_norma": "Art. 4 del Reglamento para la Aplicación de los Beneficios Tributarios a favor del Anciano correspondientes a Impuestos Fiscales",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de base legal vigente. Es un mecanismo de devolución manual/con solicitud, distinto y complementario del mecanismo de devolución automática ya verificado en q47 de este banco."
+    }
+  },
+  {
+    "id": "q94",
+    "categoria": "Sector Bananero",
+    "pregunta": "Una asociación de pequeños productores bananeros va a exportar directamente el banano que acopia de sus socios. ¿Qué tarifa del impuesto a la renta único del sector bananero le corresponde a esa exportación?",
+    "respuesta_esperada": "Hasta 1,25% sobre el valor de la exportación (la tarifa exacta puede reducirse por decreto ejecutivo dentro de un rango de entre 0,5% y 1,25%). El Art. 27, numeral 4, de la Ley de Régimen Tributario Interno (Impuesto a la renta único para las actividades del sector bananero) establece: \"Exportación de banano por medio de asociaciones de micro, pequeños y medianos productores. En este caso la venta local de cada productor a la asociación atenderá a lo dispuesto en el numeral 1 de este artículo. Las exportaciones, por su parte, estarán sujetas a una tarifa de hasta el 1,25%. Las exportaciones no se podrán calcular con precios inferiores al precio mínimo referencial de exportación fijado por la autoridad nacional de agricultura. La tarifa podrá modificarse mediante decreto ejecutivo, la que podrá establecerse por segmentos y entrará en vigencia a partir del siguiente período fiscal de su publicación, dentro de un rango de entre el 0,5% y el 1,25%.\"",
+    "fuente_documento": "art27_num4_lrti_banano.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/8adc24d1-18ae-4a4d-8415-e542082f6ea7/Adjunto%20el%20numeral%204%20del%20Art%C3%ADculo%2027.pdf",
+    "articulo_norma": "Art. 27, numeral 4, de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de la LRTI vigente sobre el régimen único del sector bananero."
+    }
+  },
+  {
+    "id": "q95",
+    "categoria": "Sector Bananero",
+    "pregunta": "Un cliente sociedad se dedica exclusivamente al cultivo, producción y exportación de banano, sujeto al impuesto a la renta único bananero. ¿Está obligado a calcular y pagar el anticipo de Impuesto a la Renta como cualquier otra sociedad del régimen general?",
+    "respuesta_esperada": "No. El Art. 27 de la Ley de Régimen Tributario Interno (Impuesto a la renta único para las actividades del sector bananero) establece: \"Los contribuyentes que se dediquen exclusivamente a las actividades señaladas en este artículo estarán exentos de calcular y pagar el anticipo del impuesto a la renta.\" Como el cliente se dedica exclusivamente a esas actividades bananeras, está exento del anticipo de Impuesto a la Renta.",
+    "fuente_documento": "art27_num4_lrti_banano.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar/8adc24d1-18ae-4a4d-8415-e542082f6ea7/Adjunto%20el%20numeral%204%20del%20Art%C3%ADculo%2027.pdf",
+    "articulo_norma": "Art. 27 de la Ley de Régimen Tributario Interno",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec, publicado por el SRI como extracto de la LRTI vigente sobre el régimen único del sector bananero."
+    }
+  },
+  {
+    "id": "q96",
+    "categoria": "Ganancias de Capital",
+    "pregunta": "Un accionista extranjero va a vender directamente (fuera de la bolsa de valores) sus acciones de una sociedad domiciliada en Ecuador a otro inversionista extranjero. ¿Con qué tarifa tributa la utilidad de esa venta en Ecuador?",
+    "respuesta_esperada": "Con una tarifa única del 10% sobre la utilidad, al momento de la enajenación. La Circular Nro. NAC-DGECCGC25-00000005 del SRI explica que \"el artículo 45 de la misma Ley sustituyó el artículo innumerado agregado a continuación del artículo 37 de la Ley de Régimen Tributario Interno y estableció que las utilidades que perciban las sociedades domiciliadas o no en el Ecuador y las personas naturales, ecuatorianas o extranjeras, residentes o no en el país, provenientes de la enajenación directa o indirecta de acciones, participaciones, otros derechos representativos de capital u otros derechos que permitan la exploración, explotación, concesión o similares; de sociedades domiciliadas o establecimientos permanentes en Ecuador, estarán sujetas, al momento de la enajenación, a un Impuesto a la Renta Único con tarifa del 10%.\" Además, la sociedad ecuatoriana cuyas acciones se enajenaron normalmente actúa como \"sustituto del contribuyente\" responsable del pago del impuesto (excepto cuando la transacción se realiza en bolsa de valores del Ecuador).",
+    "fuente_documento": "NAC-DGECCGC25-00000005.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=943380bb-9fb3-4bfe-8307-3ab449299985&nombre=NAC-DGECCGC25-00000005.pdf",
+    "articulo_norma": "Artículo innumerado agregado a continuación del Art. 37 de la Ley de Régimen Tributario Interno, citado en la Circular Nro. NAC-DGECCGC25-00000005",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La Circular NAC-DGECCGC25-00000005 es un instrumento interpretativo emitido en 2025 por el Director General del SRI, vigente a la fecha de consulta, que reproduce y explica el texto legal actualmente en vigor de la LRTI."
+    }
+  },
+  {
+    "id": "q97",
+    "categoria": "Ganancias de Capital",
+    "pregunta": "Ahora un accionista va a vender sus acciones de una sociedad ecuatoriana a través de la Bolsa de Valores de Quito, por un monto que representa el 15% del capital suscrito y pagado de la compañía, y la utilidad no supera las 50 fracciones básicas gravadas con tarifa cero de IR del año. ¿Debe pagar Impuesto a la Renta por esa utilidad?",
+    "respuesta_esperada": "No, en principio esa utilidad está exenta del Impuesto a la Renta. La Circular Nro. NAC-DGECCGC25-00000005 explica que el numeral 24 del Art. 9 de la LRTI establece que \"se encuentran exentas del Impuesto a la Renta las utilidades (...) provenientes de la enajenación directa o indirecta de acciones, participaciones, otros derechos representativos de capital u otros derechos que permitan la exploración, explotación, concesión o similares, de sociedades domiciliadas o establecimientos permanentes en Ecuador, realizadas en bolsas de valores ecuatorianas, hasta por un monto anual de cincuenta fracciones básicas gravadas con tarifa cero del pago del Impuesto a la Renta de personas naturales\", y que \"para que aplique la exención, el monto transferido debe ser inferior al 25% del capital suscrito y pagado de la compañía y que en caso de que la o las enajenaciones superen el 25% del capital suscrito y pagado de la compañía, la diferencia será gravada con una tarifa única para personas naturales y jurídicas, residentes o no residentes, del 5% sobre la utilidad obtenida en la venta.\" Como la venta se hizo en bolsa de valores ecuatoriana, representa solo el 15% del capital (menos del 25%) y la utilidad no supera las 50 fracciones básicas anuales, está exenta.",
+    "fuente_documento": "NAC-DGECCGC25-00000005.pdf",
+    "fuente_url": "https://www.sri.gob.ec/o/sri-portlet-biblioteca-alfresco-internet/descargar?id=943380bb-9fb3-4bfe-8307-3ab449299985&nombre=NAC-DGECCGC25-00000005.pdf",
+    "articulo_norma": "Numeral 24 del Art. 9 de la Ley de Régimen Tributario Interno, citado en la Circular Nro. NAC-DGECCGC25-00000005",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado por lectura directa del PDF oficial descargado de sri.gob.ec. La Circular NAC-DGECCGC25-00000005 es un instrumento interpretativo emitido en 2025 por el Director General del SRI, vigente a la fecha de consulta, que reproduce y explica el texto legal actualmente en vigor de la LRTI (reforma introducida por la Ley Orgánica para el Desarrollo Económico y Sostenibilidad Fiscal tras la Pandemia COVID-19, R.O. 587, 29-XI-2021)."
+    }
+  },
+  {
+    "id": "q98",
+    "categoria": "Ganancias de Capital",
+    "pregunta": "Un cliente persona natural va a vender un vehículo de su propiedad que no usa para su actividad económica habitual (venta ocasional, no es su giro de negocio) y luego, meses después, un terreno también de forma ocasional. ¿Están exentas de Impuesto a la Renta esas ganancias de capital, y hay algún límite en el número de ventas al año?",
+    "respuesta_esperada": "Sí, en principio están exentas, y el límite es de un máximo de 2 ventas ocasionales al año, tanto para personas naturales como para sociedades y para cualquier tipo de bien. La página institucional del SRI sobre la Ley Orgánica para el Alivio Financiero y Fortalecimiento Económico señala, entre las \"Otras disposiciones\" de dicha Ley: \"Se reforma la exoneración de Impuesto a la Renta por las ganancias de capital en la venta ocasional de inmuebles para que este beneficio alcance tanto a personas naturales como a sociedades para cualquier tipo de bien y máximo 2 veces al año.\" Es decir, el beneficio ya no se limita a inmuebles, sino que se extiende a cualquier tipo de bien enajenado ocasionalmente, con un tope de 2 operaciones por año.",
+    "fuente_documento": "ley_alivio_financiero_sri_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/ley-organica-para-el-alivio-financiero-y-fortalecimiento-economico",
+    "articulo_norma": "Página institucional del SRI \"Ley orgánica para el alivio financiero y fortalecimiento económico\"",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/ley-organica-para-el-alivio-financiero-y-fortalecimiento-economico; se descargó copia en PDF de la página para respaldo (ley_alivio_financiero_sri_2026.pdf)."
+    }
+  },
+  {
+    "id": "q99",
+    "categoria": "Devolución IVA a Proveedores de Exportadores",
+    "pregunta": "Mi cliente es proveedor directo de una empresa exportadora de banano (le vende materia prima que la exportadora luego exporta) y quiere solicitar la devolución del IVA de su crédito tributario no utilizado. ¿En qué plazo máximo debe el SRI resolver y notificarle su solicitud de devolución?",
+    "respuesta_esperada": "En un plazo máximo de 90 días hábiles desde el ingreso de la solicitud (ya sea por el mecanismo de devolución provisional automática o el excepcional). La guía institucional del SRI sobre la devolución del IVA a proveedores directos de exportadores de bienes señala, para la devolución provisional automática: \"El SRI emite una resolución con los valores reconocidos en atención a la solicitud ingresada, la cual se notifica al contribuyente en un plazo máximo de 90 días hábiles de manera electrónica, y que, posteriormente, de ser el caso, se reintegra la diferencia del valor reconocido mediante la emisión de una nueva nota de crédito desmaterializada.\" Y para la devolución excepcional: \"El SRI emite una resolución con los valores reconocidos en atención a la solicitud, la cual se notifica al contribuyente en un plazo máximo de 90 días hábiles, posteriormente se reintegrará el valor reconocido mediante la emisión de una nota de crédito desmaterializada.\"",
+    "fuente_documento": "guia_devolucion_iva_proveedores_exportadores_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/devolucion-del-iva-a-proveedores-directos-de-exportadores-de-bienes",
+    "articulo_norma": "Guía institucional del SRI sobre la Devolución del IVA a proveedores directos de exportadores de bienes (base legal: Art. 57 de la LRTI y Art. 173 del Reglamento para la Aplicación de la LRTI)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/devolucion-del-iva-a-proveedores-directos-de-exportadores-de-bienes; se descargó copia en PDF de la página para respaldo (guia_devolucion_iva_proveedores_exportadores_2026.pdf)."
+    }
+  },
+  {
+    "id": "q100",
+    "categoria": "Devolución IVA a Proveedores de Exportadores",
+    "pregunta": "Antes de presentar por primera vez una solicitud de devolución de IVA como proveedor directo de un exportador de bienes, ¿qué requisitos previos debe cumplir mi cliente respecto de sus declaraciones y anexos?",
+    "respuesta_esperada": "Debe estar inscrito en el RUC, no tener prescrito el derecho a la devolución, haber declarado el IVA del período solicitado y haber presentado el anexo transaccional simplificado de ese mismo período, entre otros. La guía institucional del SRI señala: \"Previo a la presentación de una solicitud de devolución del IVA, el proveedor directo de exportadores de bienes o el proveedor directo de empresas que sean de propiedad de los exportadores, deberán cumplir los siguientes requisitos: Requisitos previos: Encontrarse inscrito en el Registro Único de Contribuyentes (RUC). No haber prescrito el derecho a la devolución del IVA por el período solicitado. Haber efectuado los procesos de prevalidación. Encontrarse registrado en el catastro del sistema de devoluciones de IVA por internet para el mecanismo de devolución provisional automático. Haber declarado el IVA correspondiente al período solicitado. Haber presentado el anexo transaccional simplificado correspondiente al período solicitado.\"",
+    "fuente_documento": "guia_devolucion_iva_proveedores_exportadores_2026.pdf",
+    "fuente_url": "https://www.sri.gob.ec/devolucion-del-iva-a-proveedores-directos-de-exportadores-de-bienes",
+    "articulo_norma": "Guía institucional del SRI sobre la Devolución del IVA a proveedores directos de exportadores de bienes, sección \"Requisitos previos\" (base legal: Resolución No. NAC-DGERCGC22-00000020)",
+    "fecha_consulta": "2026-08-13",
+    "vigencia_verificada": {
+      "revisado": true,
+      "fecha": "2026-08-13",
+      "reforma_encontrada": null,
+      "nota": "Verificado en vivo el 2026-08-13 navegando en modo headed a https://www.sri.gob.ec/devolucion-del-iva-a-proveedores-directos-de-exportadores-de-bienes; se descargó copia en PDF de la página para respaldo (guia_devolucion_iva_proveedores_exportadores_2026.pdf)."
+    }
+  }
+]
