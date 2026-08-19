@@ -237,14 +237,25 @@ RAGAS_METRIC_NAMES = (
     "context_precision", "context_recall",
 )
 
+# Filas por tanda de juzgamiento RAGAS. evaluate() se llama una vez por tanda
+# en vez de una sola vez sobre todas las filas — con corridas grandes (cientos
+# de filas × juez cloud) un corte a mitad de camino (red, cuota, VM) antes
+# perdía las 5 columnas RAGAS de TODAS las filas, no solo las pendientes. Con
+# tandas chicas, cada una se checkpointea al CSV apenas termina (ver
+# checkpoint_path en _run_ragas) — un corte solo pierde la tanda en curso.
+RAGAS_BATCH_SIZE = 50
 
-def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: str) -> None:
-    """Corre RAGAS una sola vez sobre todas las filas y anota las 5 métricas
+
+def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: str,
+               checkpoint_path: "str | None" = None) -> None:
+    """Corre RAGAS en tandas de RAGAS_BATCH_SIZE filas y anota las 5 métricas
     in-place. answer_correctness/context_precision/context_recall usan
     ground_truth (respuesta_esperada de banco_preguntas_v3.json) como
     "reference" — comparan solape factual + similitud semántica contra la
     respuesta del sistema, no exigen texto idéntico. Filas sin retrieved_texts,
-    answer o ground_truth vacíos se saltan (RAGAS no tiene nada que evaluar)."""
+    answer o ground_truth vacíos se saltan (RAGAS no tiene nada que evaluar).
+    Si checkpoint_path se pasa, se reescribe el CSV completo tras cada tanda
+    — así una corrida larga no pierde el juzgamiento ya hecho ante un corte."""
     from ragas import evaluate, EvaluationDataset
     from ragas.metrics import (
         faithfulness, answer_relevancy, answer_correctness,
@@ -280,34 +291,44 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
               "o todas con [ERROR]).")
         return
 
-    print(f"[BENCHMARK] Corriendo RAGAS sobre {len(evaluable)} fila(s) "
-          f"(juez: {judge_model}, embeddings: {embedding_model})...", flush=True)
-
-    dataset = EvaluationDataset.from_list([
-        {
-            "user_input": r["question"],
-            "response": r["answer"],
-            "retrieved_contexts": r["retrieved_texts"],
-            "reference": r["ground_truth"],
-        }
-        for r in evaluable
-    ])
+    print(f"[BENCHMARK] Corriendo RAGAS sobre {len(evaluable)} fila(s) en tandas de "
+          f"{RAGAS_BATCH_SIZE} (juez: {judge_model}, embeddings: {embedding_model})...", flush=True)
 
     llm = make_judge_llm(judge_model, ollama_url)
     embeddings = make_embeddings(embedding_model)
-    result = evaluate(
-        dataset=dataset,
-        metrics=[faithfulness, answer_relevancy, answer_correctness, context_precision, context_recall],
-        llm=llm, embeddings=embeddings,
-    )
-    df = result.to_pandas()
 
     n_failed = {name: 0 for name in RAGAS_METRIC_NAMES}
-    for r, (_, row) in zip(evaluable, df.iterrows()):
-        for name in RAGAS_METRIC_NAMES:
-            val = _none_if_nan(row.get(name))
-            r[name] = val
-            n_failed[name] += val is None
+    n_batches = math.ceil(len(evaluable) / RAGAS_BATCH_SIZE)
+    for i in range(0, len(evaluable), RAGAS_BATCH_SIZE):
+        batch = evaluable[i:i + RAGAS_BATCH_SIZE]
+        batch_n = i // RAGAS_BATCH_SIZE + 1
+        print(f"[BENCHMARK] Juez RAGAS — tanda {batch_n}/{n_batches} ({len(batch)} fila(s))...", flush=True)
+
+        dataset = EvaluationDataset.from_list([
+            {
+                "user_input": r["question"],
+                "response": r["answer"],
+                "retrieved_contexts": r["retrieved_texts"],
+                "reference": r["ground_truth"],
+            }
+            for r in batch
+        ])
+        result = evaluate(
+            dataset=dataset,
+            metrics=[faithfulness, answer_relevancy, answer_correctness, context_precision, context_recall],
+            llm=llm, embeddings=embeddings,
+        )
+        df = result.to_pandas()
+
+        for r, (_, row) in zip(batch, df.iterrows()):
+            for name in RAGAS_METRIC_NAMES:
+                val = _none_if_nan(row.get(name))
+                r[name] = val
+                n_failed[name] += val is None
+
+        if checkpoint_path:
+            _write_csv(rows, checkpoint_path)
+            print(f"[BENCHMARK] Checkpoint guardado tras tanda {batch_n}/{n_batches}: {checkpoint_path}", flush=True)
 
     failed_report = ", ".join(f"{n}/{len(evaluable)} ({name})" for name, n in n_failed.items() if n)
     if failed_report:
@@ -595,6 +616,17 @@ def main():
           f"= {len(questions) * len(modes) * len(models)} corrida(s) de generación.", flush=True)
 
     os.makedirs(args.out_dir, exist_ok=True)
+
+    # Timestamp fijado ANTES de generar — csv_path se usa como checkpoint
+    # incremental durante la corrida (ver más abajo), no solo como destino
+    # final. Corridas largas (cientos de filas × modelo cloud, horas) antes
+    # no guardaban nada hasta el final — un corte de VM/red a mitad de
+    # camino perdía todo lo generado, cuota ya consumida incluida.
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_path = os.path.join(args.out_dir, f"benchmark_{ts}.csv")
+    html_path = os.path.join(args.out_dir, f"benchmark_{ts}.html")
+    summary_path = os.path.join(args.out_dir, f"benchmark_{ts}_summary.json")
+
     hybrid, response_agent, planner_agent, refiner_agent, validator_agent, log_agent, graph_available = _build_pipeline()
 
     rows = []
@@ -644,6 +676,7 @@ def main():
                     "retrieved_texts": result["retrieved_texts"],
                 }
                 rows.append(row)
+                _write_csv(rows, csv_path)  # checkpoint — ver comentario arriba
 
     if not rows:
         print("[BENCHMARK] No se generaron filas — nada que reportar.")
@@ -662,16 +695,11 @@ def main():
         for r in rows:
             for name in RAGAS_METRIC_NAMES:
                 r[name] = None
+        _write_csv(rows, csv_path)
     else:
         _run_ragas(rows, judge_model=judge_model, embedding_model=embedding_model,
-                   ollama_url=config.OLLAMA_URL)
-
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_path = os.path.join(args.out_dir, f"benchmark_{ts}.csv")
-    html_path = os.path.join(args.out_dir, f"benchmark_{ts}.html")
-    summary_path = os.path.join(args.out_dir, f"benchmark_{ts}_summary.json")
-
-    _write_csv(rows, csv_path)
+                   ollama_url=config.OLLAMA_URL, checkpoint_path=csv_path)
+        _write_csv(rows, csv_path)  # cada tanda ya checkpointea; esto solo cubre el caso "0 filas evaluables"
 
     meta = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
