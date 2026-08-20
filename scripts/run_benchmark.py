@@ -237,6 +237,12 @@ RAGAS_METRIC_NAMES = (
     "context_precision", "context_recall",
 )
 
+# Errores [ERROR] consecutivos que cortan la corrida sola en vez de seguir
+# gastando cuota cloud en puro fallo (ej. cuota Ollama Cloud agotada a
+# mitad de camino — cada intento siguiente también va a fallar y cuenta
+# igual contra la cuota semanal/de sesión). --resume retoma después.
+MAX_CONSECUTIVE_ERRORS = 3
+
 # Filas por tanda de juzgamiento RAGAS. evaluate() se llama una vez por tanda
 # en vez de una sola vez sobre todas las filas — con corridas grandes (cientos
 # de filas × juez cloud) un corte a mitad de camino (red, cuota, VM) antes
@@ -247,15 +253,17 @@ RAGAS_BATCH_SIZE = 50
 
 
 def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: str,
-               checkpoint_path: "str | None" = None) -> None:
+               csv_path: "str | None" = None, json_path: "str | None" = None) -> None:
     """Corre RAGAS en tandas de RAGAS_BATCH_SIZE filas y anota las 5 métricas
     in-place. answer_correctness/context_precision/context_recall usan
     ground_truth (respuesta_esperada de banco_preguntas_v3.json) como
     "reference" — comparan solape factual + similitud semántica contra la
     respuesta del sistema, no exigen texto idéntico. Filas sin retrieved_texts,
     answer o ground_truth vacíos se saltan (RAGAS no tiene nada que evaluar).
-    Si checkpoint_path se pasa, se reescribe el CSV completo tras cada tanda
-    — así una corrida larga no pierde el juzgamiento ya hecho ante un corte."""
+    Filas ya juzgadas en una corrida --resume anterior tampoco se reenvían
+    (ver _already_judged). Si csv_path/json_path se pasan, se checkpointea
+    tras cada tanda — así una corrida larga no pierde el juzgamiento ya
+    hecho ante un corte, y --resume puede retomar desde ahí."""
     from ragas import evaluate, EvaluationDataset
     from ragas.metrics import (
         faithfulness, answer_relevancy, answer_correctness,
@@ -270,15 +278,25 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
     # llamadas reales evaluando texto de error como si fuera una respuesta,
     # y encima el score real quedaba enmascarado por "0% cobertura" en vez
     # de un aviso claro de que la generación falló.
+    def _already_judged(r: dict) -> bool:
+        # Fila que viene de una corrida --resume anterior y ya tiene las 5
+        # métricas: no volver a gastar cuota del juez en algo ya evaluado.
+        # Una fila con NaN parcial (algún metric en None) NO cuenta como
+        # juzgada — se reintenta, es barato y puede que ahora sí parsee.
+        return all(r.get(name) is not None for name in RAGAS_METRIC_NAMES)
+
     n_error_answers = sum(1 for r in rows if r["answer"].strip().startswith("[ERROR]"))
+    n_already_judged = sum(1 for r in rows if _already_judged(r))
     evaluable = [
         r for r in rows
-        if r["answer"].strip() and not r["answer"].strip().startswith("[ERROR]")
+        if not _already_judged(r)
+        and r["answer"].strip() and not r["answer"].strip().startswith("[ERROR]")
         and r["retrieved_texts"] and r.get("ground_truth", "").strip()
     ]
     for r in rows:
-        for name in RAGAS_METRIC_NAMES:
-            r[name] = None
+        if not _already_judged(r):
+            for name in RAGAS_METRIC_NAMES:
+                r[name] = None
 
     if n_error_answers:
         print(f"[BENCHMARK] AVISO: {n_error_answers}/{len(rows)} fila(s) con respuesta "
@@ -286,9 +304,13 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
               f"Revisar que el modelo esté disponible: 'docker compose exec ollama ollama pull <modelo>' "
               f"para modelos locales, o que el modelo cloud no esté retirado.", flush=True)
 
+    if n_already_judged:
+        print(f"[BENCHMARK] {n_already_judged} fila(s) ya juzgada(s) en una corrida anterior "
+              f"(--resume) — no se vuelven a mandar al juez.", flush=True)
+
     if not evaluable:
         print("[BENCHMARK] Sin filas evaluables para RAGAS (respuestas, contexto o ground_truth vacíos, "
-              "o todas con [ERROR]).")
+              "todas con [ERROR], o todas ya juzgadas).")
         return
 
     print(f"[BENCHMARK] Corriendo RAGAS sobre {len(evaluable)} fila(s) en tandas de "
@@ -326,9 +348,12 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
                 r[name] = val
                 n_failed[name] += val is None
 
-        if checkpoint_path:
-            _write_csv(rows, checkpoint_path)
-            print(f"[BENCHMARK] Checkpoint guardado tras tanda {batch_n}/{n_batches}: {checkpoint_path}", flush=True)
+        if csv_path:
+            _write_csv(rows, csv_path)
+        if json_path:
+            _write_checkpoint_json(rows, json_path)
+        if csv_path or json_path:
+            print(f"[BENCHMARK] Checkpoint guardado tras tanda {batch_n}/{n_batches}.", flush=True)
 
     failed_report = ", ".join(f"{n}/{len(evaluable)} ({name})" for name, n in n_failed.items() if n)
     if failed_report:
@@ -353,6 +378,28 @@ def _write_csv(rows: list, path: str) -> None:
         writer.writeheader()
         for r in rows:
             writer.writerow(r)
+
+
+def _checkpoint_json_path(csv_path: str) -> str:
+    base = csv_path[:-4] if csv_path.endswith(".csv") else csv_path
+    return base + ".checkpoint.json"
+
+
+def _write_checkpoint_json(rows: list, path: str) -> None:
+    """Espejo de las filas en JSON, con lo que el CSV no persiste
+    (sobre todo retrieved_texts) — --resume lo necesita para poder juzgar
+    con RAGAS filas generadas en una corrida anterior sin re-generarlas.
+    El CSV (_write_csv) sigue siendo el artefacto legible para humanos;
+    este JSON es el que lee --resume, se sobreescribe entero cada vez
+    (mismo patrón que _write_csv, no un log append-only)."""
+    slim = [{k: v for k, v in r.items() if k != "vector_chunks"} for r in rows]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(slim, f, ensure_ascii=False)
+
+
+def _load_checkpoint_json(path: str) -> list:
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def _aggregate(rows: list, key: str) -> dict:
@@ -578,7 +625,17 @@ def main():
     parser.add_argument("--no-ragas", action="store_true",
                         help="Saltar RAGAS — solo mide tiempos (más rápido, útil para pruebas)")
     parser.add_argument("--out-dir", default=DEFAULT_OUT_DIR)
+    parser.add_argument("--run-id", default=None,
+                        help="Nombre fijo para los archivos de salida (en vez del timestamp) — "
+                             "necesario para poder usar --resume después. Ej. --run-id ragas_full")
+    parser.add_argument("--resume", action="store_true",
+                        help="Retomar una corrida anterior con el mismo --run-id: salta combos "
+                             "modelo×modo×pregunta ya generados y filas ya juzgadas por RAGAS. "
+                             "Requiere --run-id.")
     args = parser.parse_args()
+
+    if args.resume and not args.run_id:
+        parser.error("--resume requiere --run-id (así sabe qué corrida retomar)")
 
     from scripts.ragas_local import DEFAULT_JUDGE_MODEL, DEFAULT_EMBEDDING_MODEL
     import config
@@ -617,29 +674,50 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # Timestamp fijado ANTES de generar — csv_path se usa como checkpoint
-    # incremental durante la corrida (ver más abajo), no solo como destino
-    # final. Corridas largas (cientos de filas × modelo cloud, horas) antes
-    # no guardaban nada hasta el final — un corte de VM/red a mitad de
-    # camino perdía todo lo generado, cuota ya consumida incluida.
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_path = os.path.join(args.out_dir, f"benchmark_{ts}.csv")
-    html_path = os.path.join(args.out_dir, f"benchmark_{ts}.html")
-    summary_path = os.path.join(args.out_dir, f"benchmark_{ts}_summary.json")
+    # Nombre de archivo: --run-id fijo (necesario para --resume) o timestamp
+    # (corridas sueltas, sin retomar — comportamiento previo sin cambios).
+    # csv_path/json_path se usan como checkpoint incremental durante la
+    # corrida (ver más abajo), no solo como destino final. Corridas largas
+    # (cientos de filas × modelo cloud, horas) antes no guardaban nada hasta
+    # el final — un corte de VM/red/cuota a mitad de camino perdía todo lo
+    # generado.
+    base_name = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_path = os.path.join(args.out_dir, f"benchmark_{base_name}.csv")
+    html_path = os.path.join(args.out_dir, f"benchmark_{base_name}.html")
+    summary_path = os.path.join(args.out_dir, f"benchmark_{base_name}_summary.json")
+    json_checkpoint_path = _checkpoint_json_path(csv_path)
+
+    rows = []
+    done_keys = set()
+    if args.resume:
+        if os.path.isfile(json_checkpoint_path):
+            rows = _load_checkpoint_json(json_checkpoint_path)
+            done_keys = {(r["model"], r["mode_requested"], r["question"]) for r in rows}
+            print(f"[BENCHMARK] --resume: {len(rows)} fila(s) recuperada(s) de {json_checkpoint_path} "
+                  f"— se saltan esos combos modelo×modo×pregunta.", flush=True)
+        else:
+            print(f"[BENCHMARK] --resume: no hay checkpoint previo en {json_checkpoint_path} "
+                  f"— arranca de cero (va a quedar guardado para la próxima).", flush=True)
 
     hybrid, response_agent, planner_agent, refiner_agent, validator_agent, log_agent, graph_available = _build_pipeline()
 
-    rows = []
     total_runs = len(questions) * len(modes) * len(models)
     done = 0
+    consecutive_errors = 0
+    quota_likely_exhausted = False
     for model in models:
         for mode in modes:
+            if quota_likely_exhausted:
+                break
             if mode in ("graph_only", "hybrid") and not graph_available:
                 print(f"[BENCHMARK] Saltando modo {mode!r} — grafo no disponible.")
                 done += len(questions)
                 continue
             for q in questions:
                 done += 1
+                key = (model, mode, q["question"])
+                if key in done_keys:
+                    continue
                 print(f"[BENCHMARK] [{done}/{total_runs}] modelo={model} modo={mode} "
                       f"pregunta={q['question'][:60]!r}", flush=True)
                 result = _run_single(
@@ -676,7 +754,23 @@ def main():
                     "retrieved_texts": result["retrieved_texts"],
                 }
                 rows.append(row)
-                _write_csv(rows, csv_path)  # checkpoint — ver comentario arriba
+                _write_csv(rows, csv_path)                    # checkpoint humano
+                _write_checkpoint_json(rows, json_checkpoint_path)  # checkpoint para --resume
+
+                if row["answer"].strip().startswith("[ERROR]"):
+                    consecutive_errors += 1
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                        quota_likely_exhausted = True
+                        print(f"[BENCHMARK] AVISO: {consecutive_errors} errores seguidos — probable cuota "
+                              f"cloud agotada (ver el texto [ERROR] en la última fila del CSV). Se corta la "
+                              f"corrida acá para no seguir gastando cuota en puro fallo. Ya está guardado: "
+                              f"volvé a mandar el mismo comando con --resume cuando la cuota se reponga.",
+                              flush=True)
+                        break
+                else:
+                    consecutive_errors = 0
+            if quota_likely_exhausted:
+                break
 
     if not rows:
         print("[BENCHMARK] No se generaron filas — nada que reportar.")
@@ -696,10 +790,19 @@ def main():
             for name in RAGAS_METRIC_NAMES:
                 r[name] = None
         _write_csv(rows, csv_path)
+    elif quota_likely_exhausted:
+        # Mismo motivo que el corte de generación: si la cuota cloud ya se
+        # agotó, mandar las filas al juez (otro modelo cloud, misma cuenta)
+        # solo va a sumar más [ERROR]/NaN sin aportar nada. Se deja para el
+        # próximo --resume, cuando ya haya cuota repuesta.
+        print("[BENCHMARK] Se salta el juzgamiento RAGAS de esta corrida — cuota probablemente agotada "
+              "(ver aviso arriba). El próximo --resume retoma generación Y juzgamiento pendientes.",
+              flush=True)
     else:
         _run_ragas(rows, judge_model=judge_model, embedding_model=embedding_model,
-                   ollama_url=config.OLLAMA_URL, checkpoint_path=csv_path)
+                   ollama_url=config.OLLAMA_URL, csv_path=csv_path, json_path=json_checkpoint_path)
         _write_csv(rows, csv_path)  # cada tanda ya checkpointea; esto solo cubre el caso "0 filas evaluables"
+        _write_checkpoint_json(rows, json_checkpoint_path)
 
     meta = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
