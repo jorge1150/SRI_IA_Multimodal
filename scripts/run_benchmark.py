@@ -335,18 +335,47 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
             }
             for r in batch
         ])
-        result = evaluate(
-            dataset=dataset,
-            metrics=[faithfulness, answer_relevancy, answer_correctness, context_precision, context_recall],
-            llm=llm, embeddings=embeddings,
-        )
-        df = result.to_pandas()
+        # evaluate() puede tardar minutos y reintentar solo (RunConfig) ante
+        # fallos de red/cuota — si igual termina reventando (excepción dura,
+        # no NaN), no perder las tandas ya checkpointeadas: se corta el
+        # loop de tandas acá, no todo el script.
+        try:
+            result = evaluate(
+                dataset=dataset,
+                metrics=[faithfulness, answer_relevancy, answer_correctness, context_precision, context_recall],
+                llm=llm, embeddings=embeddings,
+            )
+            df = result.to_pandas()
+        except Exception as exc:
+            print(f"[BENCHMARK] AVISO: la tanda {batch_n}/{n_batches} del juez RAGAS reventó ({exc!r}) — "
+                  f"probable cuota cloud agotada a mitad del juzgamiento. Se corta acá, lo ya "
+                  f"juzgado queda guardado. Reintentá más tarde con --resume.", flush=True)
+            break
 
         for r, (_, row) in zip(batch, df.iterrows()):
             for name in RAGAS_METRIC_NAMES:
                 val = _none_if_nan(row.get(name))
                 r[name] = val
                 n_failed[name] += val is None
+
+        # Ninguna métrica de la tanda parseó — no es el "juez chico falla
+        # de vez en cuando" de ADR-0003 (eso es parcial), es más compatible
+        # con la cuota cloud agotada a mitad del juzgamiento (mismos
+        # RuntimeError de httpcore/anyio por conexiones canceladas que ya
+        # se vieron en generación). Seguir mandando tandas solo va a
+        # reintentar en fallo — se corta y se deja para el próximo --resume.
+        batch_failed = sum(1 for r in batch for name in RAGAS_METRIC_NAMES if r.get(name) is None)
+        batch_total = len(batch) * len(RAGAS_METRIC_NAMES)
+        if batch_total and batch_failed == batch_total:
+            print(f"[BENCHMARK] AVISO: 0/{batch_total} métricas parsearon en la tanda {batch_n}/{n_batches} "
+                  f"— probable cuota cloud agotada, no una falla puntual del juez. Se corta el juzgamiento "
+                  f"acá (las tandas anteriores ya quedaron guardadas). Reintentá más tarde con --resume.",
+                  flush=True)
+            if csv_path:
+                _write_csv(rows, csv_path)
+            if json_path:
+                _write_checkpoint_json(rows, json_path)
+            break
 
         if csv_path:
             _write_csv(rows, csv_path)
