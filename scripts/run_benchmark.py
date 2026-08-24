@@ -249,7 +249,16 @@ MAX_CONSECUTIVE_ERRORS = 3
 # perdía las 5 columnas RAGAS de TODAS las filas, no solo las pendientes. Con
 # tandas chicas, cada una se checkpointea al CSV apenas termina (ver
 # checkpoint_path en _run_ragas) — un corte solo pierde la tanda en curso.
-RAGAS_BATCH_SIZE = 50
+#
+# Bajado de 50 a 10 (2026-08-24): con un juez "thinking" (razona antes de
+# responder cada métrica, ver ADR-0016) cada tanda de 50 filas son 250
+# sub-evaluaciones (50 × 5 métricas) a ~5-45s cada una — 40-45 min por tanda.
+# Verificado en vivo en la demo VM: eso hace que un corte manual (Ctrl+C o
+# ssh caído, pensando que quedó colgado) casi siempre caiga a mitad de tanda
+# y pierda TODO ese progreso — nunca llega a guardar checkpoint. Con 10
+# filas (50 sub-evaluaciones) el checkpoint cae cada ~8-9 min: se ve avanzar
+# más seguido y un corte pierde mucho menos.
+RAGAS_BATCH_SIZE = 10
 
 
 def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: str,
