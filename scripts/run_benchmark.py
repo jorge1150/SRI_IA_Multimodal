@@ -302,10 +302,18 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
         and r["answer"].strip() and not r["answer"].strip().startswith("[ERROR]")
         and r["retrieved_texts"] and r.get("ground_truth", "").strip()
     ]
-    for r in rows:
-        if not _already_judged(r):
-            for name in RAGAS_METRIC_NAMES:
-                r[name] = None
+    # NO resetear a None las métricas de filas parcialmente juzgadas acá.
+    # Bug real encontrado en vivo (2026-08-24): esto reseteaba las 5 métricas
+    # de CUALQUIER fila sin las 5 completas — incluidas las que ya tenían
+    # 3-4 parseadas bien de una corrida anterior — y como el checkpoint
+    # escribe `rows` completo tras cada tanda, ese reset se grababa en disco
+    # aunque la fila reseteada todavía no hubiera llegado a re-procesarse en
+    # esta corrida. Resultado: cada `--resume` tiraba a la basura casi todo
+    # el juzgamiento previo (verificado: 189/800 filas juzgadas antes de un
+    # resume, 8/800 después). El loop de abajo (`r[name] = val` por fila
+    # tras cada tanda) ya sobrescribe cada métrica con el resultado fresco
+    # cuando esa fila se re-evalúa — no hace falta limpiar antes, y limpiar
+    # antes es lo que perdía datos ante cualquier corte a mitad de corrida.
 
     if n_error_answers:
         print(f"[BENCHMARK] AVISO: {n_error_answers}/{len(rows)} fila(s) con respuesta "
