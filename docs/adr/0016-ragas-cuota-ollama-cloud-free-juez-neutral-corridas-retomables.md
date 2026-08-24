@@ -138,3 +138,117 @@ docker compose exec app python scripts/run_benchmark.py \
   --judge-model nemotron-3-nano:30b-cloud \
   --run-id ragas_full --resume
 ```
+
+## Update 2026-08-24: bug de reset en `--resume`, juez alternativo vía API de Anthropic, muestra estratificada
+
+En producción (VM de demo), el `--resume` de arriba no aceleraba el
+juzgamiento — se sentía "atascado en el juez, vuelve a mandarlo". Dos
+causas reales, encontradas en vivo:
+
+**Bug de reset destructivo (ya arreglado, commit `ffd7106`)**: antes de
+cada tanda, `_run_ragas()` reseteaba a `None` las 5 métricas de
+CUALQUIER fila sin las 5 completas — incluidas filas con 3-4 métricas ya
+bien parseadas de una corrida anterior. Como el checkpoint escribe
+`rows` completo tras cada tanda, ese reset se grababa en disco aunque la
+fila reseteada no llegara a re-procesarse en esa corrida. Verificado en
+vivo: 189/800 filas juzgadas antes de un `--resume`, 8/800 después. Fix:
+sacar el reset — el loop de post-tanda ya sobrescribe cada métrica con
+el resultado fresco cuando esa fila se re-evalúa, no hace falta limpiar
+antes.
+
+**`RAGAS_BATCH_SIZE` bajado de 50 a 10**: con un juez "thinking" (razona
+antes de responder cada métrica), una tanda de 50 filas son 250
+sub-evaluaciones a 5-45s cada una — 40-45 min por tanda, y el checkpoint
+solo se guarda al CERRAR la tanda completa. Un corte a mitad (Ctrl+C,
+ssh caído) perdía toda la tanda. Con 10 filas el checkpoint cae cada
+~8-9 min.
+
+### Juez alternativo: API de Anthropic (Claude), no solo Ollama
+
+`scripts/ragas_local.py` — `is_claude_model()` + `make_claude_judge_llm()`.
+Si `--judge-model` empieza con `claude-`, `run_benchmark.py` enruta a la
+API de Anthropic (`langchain-anthropic`, `ANTHROPIC_API_KEY` en el
+entorno) en vez de Ollama. Motivación: cuota Free de Ollama Cloud +
+juez "thinking" lento hacía que 800 filas tomaran días repartidos en
+sesiones; la API de Anthropic es prepago sin techo semanal.
+
+**Gotchas encontrados en vivo, ambos con impacto real de costo/tiempo**:
+- `claude-sonnet-5` / `claude-opus-5` (thinking adaptativo por defecto)
+  devuelven `400 temperature is deprecated for this model` — no es un
+  parámetro que pasemos nosotros, es RAGAS mismo
+  (`ragas/llms/base.py: LangchainLLMWrapper.generate`) forzando
+  `langchain_llm.temperature = 1e-8` en cada llamada porque detecta el
+  atributo. Fix: usar `claude-sonnet-4-6` (generación anterior, sigue
+  aceptando `temperature`) en vez de parchear el wrapper.
+- `claude-haiku-4-5` con el `max_tokens` default del wrapper truncaba
+  sistemáticamente `answer_correctness`
+  (`LLMDidNotFinishException`, 0/2 parseadas en prueba real). Fix:
+  `ChatAnthropic(model=model, max_tokens=4096)` explícito en
+  `make_claude_judge_llm` — con eso, 100% cobertura también con Haiku.
+
+**Costo real medido (no estimado)**, cuenta API prepago separada de
+Claude Pro (ver CONTEXT.md "Cuota Ollama Cloud" — la API de Anthropic
+no tiene ese concepto, es saldo prepago que se agota y no se recarga
+solo salvo que se active recarga automática, que se dejó desactivada a
+propósito):
+- `claude-sonnet-4-6`: **~$0.34/fila** — 800 filas completas ≈ $270,
+  inviable con presupuesto de estudiante. Se abandonó como juez de la
+  corrida completa tras gastar ~$10 en una corrida parcial.
+- `claude-haiku-4-5` (con el fix de `max_tokens`): **~$0.04/fila** —
+  800 filas completas ≈ $32, mucho más viable, pero seguía por encima
+  del saldo disponible en el momento (quedaban $8.30).
+
+_Avoid_: asumir que el costo de un juez LLM escala solo con el precio
+por token publicado — el contexto recuperado (`retrieved_texts`) se
+reenvía COMPLETO en cada una de las 5 llamadas por fila (RAGAS no lo
+cachea entre métricas), así que el costo real por fila depende del
+tamaño del contexto de cada modo (`hybrid`/`agentic` mandan más
+contexto que `vector_only`), no solo del modelo.
+
+### Muestra estratificada (`scripts/sample_judge.py`) para avances de tesis con presupuesto/tiempo acotado
+
+Cuando ni el tiempo (Ollama Free, días) ni el presupuesto (Claude, ~$32
+para las 800 completas) alcanzan para un avance urgente, se juzga una
+muestra estratificada en vez de la corrida completa: N filas por cada
+combinación (`model`, `mode_requested`) de las ya generadas (la
+generación de las 800 respuestas no cuesta nada extra — ya está hecha;
+lo caro es solo el juzgamiento RAGAS).
+
+`scripts/sample_judge.py <judge_model> <n_por_celda> [celda1,celda2,...]`
+— celda = `"modelo|modo"`, sin filtro = todas las combinaciones
+presentes. Escribe el resultado DIRECTO en el checkpoint/CSV reales
+(a diferencia de un script de prueba descartable) — mismo formato que
+`run_benchmark.py`, así que es compatible con `--resume` después si se
+decide extender la muestra o completar el corpus entero más adelante.
+
+`scripts/regen_report.py` — regenera el HTML + `_summary.json` desde el
+checkpoint SIN re-correr generación ni juzgamiento, filtrando a solo las
+filas con las 5 métricas completas (evita que el reporte muestre
+cobertura tipo "40/200" — ruido — cuando en realidad se juzgó
+deliberadamente una muestra, no el corpus completo). Guarda con un
+nombre de archivo distinto (`benchmark_ragas_sample20*`, no
+`benchmark_ragas_full*`) para no pisar el reporte de la corrida completa
+cuando esa eventualmente se complete — la UI (`ui/interface.py`,
+`_load_latest_summary()`) toma el `*_summary.json` que ordene último
+alfabéticamente como "el más reciente", así que un nombre que ordene
+después de `..._full_summary.json` (ej. `..._sample20_summary.json`,
+`s` > `f`) se muestra automático sin cambios de código.
+
+**Resultado real de este avance (2026-08-24)**: 160 filas (20 por cada
+una de las 8 combinaciones modo×modelo), 100% cobertura en las 5
+métricas, juez `claude-haiku-4-5`. Costo real total de la sesión (incluye
+el experimento fallido con Sonnet 4.6 + el fix de una celda contaminada
+por un proceso que siguió corriendo en background más de lo esperado):
+$8.30 → $0.17, es decir **~$8.13 gastados**, más que el ~$6.40
+estimado (160 × $0.04) solo por los tropiezos del camino — lección para
+la próxima corrida: matar un proceso de juzgamiento con `sudo kill` y
+CONFIRMAR que terminó antes de seguir con otra cosa, no asumir que
+cortar el monitoreo corta el proceso.
+
+_Avoid_: mezclar en el mismo reporte filas juzgadas por jueces distintos
+(ej. nemotron + Claude, o Sonnet + Haiku) — jueces distintos no puntúan
+igual la misma respuesta; un promedio que mezcla ambos no es comparable
+entre celdas. Si un juez cambia a mitad de camino, resetear (a `None`)
+las filas ya juzgadas por el juez anterior antes de continuar con el
+nuevo — ver el bug de reset arriba para la forma correcta de hacerlo sin
+perder lo demás.

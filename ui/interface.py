@@ -1287,6 +1287,8 @@ def _benchmark_tab_top_html() -> str:
         </summary>
         <table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:10px" role="table">
           <tbody>
+            <tr><td style="color:#c4b5fd;padding:6px 10px;white-space:nowrap">Grupo / Modelo</td>
+                <td style="padding:6px 10px">Modo de recuperación (<code>vector_only</code>/<code>graph_only</code>/<code>hybrid</code>/<code>agentic</code>) o modelo LLM evaluado, según la tabla. <code>N</code> es la cantidad de filas del grupo &mdash; en una muestra parcial (no la corrida completa de 800), puede ser menor que el total de preguntas × modos.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px;white-space:nowrap">Planning</td>
                 <td style="padding:6px 10px">Solo en el modo <code>agentic</code> &mdash; tiempo en que el <strong>PlannerAgent</strong> decide, vía tool-calling de Ollama, si esta consulta necesita GraphRAG además del RAG vectorial (que siempre corre). Vacío (&mdash;) en los demás modos, que no tienen este paso.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px;white-space:nowrap">Retrieval</td>
@@ -1295,10 +1297,18 @@ def _benchmark_tab_top_html() -> str:
                 <td style="padding:6px 10px">Tiempo en que el LLM <em>redacta</em> la respuesta con ese contexto ya encontrado.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Total</td>
                 <td style="padding:6px 10px">Planning + Retrieval + Generación.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Tokens</td>
+                <td style="padding:6px 10px">Solo en la tabla "Por Modelo LLM" &mdash; tokens promedio consumidos generando la respuesta (no incluye los del juez RAGAS, que corre aparte).</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Faithfulness</td>
                 <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta está <em>basada</em> en el contexto recuperado, o el LLM inventó algo no sustentado ahí. Vacío (&mdash;) si se corrió con <code>--no-ragas</code>. Si ves "(2/3)" junto al número, el juez no logró evaluar todas las preguntas del grupo (limitación de usar un modelo chico como juez, ver ADR-0003/ADR-0011) — el promedio es solo de las que sí evaluó, y si son muy pocas aparece un aviso explícito abajo de la tabla.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Answer Relevancy</td>
                 <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; si la respuesta contesta la pregunta hecha, sin divagar. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Answer Correctness</td>
+                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; compara la respuesta contra la <code>respuesta_esperada</code> del Banco de Preguntas (ground truth), combinando solape factual y similitud semántica &mdash; no exige texto idéntico. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Context Precision</td>
+                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; de los fragmentos de contexto recuperados, qué proporción era realmente relevante para responder (ruido vs. señal en lo que trajo el retrieval). También compara contra la <code>respuesta_esperada</code>. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
+            <tr><td style="color:#c4b5fd;padding:6px 10px">Context Recall</td>
+                <td style="padding:6px 10px">0&ndash;1 (RAGAS) &mdash; de todo lo que la <code>respuesta_esperada</code> necesitaba, qué proporción efectivamente se encontró en el contexto recuperado. Bajo acá suele indicar que faltó traer algo clave, no que la respuesta esté mal redactada. Mismas reglas de vacío y "(N/total)" que Faithfulness.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">% Doc. correcto</td>
                 <td style="padding:6px 10px">De las preguntas con retrieval vectorial, en cuántas se recuperó el documento fuente real esperado (según el Banco de Preguntas SRI). Vacío en <code>graph_only</code> a propósito &mdash; ese modo nunca consulta ChromaDB.</td></tr>
             <tr><td style="color:#c4b5fd;padding:6px 10px">Grafo usado (planner)</td>
@@ -1309,7 +1319,9 @@ def _benchmark_tab_top_html() -> str:
           Más tiempo no es mejor respuesta: un modo con más contexto (ej.
           híbrido) tarda más en generar porque el LLM tiene más texto que
           procesar antes de responder, no porque "razone más". La calidad se
-          mide con Faithfulness / Answer Relevancy / % Doc. correcto.
+          mide con las 5 métricas RAGAS (Faithfulness / Answer Relevancy /
+          Answer Correctness / Context Precision / Context Recall) y
+          % Doc. correcto.
         </p>
       </details>
     """

@@ -278,7 +278,7 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
         faithfulness, answer_relevancy, answer_correctness,
         context_precision, context_recall,
     )
-    from scripts.ragas_local import make_judge_llm, make_embeddings
+    from scripts.ragas_local import make_judge_llm, make_claude_judge_llm, is_claude_model, make_embeddings
 
     # answer.startswith("[ERROR]"): ver ResponseAgent.generate() — mensaje de
     # error propio del proyecto (Ollama caído, modelo no encontrado/retirado,
@@ -333,7 +333,12 @@ def _run_ragas(rows: list, judge_model: str, embedding_model: str, ollama_url: s
     print(f"[BENCHMARK] Corriendo RAGAS sobre {len(evaluable)} fila(s) en tandas de "
           f"{RAGAS_BATCH_SIZE} (juez: {judge_model}, embeddings: {embedding_model})...", flush=True)
 
-    llm = make_judge_llm(judge_model, ollama_url)
+    # Juez Claude vía API de Anthropic en vez de Ollama Cloud (2026-08-24,
+    # ver ADR-0016 update): sin techo de cuota semanal, y sigue formato
+    # estructurado más confiable — debería subir cobertura RAGAS además de
+    # velocidad. Requiere ANTHROPIC_API_KEY en el entorno (cuenta de API
+    # separada de una suscripción Claude Pro).
+    llm = make_claude_judge_llm(judge_model) if is_claude_model(judge_model) else make_judge_llm(judge_model, ollama_url)
     embeddings = make_embeddings(embedding_model)
 
     n_failed = {name: 0 for name in RAGAS_METRIC_NAMES}
@@ -626,7 +631,8 @@ def _write_html(rows: list, by_mode: dict, by_model: dict, path: str, meta: dict
   {"" if ragas_enabled else '<p class="meta" style="color:#f59e0b">⚠ Esta corrida usó --no-ragas: las 5 métricas RAGAS quedan vacías a propósito (no es un error) — solo se midió tiempo. El ranking recomendado tampoco está disponible sin RAGAS.</p>'}
   <p class="meta" style="margin-top:24px">
     Faithfulness/Answer Relevancy/Answer Correctness/Context Precision/Context Recall
-    calculados con RAGAS, juez local vía Ollama (<code>{meta.get('judge_model', '')}</code>)
+    calculados con RAGAS, juez (<code>{meta.get('judge_model', '')}</code>, vía Ollama o API de
+    Anthropic según el modelo)
     y embeddings <code>{meta.get('embedding_model', '')}</code> — no comparables con
     benchmarks que usan GPT-4 como juez, solo entre sí (mismo juez en todas
     las filas). Answer Correctness/Context Precision/Context Recall usan como

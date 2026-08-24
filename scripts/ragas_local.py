@@ -28,6 +28,47 @@ def make_judge_llm(model: str = DEFAULT_JUDGE_MODEL, ollama_url: str = "http://l
     return LangchainLLMWrapper(ChatOllama(model=model, base_url=ollama_url, temperature=0.0))
 
 
+def is_claude_model(model: str) -> bool:
+    """Nombres de modelo Claude ('claude-opus-5', 'claude-sonnet-5', ...) van
+    por la API de Anthropic (ANTHROPIC_API_KEY), no por Ollama — ver
+    make_claude_judge_llm."""
+    return model.startswith("claude-")
+
+
+def make_claude_judge_llm(model: str = "claude-sonnet-5"):
+    """Juez RAGAS vía API de Anthropic en vez de Ollama Cloud (2026-08-24).
+    Motivación: la cuota gratis de Ollama Cloud + un juez "thinking" lento
+    hacía que el juzgamiento completo (800 filas × 5 métricas) tomara días
+    repartido en varias sesiones (ver ADR-0016). Claude, además de no tener
+    techo de cuota semanal (es pago por token, prepago — ver CONTEXT.md),
+    sigue formato estructurado de forma mucho más confiable que un juez
+    abierto chico, lo que además debería subir la cobertura RAGAS (menos
+    filas sin parsear), no solo la velocidad.
+
+    Requiere `pip install langchain-anthropic` y `ANTHROPIC_API_KEY` en el
+    entorno (no es lo mismo que una suscripción Claude Pro — hace falta una
+    cuenta de API separada en console.anthropic.com).
+
+    Ojo self-preference bias (ADR-0016): no usar el mismo modelo como juez
+    y como uno de los modelos comparados en --models. Acá no aplica porque
+    los modelos comparados (gemma4:31b-cloud, gpt-oss:20b-cloud) son ambos
+    de Ollama Cloud, distintos de la familia Claude.
+
+    NO pasar temperature: en Claude Sonnet 5 / Opus 5 (thinking adaptativo
+    por defecto) el parámetro de sampling explícito devuelve
+    400 `temperature is deprecated for this model` — confirmado en vivo
+    (2026-08-24). Determinismo del juez queda a cargo del default del
+    modelo, no de temperature=0.
+
+    max_tokens=4096 explícito: el default del wrapper se quedaba corto con
+    claude-haiku-4-5 en answer_correctness (LLMDidNotFinishException,
+    0/2 parseadas en prueba real) — la respuesta se cortaba a mitad de la
+    salida estructurada que RAGAS exige."""
+    from langchain_anthropic import ChatAnthropic
+    from ragas.llms import LangchainLLMWrapper
+    return LangchainLLMWrapper(ChatAnthropic(model=model, max_tokens=4096))
+
+
 class LocalTextEmbeddings(BaseRagasEmbeddings):
     """
     sentence-transformers envuelto en la interfaz async que RAGAS exige.
